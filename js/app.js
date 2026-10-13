@@ -65,7 +65,8 @@ const prefersReducedMotion = () =>
 
 // --- Content loading and validation ---
 
-// Keeps only usable entries and sorts them by date. Throws if nothing usable remains.
+// Keeps only usable entries and sorts them by date.
+// Throws if nothing usable remains or if two doors share an id (ids key the door map).
 function normalizeContent(json) {
   if (!json || !Array.isArray(json.days)) throw new Error('days.json: "days" must be an array');
   const days = json.days
@@ -73,6 +74,11 @@ function normalizeContent(json) {
     .map((d) => ({ ...d, id: typeof d.id === 'string' && d.id ? d.id : `d-${d.date}` }))
     .sort((a, b) => a.date.localeCompare(b.date));
   if (days.length === 0) throw new Error('days.json: no valid days');
+  const ids = new Set();
+  for (const d of days) {
+    if (ids.has(d.id)) throw new Error(`days.json: duplicate id "${d.id}"`);
+    ids.add(d.id);
+  }
   return {
     title: typeof json.title === 'string' ? json.title : 'Adventskalender',
     recipient: typeof json.recipient === 'string' ? json.recipient : '',

@@ -75,7 +75,10 @@ export function mountDevPanel(api) {
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !panel.hidden) setPanelOpen(false);
+    if (e.key !== 'Escape' || panel.hidden) return;
+    const hadFocus = panel.contains(document.activeElement);
+    setPanelOpen(false);
+    if (hadFocus) toggle.focus();
   });
 
   function refresh() {
