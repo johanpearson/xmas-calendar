@@ -1,0 +1,189 @@
+{
+  "title": "Adventskalendern 2026",
+  "recipient": "Elin",
+  "days": [
+    {
+      "id": "d-2026-11-29",
+      "date": "2026-11-29",
+      "label": "1:a advent",
+      "type": "uppdrag",
+      "title": "Skånska Juldagarna på Bosjökloster",
+      "body": "Första advent! Idag åker vi till Skånska Juldagarna på Bosjökloster, alldeles här i Höör.\nVi strosar mellan stånden, äter något gott och låter Saga titta på allt som glittrar.\nKlä dig varmt, det blir en dag ute i kylan."
+    },
+    {
+      "id": "d-2026-12-01",
+      "date": "2026-12-01",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-02",
+      "date": "2026-12-02",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-03",
+      "date": "2026-12-03",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-04",
+      "date": "2026-12-04",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-05",
+      "date": "2026-12-05",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-06",
+      "date": "2026-12-06",
+      "label": "2:a advent",
+      "type": "uppdrag",
+      "title": "Vi bakar lussekatter",
+      "body": "Andra advent, och snart doftar hela huset saffran.\nIdag bakar vi lussekatter tillsammans. Saga får hjälpa till med russinen (och smaka på dem).\nSedan blir det kaffe och nybakat i soffan."
+    },
+    {
+      "id": "d-2026-12-07",
+      "date": "2026-12-07",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-08",
+      "date": "2026-12-08",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-09",
+      "date": "2026-12-09",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-10",
+      "date": "2026-12-10",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-11",
+      "date": "2026-12-11",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-12",
+      "date": "2026-12-12",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-13",
+      "date": "2026-12-13",
+      "label": "Lucia",
+      "type": "uppdrag",
+      "title": "Vi lussar för Saga och mormor",
+      "body": "Glad Lucia!\nNär vi hämtar Saga hos mormor kommer vi in med ljus och sång och lussar för dem båda.\nGlöm inte lussekatterna."
+    },
+    {
+      "id": "d-2026-12-14",
+      "date": "2026-12-14",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-15",
+      "date": "2026-12-15",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-16",
+      "date": "2026-12-16",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-17",
+      "date": "2026-12-17",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-18",
+      "date": "2026-12-18",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-19",
+      "date": "2026-12-19",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-20",
+      "date": "2026-12-20",
+      "label": "4:e advent",
+      "type": "uppdrag",
+      "title": "Glöggpromenad",
+      "body": "Fjärde advent. Vi fyller termosen med glögg och packar pepparkakor och en filt.\nSedan går vi en promenad vid Ringsjön, eller i skogen om det känns bättre.\nSaga åker i vagnen och vi njuter av mörkret och ljusen.",
+      "alternative": {
+        "title": "Mys hemma",
+        "body": "För blött och blåsigt? Då tar vi glöggen hemma i stället.\nVi tänder alla ljus, väljer en julfilm och kryper upp i soffan."
+      }
+    },
+    {
+      "id": "d-2026-12-21",
+      "date": "2026-12-21",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-22",
+      "date": "2026-12-22",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-23",
+      "date": "2026-12-23",
+      "type": "ledtrad",
+      "title": "TODO",
+      "body": "TODO"
+    },
+    {
+      "id": "d-2026-12-24",
+      "date": "2026-12-24",
+      "type": "rim",
+      "title": "Julaftonsrimmet",
+      "body": "Rimmet skrivs av Johan"
+    }
+  ]
+}

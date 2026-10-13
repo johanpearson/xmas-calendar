@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Adventskalender</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <main id="app" class="app">
+    <header class="app-header">
+      <h1 id="title" class="app-title">Adventskalender</h1>
+      <p id="subtitle" class="app-subtitle"></p>
+    </header>
+    <section id="special" class="special" hidden></section>
+    <section id="grid" class="grid" aria-label="Luckor"></section>
+  </main>
+
+  <dialog id="card" class="card" aria-labelledby="card-title">
+    <p id="card-date" class="card-date"></p>
+    <h2 id="card-title" class="card-title"></h2>
+    <div id="card-body" class="card-body"></div>
+    <form method="dialog"><button class="btn">Stäng</button></form>
+  </dialog>
+</body>
+</html>
