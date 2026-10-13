@@ -8,7 +8,17 @@ import {
   isBeforeDecember,
   msUntilNextMidnight,
 } from './dates.js';
-import { getOpened, markOpened } from './storage.js';
+import {
+  getOpened,
+  markOpened,
+  markAllOpened,
+  clearOpened,
+  isDevEnabled,
+  setDevEnabled,
+  applyDevParam,
+  getDateOverride,
+  setDateOverride,
+} from './storage.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -47,6 +57,7 @@ const state = {
   busy: false, // true while an opening animation runs
   midnightTimer: null,
   toastTimer: null,
+  onDoorsUpdated: null, // set by dev mode to keep its banner in sync
 };
 
 const prefersReducedMotion = () =>
@@ -77,8 +88,9 @@ async function loadContent() {
 
 // --- "Today" ---
 
+// The date override is only honoured while dev mode is on.
 function currentToday() {
-  return today(new Date());
+  return today(new Date(), isDevEnabled() ? getDateOverride() : null);
 }
 
 // --- Rendering ---
@@ -171,6 +183,7 @@ function updateDoors() {
     else status = isToday ? 'idag, redo att öppnas' : 'redo att öppnas';
     btn.setAttribute('aria-label', `${doorName(day)}, ${status}`);
   }
+  state.onDoorsUpdated?.();
 }
 
 // --- Interaction ---
@@ -291,7 +304,48 @@ function showError(err) {
 
 els.retry.addEventListener('click', () => location.reload());
 
+// Handles ?dev=on|off, then strips the parameter so it isn't bookmarked or shared.
+function handleDevParam() {
+  const url = new URL(location.href);
+  if (!applyDevParam(url)) return;
+  url.searchParams.delete('dev');
+  history.replaceState(null, '', url);
+}
+
+// Dev code is only loaded when the flag is set, so without it nothing dev related reaches the DOM.
+async function startDevMode() {
+  const { mountDevPanel } = await import('./dev.js');
+  state.onDoorsUpdated = mountDevPanel({
+    days: state.days,
+    realToday: () => today(new Date()),
+    effectiveToday: () => state.todayKey,
+    getOverride: getDateOverride,
+    setOverride(dateKey) {
+      setDateOverride(dateKey);
+      updateDoors();
+    },
+    openAll() {
+      markAllOpened(state.days.map((d) => d.id));
+      // Opened doors stay locked until their date, so jump to the last date to show them all.
+      const last = state.days[state.days.length - 1].date;
+      if (!isUnlocked(last, state.todayKey)) setDateOverride(last);
+      updateDoors();
+    },
+    resetOpened() {
+      clearOpened();
+      updateDoors();
+    },
+    disable() {
+      setDevEnabled(false);
+      location.reload();
+    },
+    toast: showToast,
+  });
+}
+
 async function init() {
+  handleDevParam();
+
   let content;
   try {
     content = await loadContent();
@@ -310,6 +364,14 @@ async function init() {
   els.loading.hidden = true;
   els.app.setAttribute('aria-busy', 'false');
   scheduleMidnight();
+
+  if (isDevEnabled()) {
+    try {
+      await startDevMode();
+    } catch (err) {
+      console.error('Dev mode failed to start', err);
+    }
+  }
 }
 
 init();

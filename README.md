@@ -16,6 +16,8 @@ npx serve
 
 Öppna sedan <http://localhost:8080/>.
 
+För att titta på telefonen i samma wifi: öppna `http://<datorns-ip>:8080/` där.
+
 ## Tester
 
 Kräver Node 20 eller senare. Inga beroenden behöver installeras.
@@ -25,6 +27,24 @@ node --test
 # eller
 npm test
 ```
+
+## Dev-läge
+
+Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
+
+- Slå på: besök appen med `?dev=on` en gång, t.ex. <http://localhost:8080/?dev=on>.
+  Flaggan sparas i `localStorage` och parametern tas bort ur adressfältet.
+- Slå av: besök `?dev=off` (eller knappen "Stäng av dev-läge" i panelen).
+  Då rensas även det simulerade datumet.
+- En gul runda "DEV" nere till höger öppnar panelen:
+  - **Simulerat datum**: åsidosätter "idag" (sparas). En gul banner visar
+    "DEV: simulerat datum ÅÅÅÅ-MM-DD" så länge det är aktivt.
+  - **Använd riktigt datum**: tar bort det simulerade datumet.
+  - **Öppna alla**: markerar alla luckor som öppnade.
+  - **Nollställ öppnade luckor**: glömmer vilka luckor som öppnats.
+- Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
+- OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
+  gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
 
 ## Lägga till och ändra luckor
 
@@ -49,3 +69,10 @@ Allt innehåll ligger i `content/days.json`. Varje lucka styrs av sitt `date`
 - Öppna-animationen (3D-flip) körs bara första gången. Redan öppnade luckor visar kortet direkt.
 - Innehållet hämtas med `cache: 'no-cache'` så att ändringar i `days.json` slår igenom
   utan hård omladdning.
+- "Öppna alla" markerar alla luckor som öppnade. Eftersom låsning alltid går före
+  (se ovan) sätts även det simulerade datumet till sista luckans datum om den inte redan
+  är upplåst, annars skulle knappen inte synas göra något.
+- Dev-panelen har en extra knapp, "Stäng av dev-läge", som gör samma sak som `?dev=off`.
+- `?dev=on`/`?dev=off` tas bort ur adressen efter att de lästs, så att en länk med
+  `?dev=on` inte sparas som bokmärke eller delas av misstag.
+- Ett simulerat datum som ligger kvar i `localStorage` ignoreras helt när dev-flaggan är av.

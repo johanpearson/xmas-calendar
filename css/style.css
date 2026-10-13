@@ -323,6 +323,72 @@ body {
 .btn-primary { background: var(--red); color: #fff; }
 .btn-secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
 
+/* --- Dev mode (elements only exist when the dev flag is set) --- */
+.dev-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: max(6px, env(safe-area-inset-top)) 16px 6px;
+  background: repeating-linear-gradient(135deg, #ffd23f 0 14px, #ffc400 14px 28px);
+  color: #1a1300;
+  font-weight: 800;
+  text-align: center;
+  font-size: .9rem;
+}
+.dev-toggle {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 31;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #1a1300;
+  background: #ffd23f;
+  color: #1a1300;
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px #0008;
+}
+.dev-panel {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 58px);
+  z-index: 31;
+  width: min(300px, calc(100vw - 24px));
+  max-height: calc(100dvh - 100px);
+  overflow: auto;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fffbe8;
+  color-scheme: light;
+  color: #1a1300;
+  box-shadow: 0 10px 30px #000a;
+}
+.dev-heading { margin: 0 0 4px; font-size: 1rem; }
+.dev-info { margin: 0 0 10px; font-size: .8rem; color: #4d4426; }
+.dev-field { display: grid; gap: 4px; font-size: .85rem; font-weight: 700; margin-bottom: 10px; }
+.dev-input { font: inherit; font-size: 16px; padding: 6px 8px; min-height: 40px; }
+.dev-actions { display: grid; gap: 6px; }
+.dev-btn {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid #1a1300;
+  border-radius: 8px;
+  background: #ffd23f;
+  color: #1a1300;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dev-btn-quiet { background: transparent; }
+.dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
+/* Keep the app's own top safe-area padding from doubling up under the banner. */
+.has-dev-banner .app { padding-top: 16px; }
+
 /* --- Reduced motion: no animations or transitions anywhere --- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
