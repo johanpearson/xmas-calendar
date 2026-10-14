@@ -21,7 +21,8 @@ import {
 } from './storage.js';
 import { setupInstall } from './install.js';
 import { mountScene } from './scene.js';
-import { assignThemes, doorLook } from './themes.js';
+import { assignThemes, doorLook, animationFor } from './themes.js';
+import { playOpening, revealFor } from './effects.js';
 import { icon, typeIcon } from './icons.js';
 
 const CONTENT_URL = './content/days.json';
@@ -230,15 +231,18 @@ function onDoorClick(id) {
   markOpened(day.id);
   updateDoors();
 
-  if (firstTime && !prefersReducedMotion()) {
-    state.busy = true;
-    const flipMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--flip-ms')) || 700;
-    setTimeout(() => {
-      state.busy = false;
-      showCard(day);
-    }, flipMs);
-  } else {
-    showCard(day);
+  if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
+  else showCard(day, firstTime ? 'fade' : null);
+}
+
+// Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
+async function playThenShow(day, btn, animation, { haptics = true } = {}) {
+  state.busy = true;
+  try {
+    const { skipped } = await playOpening(btn, animation, { haptics });
+    showCard(day, skipped ? 'fade' : revealFor(animation));
+  } finally {
+    state.busy = false;
   }
 }
 
@@ -253,8 +257,11 @@ function setCardContent(title, body) {
   els.cardBody.replaceChildren(...paragraphs);
 }
 
-function showCard(day) {
+// reveal: how the card enters (see .card[data-reveal] in style.css), null for the default.
+function showCard(day, reveal = null) {
   els.card.className = `card type-${day.type ?? 'unknown'}`;
+  if (reveal) els.card.dataset.reveal = reveal;
+  else delete els.card.dataset.reveal;
   els.cardIcon.replaceChildren(typeIcon(day.type));
   els.cardDate.textContent = day.label ? `${day.label} · ${formatDate(day.date)}` : formatDate(day.date);
   setCardContent(day.title, day.body);
@@ -349,6 +356,15 @@ async function startDevMode() {
     resetOpened() {
       clearOpened();
       updateDoors();
+    },
+    // Preview: plays an animation on a door without marking it opened (works on locked doors too).
+    async playAnimation(id, animation) {
+      const entry = state.doors.get(id);
+      if (!entry || state.busy) return;
+      if (els.card.open) els.card.close();
+      entry.btn.scrollIntoView({ block: 'center' });
+      if (prefersReducedMotion()) showCard(entry.day, 'fade');
+      else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false });
     },
     disable() {
       setDevEnabled(false);

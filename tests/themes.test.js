@@ -1,6 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { THEMES, THEME_ICONS, GRID_COLUMNS, assignThemes, doorLook, hashString } from '../js/themes.js';
+import {
+  THEMES,
+  THEME_ICONS,
+  GRID_COLUMNS,
+  ANIMATIONS,
+  TYPE_ANIMATIONS,
+  assignThemes,
+  doorLook,
+  hashString,
+  animationFor,
+} from '../js/themes.js';
 
 const december = (year) =>
   Array.from({ length: 24 }, (_, i) => `${year}-12-${String(i + 1).padStart(2, '0')}`);
@@ -51,4 +61,15 @@ test('doorLook: Christmas Eve is a present, other days use their theme', () => {
   assert.deepEqual(doorLook('2026-12-24', 'red'), { kind: 'christmas' });
   assert.deepEqual(doorLook('2027-12-24', 'red'), { kind: 'christmas' });
   assert.deepEqual(doorLook('2026-12-03', 'gold'), { kind: 'theme', theme: 'gold', icon: 'star' });
+});
+
+test('animationFor uses the type default unless the day overrides it', () => {
+  assert.equal(animationFor({ type: 'ledtrad' }), 'sparkle');
+  assert.equal(animationFor({ type: 'litet' }), 'gift');
+  assert.equal(animationFor({ type: 'uppdrag' }), 'bells');
+  assert.equal(animationFor({ type: 'rim' }), 'ribbon');
+  assert.equal(animationFor({ type: 'okänd' }), 'sparkle');
+  assert.equal(animationFor({ type: 'rim', animation: 'snowburst' }), 'snowburst');
+  assert.equal(animationFor({ type: 'rim', animation: 'fireworks' }), 'ribbon');
+  for (const name of Object.values(TYPE_ANIMATIONS)) assert.ok(ANIMATIONS.includes(name));
 });

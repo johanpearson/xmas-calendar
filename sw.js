@@ -23,6 +23,7 @@ const SHELL_FILES = [
   'js/scene.js',
   'js/themes.js',
   'js/icons.js',
+  'js/effects.js',
   'icons/favicon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',

@@ -78,3 +78,19 @@ export function doorLook(dateKey, theme) {
   if (isChristmasEve(dateKey)) return { kind: 'christmas' };
   return { kind: 'theme', theme, icon: THEME_ICONS[theme] };
 }
+
+// Opening animations and the default for each content type. A day's optional
+// "animation" field overrides the default; unknown values fall back to it.
+export const ANIMATIONS = ['sparkle', 'gift', 'bells', 'ribbon', 'confetti', 'snowburst'];
+
+export const TYPE_ANIMATIONS = {
+  ledtrad: 'sparkle',
+  litet: 'gift',
+  uppdrag: 'bells',
+  rim: 'ribbon',
+};
+
+export function animationFor(day) {
+  if (ANIMATIONS.includes(day?.animation)) return day.animation;
+  return TYPE_ANIMATIONS[day?.type] ?? 'sparkle';
+}

@@ -460,6 +460,90 @@ body {
   80% { transform: translateX(4px) rotate(1deg); }
 }
 
+/* --- Opening animations (js/effects.js). The overlay only exists while one plays. --- */
+.fx {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.door.is-fx-hidden { visibility: hidden; }
+.fx-dim { position: absolute; inset: 0; background: #050a19b3; }
+.fx-door { position: fixed; margin: 0; pointer-events: none; }
+.fx-door .door-leaf { will-change: transform; }
+.fx-stage { position: fixed; width: 0; height: 0; }
+.fx-prop, .fx-bell, .fx-rays, .fx-p { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.fx-prop svg, .fx-bell svg, .fx-gift-box svg, .fx-gift-lid svg, .fx-loop svg, .fx-knot svg, .fx-gift-bow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fx-letter { width: 150px; height: 112px; margin: -56px 0 0 -75px; filter: drop-shadow(0 6px 10px #0008); }
+
+.fx-gift { width: 140px; height: 130px; margin: -50px 0 0 -70px; }
+.fx-gift-box { position: absolute; left: 0; right: 0; bottom: 0; height: 88px; filter: drop-shadow(0 6px 10px #0008); }
+.fx-gift-lid { position: absolute; left: -5px; right: -5px; top: 22px; height: 35px; }
+.fx-gift-bow { position: absolute; left: 50%; bottom: 22px; width: 60px; height: 60px; margin-left: -30px; }
+.fx-loop { position: absolute; bottom: 26px; width: 50px; height: 38px; transform-origin: 100% 85%; }
+.fx-loop-l { left: calc(50% - 47px); }
+.fx-loop-r { left: calc(50% - 3px); transform-origin: 0 85%; }
+.fx-knot { position: absolute; left: 50%; bottom: 20px; width: 24px; height: 24px; margin-left: -12px; }
+
+.fx-light {
+  position: fixed;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8dcf2 0%, #ffe9a0aa 35%, transparent 70%);
+  pointer-events: none;
+}
+.fx-rays {
+  width: 380px;
+  height: 380px;
+  margin: -190px 0 0 -190px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, #fff1b8b3 0deg 7deg, transparent 7deg 22.5deg);
+  -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 68%);
+  mask-image: radial-gradient(circle, #000 15%, transparent 68%);
+}
+.fx-bell { width: 84px; height: 92px; margin: -46px 0 0 -42px; transform-origin: 50% 8%; filter: drop-shadow(0 4px 6px #0008); }
+
+/* Particles: simple shapes, no filters, so the compositor can move them cheaply. */
+.fx-p { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+.fx-p-star {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  background: #f3d48a;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.fx-p-sparkle {
+  background: #fffbe8;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+}
+.fx-p-glitter { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #ffe7a3; box-shadow: 0 0 4px #fff3; }
+.fx-p-confetti { width: 9px; height: 14px; margin: -7px 0 0 -4.5px; border-radius: 1px; }
+.fx-p-heart {
+  width: 22px;
+  height: 20px;
+  margin: -10px 0 0 -11px;
+  background: #ff5a7a;
+  clip-path: path("M11 20C4 15 0 11 0 6A5.8 5.8 0 0 1 11 3.2 5.8 5.8 0 0 1 22 6C22 11 18 15 11 20z");
+}
+.fx-p-heart:nth-child(3n) { background: #d7263d; }
+.fx-p-snow {
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  background: #fff;
+  clip-path: polygon(45% 0, 55% 0, 55% 38%, 87% 19%, 92% 28%, 60% 47%, 60% 53%, 92% 72%, 87% 81%, 55% 62%, 55% 100%, 45% 100%, 45% 62%, 13% 81%, 8% 72%, 40% 53%, 40% 47%, 8% 28%, 13% 19%, 45% 38%);
+}
+
 /* --- Toast --- */
 .toast {
   position: fixed;
@@ -498,6 +582,24 @@ body {
 @keyframes card-in {
   from { opacity: 0; transform: scale(.9) translateY(10px); }
 }
+/* Entrances after an opening animation (data-reveal is set by app.js). */
+.card[open][data-reveal="fade"] { animation: card-fade 220ms ease-out; }
+.card[open][data-reveal="pop"] { animation: card-pop 320ms cubic-bezier(.2, .9, .3, 1.25); }
+.card[open][data-reveal="rise"] { animation: card-rise 340ms cubic-bezier(.2, .8, .3, 1.1); }
+/* A letter that unfolds from the top, then the text fades in. */
+.card[open][data-reveal="letter"] {
+  transform-origin: 50% 0;
+  animation: card-letter 380ms cubic-bezier(.2, .8, .3, 1);
+}
+.card[open][data-reveal="letter"] .card-inner > * { animation: card-text 300ms 200ms ease-out both; }
+@keyframes card-fade { from { opacity: 0; } }
+@keyframes card-pop { from { opacity: 0; transform: scale(.6); } }
+@keyframes card-rise { from { opacity: 0; transform: translateY(48px) scale(.94); } }
+@keyframes card-letter {
+  from { opacity: 0; transform: perspective(900px) rotateX(-80deg) scaleY(.5); }
+  40% { opacity: 1; }
+}
+@keyframes card-text { from { opacity: 0; transform: translateY(6px); } }
 .card::backdrop { background: #050a19b3; }
 .card-inner {
   padding: 20px 20px 16px;
@@ -606,16 +708,19 @@ body {
   cursor: pointer;
 }
 .dev-btn-quiet { background: transparent; }
+.dev-preview { display: grid; margin: 12px 0 0; padding: 8px 10px 10px; border: 2px solid #1a1300; border-radius: 10px; }
+.dev-preview legend { padding: 0 4px; font-size: .85rem; font-weight: 800; }
 .dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
 /* Keep the app's own top safe-area padding from doubling up under the banner. */
 .has-dev-banner .app { padding-top: 16px; }
 
-/* --- Reduced motion: no animations or transitions anywhere --- */
+/* --- Reduced motion: no animations or transitions anywhere, the card just fades in --- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
   }
+  .card[open] { animation: card-fade 200ms ease-out !important; }
 }
 
 /* --- Install flow --- */

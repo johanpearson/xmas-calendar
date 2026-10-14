@@ -97,6 +97,9 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
   - **Använd riktigt datum**: tar bort det simulerade datumet.
   - **Öppna alla**: markerar alla luckor som öppnade.
   - **Nollställ öppnade luckor**: glömmer vilka luckor som öppnats.
+  - **Spela upp animation**: välj lucka och animation ("Luckans egen" är den som
+    `type`/`animation` ger) och förhandsgranska. Luckan markeras inte som öppnad och
+    det fungerar även på låsta luckor.
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
@@ -122,7 +125,19 @@ En lucka ser ut så här:
 
 - `id` måste vara unikt. Byt inte `id` på en lucka som redan öppnats, då glömmer
   appen att den är öppnad.
-- `type` är `ledtrad`, `litet`, `uppdrag` eller `rim` (styr ikon och färg).
+- `type` är `ledtrad`, `litet`, `uppdrag` eller `rim` (styr ikon, färg och öppna-animation).
+- `animation` är valfri och byter öppna-animationen för just den luckan:
+
+  | Värde | Animation | Standard för |
+  |---|---|---|
+  | `sparkle` | gnistor och stjärnor, kortet viks ut som ett brev | `ledtrad` |
+  | `gift` | presentlocket lyfter, konfetti | `litet` |
+  | `bells` | dörren svänger upp med ljus och strålar, klockor ploppar upp | `uppdrag` |
+  | `ribbon` | rosetten knyts upp, paketet öppnas, glitter och hjärtan | `rim` |
+  | `confetti` | konfetti från luckan | |
+  | `snowburst` | snöyra från luckan | |
+
+  Ett okänt värde ger typens standard. Prova animationerna med "Spela upp animation" i dev-läget.
 - `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
