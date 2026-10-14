@@ -23,7 +23,7 @@
       "date": "2026-12-02",
       "type": "ledtrad",
       "title": "Snart",
-      "body": "Snart händer något gyllene i köket.\nKolla kryddskåpet: finns den lilla påsen med de röda trådarna?"
+      "body": "Snart händer något gyllene i köket.\nHåll ögonen öppna efter något litet och dyrbart."
     },
     {
       "id": "d-2026-12-03",
@@ -36,15 +36,15 @@
       "id": "d-2026-12-04",
       "date": "2026-12-04",
       "type": "litet",
-      "title": "Fotodags",
-      "body": "Tomteluva, ljusslinga och en pepparkaka att hålla i.\nTa några gulliga julbilder av Saga, helst vid ett fönster i dagsljus."
+      "title": "Hiro firas",
+      "body": "Idag har Hiro varit hos oss i tre år.\nVi firar med något gott till katterna. Johan har fixat det, och ni delar ut det tillsammans."
     },
     {
       "id": "d-2026-12-05",
       "date": "2026-12-05",
-      "type": "ledtrad",
-      "title": "Sov gott",
-      "body": "Imorgon doftar det gult och gott i hela huset.\nSov gott."
+      "type": "jakt",
+      "title": "Saffranjakten",
+      "body": "Något litet och dyrbart är gömt någonstans i huset. Små röda trådar som gör bullarna gula.\nLeta tills du hittar det. Johan får bara svara varmt eller kallt.\nImorgon behövs de."
     },
     {
       "id": "d-2026-12-06",
@@ -59,36 +59,36 @@
       "id": "d-2026-12-07",
       "date": "2026-12-07",
       "type": "litet",
-      "title": "Brev till tomten",
-      "body": "Ta fram ett papper och några färgpennor. Saga klottrar sitt önskebrev till tomten och ni översätter.\nSpara det, om några år blir det guld värt."
+      "title": "Fotodags",
+      "body": "Idag är det fotodag. Tomteluva, ljusslinga i bakgrunden och en pepparkaka att hålla i.\nTa några gulliga bilder av Saga, helst vid ett fönster i dagsljus. Kanske blir det ett julkort."
     },
     {
       "id": "d-2026-12-08",
       "date": "2026-12-08",
       "type": "ledtrad",
-      "title": "Tomtens hälsning",
-      "body": "Tomten har sett att ni varit snälla i år. Han har ingen anledning att ändra sig.\nFortsätt så."
+      "title": "Brev från tomten",
+      "body": "Kära Elin.\nJag har gått igenom min lista två gånger. Det fanns några frågetecken, men jag har bestämt mig: du har varit snäll i år ändå.\nHälsningar, Tomten\nPS. Johan är kvar på listan, men det är en annan historia."
     },
     {
       "id": "d-2026-12-09",
       "date": "2026-12-09",
-      "type": "litet",
-      "title": "Hälsa på distans",
-      "body": "Ring eller videoprata med någon ni tycker om och låt Saga vinka och skicka pussar.\nEtt julkort i brevlådan fungerar också."
+      "type": "jakt",
+      "title": "Godisjakt",
+      "body": "Någon har gömt något sött åt dig i huset.\nLeta tills du hittar det. Johan får bara svara varmt eller kallt."
     },
     {
       "id": "d-2026-12-10",
       "date": "2026-12-10",
-      "type": "ledtrad",
-      "title": "Gåta",
-      "body": "Jag är liten, brun och krispig. Jag har ett vitt leende som sitter fast av glasyr, och ingen vill göra mig ledsen.\nVem är jag?\nSvar: pepparkaksgubben."
+      "type": "rim",
+      "title": "Mys",
+      "body": "Ute är det mörkt och grått,\nhär inne är det varmt och gott.\nIdag finns inget som måste fixas. Bara ljus, en filt och varandra."
     },
     {
       "id": "d-2026-12-11",
       "date": "2026-12-11",
       "type": "litet",
       "title": "Handavtryck",
-      "body": "Idag pysslar vi: handavtryck med färg som blir tomtar eller renar.\nAnvänd ofarlig färg som är gjord för små barn, ta gamla kläder och ha en fuktig trasa nära. Det blir en fin present till någon."
+      "body": "Idag blir Sagas hand en ren.\nBrun barnfärg på handen, tryck mot papper med fingrarna uppåt som horn. Rita ögon och en röd nos när det torkat.\nTorka händerna direkt."
     },
     {
       "id": "d-2026-12-12",
@@ -109,44 +109,44 @@
     {
       "id": "d-2026-12-14",
       "date": "2026-12-14",
-      "type": "litet",
-      "title": "Fönsterpynt",
-      "body": "Pynta ett fönster med stora pappersstjärnor eller snöflingor som ni tejpar upp.\nSaga får välja plats, helst på barnhöjd."
+      "type": "rim",
+      "title": "Rim",
+      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)"
     },
     {
       "id": "d-2026-12-15",
       "date": "2026-12-15",
       "type": "ledtrad",
       "title": "Gåta",
-      "body": "Jag är smal och har ingen mun, men en liten flamma på toppen. Fyra av mig står i rad och jag tänds en i taget, söndag efter söndag.\nVem är jag?\nSvar: adventsljusen."
+      "body": "Jag doftar kanel och apelsin, och jag är som bäst när det är kallt ute.\nJag är röd men ingen jordgubbe, och jag dricks varm.\nI helgen väntar jag på er.\nVem är jag?\nSvaret får du på lördag."
     },
     {
       "id": "d-2026-12-16",
       "date": "2026-12-16",
       "type": "litet",
-      "title": "Ljusjakt",
-      "body": "Mössa på och ut på en kort kvällsrunda.\nHur många ljusstakar och ljusslingor hittar ni i fönstren?"
+      "title": "Julfilmsmys",
+      "body": "Ikväll är det bara ni två, när Saga har somnat.\nJulmust, pepparkakor och en julfilm ni väljer tillsammans."
     },
     {
       "id": "d-2026-12-17",
       "date": "2026-12-17",
-      "type": "litet",
-      "title": "Tomtegröt",
-      "body": "Idag blir det risgrynsgröt med kanel och en klick sylt, till frukost eller som kvällsmat.\nSaga får smaka och smeta."
+      "type": "jakt",
+      "title": "Termosjakten",
+      "body": "Något som håller värmen är gömt någonstans i huset.\nLeta tills du hittar det. Inga förklaringar än. Johan får bara svara varmt eller kallt."
     },
     {
       "id": "d-2026-12-18",
       "date": "2026-12-18",
-      "type": "litet",
-      "title": "Fredagsmys",
-      "body": "Glögg och pepparkakor på soffan när Saga har somnat.\nVälj en julfilm ni båda gillar."
+      "type": "rim",
+      "title": "Rim",
+      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)"
     },
     {
       "id": "d-2026-12-19",
       "date": "2026-12-19",
-      "type": "ledtrad",
-      "title": "Packa i kväll",
-      "body": "Imorgon är det dags att gå ut. Ta fram termosen, fyll den med något varmt och kryddigt och tänk på mössor och filt till vagnen.\nTitta på vädret också. Blåser det för mycket finns en reservplan."
+      "type": "jakt",
+      "title": "Glöggjakten",
+      "body": "Du hittade något som håller värmen. Nu behövs något att fylla det med.\nRött, kryddigt och gömt i huset. Johan får bara svara varmt eller kallt."
     },
     {
       "id": "d-2026-12-20",
@@ -165,8 +165,8 @@
       "id": "d-2026-12-21",
       "date": "2026-12-21",
       "type": "litet",
-      "title": "En klapp",
-      "body": "Idag får Saga hjälpa till att packa in en klapp.\nHon får tejpa, krama papperet och leka med rosetten. Resultatet blir charmigt skrynkligt."
+      "title": "Årets mörkaste dag",
+      "body": "Idag är det vintersolstånd, årets mörkaste dag.\nTänd extra många ljus hemma ikväll, släck lamporna och sitt en stund i skenet. Efter idag blir det ljusare igen."
     },
     {
       "id": "d-2026-12-22",
@@ -179,15 +179,15 @@
       "id": "d-2026-12-23",
       "date": "2026-12-23",
       "type": "litet",
-      "title": "Lillejulafton",
-      "body": "Tänd ett ljus, sätt på julmusik och packa i ordning inför imorgon.\nNågot enkelt och gott till middag, bara ni tre."
+      "title": "Uppesittarkväll",
+      "body": "Idag är det uppesittarkväll med din familj.\nBingolotto, godis och trevligt sällskap. Vila gärna lite under dagen."
     },
     {
       "id": "d-2026-12-24",
       "date": "2026-12-24",
       "type": "rim",
       "title": "Julafton",
-      "body": "God jul, Elin.\nRimmet skrivs av Johan. (Byt ut den här texten.)"
+      "body": "God jul, Elin.\nRimmet skrivs av Johan. (Byt ut den här texten.)\nOch sen finns det en klapp."
     }
   ]
 }
