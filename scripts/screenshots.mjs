@@ -1,7 +1,7 @@
 // Takes screenshots of the app at 360 px width for reviews and PR descriptions.
 // Run: npm run screenshots   (needs the dev dependency @playwright/test)
 // Output: docs/screenshots/*.png (all locked, simulated dates, and for each content type a
-// frame in the middle of its opening animation and the opened end state).
+// frame in the middle of its opening animation and the opened end state, plus Tomten).
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -24,10 +24,11 @@ const server = spawn(process.execPath, ['tests/e2e/serve.mjs'], {
 await new Promise((resolve) => server.stdout.once('data', resolve));
 
 const content = JSON.parse(await readFile(`${ROOT}content/days.json`, 'utf8'));
+const tomte = JSON.parse(await readFile(`${ROOT}content/tomte.json`, 'utf8'));
 
 const browser = await chromium.launch();
 
-async function newPage(date, { opened = [], days = content } = {}) {
+async function newPage(date, { opened = [], days = content, tomteSeen = true } = {}) {
   const context = await browser.newContext({
     viewport: { width: 360, height: 780 },
     deviceScaleFactor: 2,
@@ -40,10 +41,18 @@ async function newPage(date, { opened = [], days = content } = {}) {
   const page = await context.newPage();
   await page.clock.setFixedTime(new Date(`${date}T10:00:00+01:00`));
   await page.route('**/content/days.json', (route) => route.fulfill({ json: days }));
-  await page.addInitScript((ids) => {
-    localStorage.setItem('advent.opened', JSON.stringify(ids));
-    localStorage.setItem('advent.iosHintDismissed', '1');
-  }, opened);
+  await page.addInitScript(
+    ({ ids, sceneIds }) => {
+      localStorage.setItem('advent.opened', JSON.stringify(ids));
+      localStorage.setItem('advent.iosHintDismissed', '1');
+      // Tomten stays away unless the shot is about him.
+      if (sceneIds) {
+        localStorage.setItem('advent.tomte.introSeen', '1');
+        localStorage.setItem('advent.tomte.scenesSeen', JSON.stringify(sceneIds));
+      }
+    },
+    { ids: opened, sceneIds: tomteSeen ? tomte.scenes.map((s) => s.id) : null },
+  );
   await page.goto(BASE);
   await page.locator('#grid .door').first().waitFor();
   await page.waitForTimeout(300);
@@ -78,16 +87,11 @@ try {
   await shot(page, 'simulated-2026-12-24');
   await page.context().close();
 
-  // One opened door per type. No door has type "litet" yet, so borrow a placeholder day.
-  const perType = [
-    { type: 'ledtrad', date: '2026-12-01' },
-    { type: 'litet', date: '2026-12-02' },
-    { type: 'uppdrag', date: '2026-12-06' },
-    { type: 'rim', date: '2026-12-24' },
-  ];
-  const days = structuredClone(content);
-  const borrowed = days.days.find((d) => d.date === '2026-12-02');
-  Object.assign(borrowed, { type: 'litet', title: 'Ett litet paket', body: 'Exempeltext för skärmdumpen.' });
+  // One opened door per type: the first door of each type in days.json.
+  const days = content;
+  const perType = ['ledtrad', 'litet', 'uppdrag', 'rim', 'jakt']
+    .map((type) => ({ type, date: content.days.find((d) => d.type === type)?.date }))
+    .filter((t) => t.date);
   for (const { type, date } of perType) {
     page = await newPage('2026-12-24', { days });
     await page.locator(`.door[data-date="${date}"]`).click();
@@ -97,6 +101,20 @@ try {
     await shot(page, `opened-${type}`, false);
     await page.context().close();
   }
+
+  // Tomten: the intro's first line and a question.
+  page = await newPage('2026-10-14', { tomteSeen: false });
+  await page.waitForTimeout(SETTLE_MS);
+  await shot(page, 'tomte-intro', false);
+  await page.context().close();
+
+  page = await newPage('2026-12-04', { tomteSeen: false });
+  await page.addInitScript(() => localStorage.setItem('advent.tomte.introSeen', '1'));
+  await page.reload();
+  await page.getByRole('button', { name: 'Nästa' }).click();
+  await page.waitForTimeout(300);
+  await shot(page, 'tomte-question', false);
+  await page.context().close();
 } finally {
   await browser.close();
   server.kill();

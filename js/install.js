@@ -53,34 +53,60 @@ function shareIcon() {
   return svg;
 }
 
+// The saved beforeinstallprompt event, shared by the header button and Tomten's intro.
+let deferredPrompt = null;
+const installListeners = new Set();
+
+function setDeferredPrompt(event) {
+  deferredPrompt = event;
+  for (const listener of installListeners) listener();
+}
+
+// True while the browser lets us show its install prompt.
+export function canInstall() {
+  return deferredPrompt !== null;
+}
+
+// Calls `listener` whenever canInstall() may have changed. Returns an unsubscribe function.
+export function onInstallChange(listener) {
+  installListeners.add(listener);
+  return () => installListeners.delete(listener);
+}
+
+// Shows the browser's install prompt. Resolves with 'accepted', 'dismissed' or null.
+export async function promptInstall() {
+  const prompt = deferredPrompt;
+  if (!prompt) return null;
+  setDeferredPrompt(null); // a prompt can only be used once
+  prompt.prompt();
+  const choice = await prompt.userChoice.catch(() => null);
+  return choice?.outcome ?? null;
+}
+
 function setupInstallButton(container) {
-  let deferredPrompt = null;
   let btn = null;
 
-  const removeButton = () => {
-    btn?.remove();
-    btn = null;
-    deferredPrompt = null;
-  };
-
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault(); // show our own button instead of the browser's mini bar
-    deferredPrompt = event;
+  // The button follows the prompt: shown while one is available, gone once used.
+  onInstallChange(() => {
+    if (!canInstall()) {
+      btn?.remove();
+      btn = null;
+      return;
+    }
     if (btn) return;
     btn = el('button', 'install-btn', 'Installera');
     btn.type = 'button';
     btn.setAttribute('aria-label', 'Installera appen på hemskärmen');
-    btn.addEventListener('click', async () => {
-      const prompt = deferredPrompt;
-      if (!prompt) return;
-      removeButton(); // a prompt can only be used once
-      prompt.prompt();
-      await prompt.userChoice.catch(() => null);
-    });
+    btn.addEventListener('click', () => promptInstall());
     container.append(btn);
   });
 
-  window.addEventListener('appinstalled', removeButton);
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault(); // show our own button instead of the browser's mini bar
+    setDeferredPrompt(event);
+  });
+
+  window.addEventListener('appinstalled', () => setDeferredPrompt(null));
 }
 
 function showIosHint() {

@@ -1,5 +1,6 @@
 // Smoke tests against the real app, served under /xmas-calendar/ like on GitHub Pages.
 import { test, expect, devices } from '@playwright/test';
+import { skipTomte } from './helpers.js';
 
 // Mid-morning local time, so the date is the same in every time zone offset we care about.
 const NOW = new Date('2026-12-05T10:00:00+01:00');
@@ -24,6 +25,7 @@ async function waitForServiceWorker(page) {
 test.beforeEach(async ({ page }) => {
   // Fixes Date only; timers keep running so animations and toasts behave normally.
   await page.clock.setFixedTime(NOW);
+  await skipTomte(page);
 });
 
 test('on 2026-12-05 doors up to the 5th open and the 6th is locked', async ({ page }) => {

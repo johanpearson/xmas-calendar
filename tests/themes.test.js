@@ -77,6 +77,7 @@ test('animationFor uses the type default unless the day overrides it', () => {
   assert.equal(animationFor({ type: 'litet' }), 'gift');
   assert.equal(animationFor({ type: 'uppdrag' }), 'bells');
   assert.equal(animationFor({ type: 'rim' }), 'ribbon');
+  assert.equal(animationFor({ type: 'jakt' }), 'magnifier');
   assert.equal(animationFor({ type: 'okänd' }), 'sparkle');
   assert.equal(animationFor({ type: 'rim', animation: 'snowburst' }), 'snowburst');
   assert.equal(animationFor({ type: 'rim', animation: 'fireworks' }), 'ribbon');

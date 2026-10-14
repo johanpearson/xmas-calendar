@@ -62,6 +62,14 @@ const ICONS = {
     <path d="M8 6a3 3 0 0 0-3 3v2h3M11 28a3 3 0 0 0 3-3v-1H8" fill="#e6cf9e" stroke="#8a4f23" stroke-width="1.4"/>
     <path d="M12 11.5h10M12 15h10M12 18.5h7" stroke="#8a4f23" stroke-width="1.3" stroke-linecap="round"/>
     <path d="M24 16.5l-6 6-1 2.5 2.5-1 6-6c.6-.6.6-1.4 0-2-.6-.4-1-.4-1.5.5z" fill="#d7263d"/>`,
+  // A treasure hunt: a gold-rimmed magnifier with a sparkle in the lens.
+  jakt: `
+    <path d="M20 20l7.5 7.5" stroke="#5b2d0e" stroke-width="4.6" stroke-linecap="round"/>
+    <path d="M20 20l7.5 7.5" stroke="#b8642a" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="13.5" cy="13.5" r="9" fill="#14532d"/>
+    <circle cx="13.5" cy="13.5" r="9" fill="none" stroke="#e8b93c" stroke-width="2.8"/>
+    <path d="M13.5 8.2l1.4 3.9 3.9 1.4-3.9 1.4-1.4 3.9-1.4-3.9-3.9-1.4 3.9-1.4z" fill="#ffe08a"/>
+    <circle cx="9.6" cy="9.6" r="1.2" fill="#fff" opacity=".8"/>`,
   unknown: `
     <path d="M16 3l2.6 9.4L28 15l-9.4 2.6L16 27l-2.6-9.4L4 15l9.4-2.6z" fill="#e8c36a" stroke="#8a5a00" stroke-width="1.2" stroke-linejoin="round"/>`,
 
@@ -90,7 +98,7 @@ export function icon(name, className = '') {
   return svg;
 }
 
-const CONTENT_TYPES = new Set(['ledtrad', 'litet', 'uppdrag', 'rim']);
+const CONTENT_TYPES = new Set(['ledtrad', 'litet', 'uppdrag', 'rim', 'jakt']);
 
 // Content type icon, falling back to a sparkle for unknown types.
 export function typeIcon(type, className) {

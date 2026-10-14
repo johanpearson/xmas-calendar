@@ -18,8 +18,12 @@ import {
   applyDevParam,
   getDateOverride,
   setDateOverride,
+  getTomteSeen,
+  clearTomte,
 } from './storage.js';
-import { setupInstall } from './install.js';
+import { setupInstall, isStandalone } from './install.js';
+import { loadTomte, createTomte } from './tomte-ui.js';
+import { currentScene } from './tomte.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
@@ -57,6 +61,8 @@ const state = {
   midnightTimer: null,
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
+  tomte: null, // { content, ui } once content/tomte.json has loaded
+  tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
 };
 
 const prefersReducedMotion = () =>
@@ -305,7 +311,9 @@ els.card.addEventListener('click', (e) => {
 // --- Keeping "today" fresh while the app stays open ---
 
 function refreshIfDayChanged() {
-  if (currentToday() !== state.todayKey) updateDoors();
+  if (currentToday() === state.todayKey) return false;
+  updateDoors();
+  return true;
 }
 
 function scheduleMidnight() {
@@ -320,7 +328,10 @@ function scheduleMidnight() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   // Timers may have been throttled or frozen in the background.
+  // Coming back on a new day counts as a new start for Tomten: phones keep apps alive for days.
+  // Compared with Tomten's own day: the midnight timer may already have moved todayKey on.
   refreshIfDayChanged();
+  if (currentToday() !== state.tomteDay) checkTomte();
   scheduleMidnight();
 });
 
@@ -381,8 +392,64 @@ async function startDevMode() {
       setDevEnabled(false);
       location.reload();
     },
+    tomte: state.tomte && devTomte(state.tomte),
     toast: showToast,
   });
+}
+
+// --- Tomten ---
+
+// Resolves when no door is opening and the card is closed, so Tomten never talks over it.
+async function whenIdle() {
+  while (state.busy || els.card.open) {
+    await new Promise((resolve) => els.card.addEventListener('close', resolve, { once: true }));
+  }
+}
+
+async function checkTomte() {
+  if (!state.tomte) return;
+  state.tomteDay = currentToday();
+  await whenIdle();
+  // A conversation left open (e.g. overnight) finishes first, then today's check runs.
+  await state.tomte.ui.whenClosed();
+  await whenIdle();
+  state.tomte.ui.check(currentToday(), isStandalone());
+}
+
+// Tomten is a bonus: if tomte.json is missing or broken, the calendar works as before.
+async function startTomte() {
+  try {
+    const content = await loadTomte();
+    state.tomte = { content, ui: createTomte(content) };
+  } catch (err) {
+    console.warn('Tomten could not start', err);
+    return;
+  }
+  // Let the calendar settle on screen before Tomten pops up.
+  setTimeout(checkTomte, prefersReducedMotion() ? 0 : 600);
+}
+
+// Tomten in the dev panel: play anything at once (ignoring dates and seen state) and reset.
+function devTomte({ content, ui }) {
+  return {
+    items: [
+      ...(content.intro ? [{ kind: 'intro', id: 'intro', label: 'Intro' }] : []),
+      ...(content.welcome ? [{ kind: 'welcome', id: 'welcome', label: 'Välkomst' }] : []),
+      ...content.scenes.map((scene) => ({ kind: 'scene', id: scene.id, label: scene.id, scene })),
+    ],
+    // The scene the effective date (simulated or real) points at, seen or not.
+    currentId: () => currentScene(content.scenes, state.todayKey)?.id ?? null,
+    isSeen(item) {
+      const seen = getTomteSeen();
+      return item.kind === 'scene' ? seen.scenes.includes(item.id) : seen[item.kind];
+    },
+    async play(item) {
+      if (els.card.open) els.card.close();
+      await whenIdle();
+      ui.play(item.kind, item.scene);
+    },
+    reset: clearTomte,
+  };
 }
 
 // Relative path and scope, so it works under /<repo>/ on GitHub Pages.
@@ -417,8 +484,10 @@ async function init() {
   els.loading.hidden = true;
   els.app.setAttribute('aria-busy', 'false');
   scheduleMidnight();
+  const tomteLoaded = startTomte();
 
   if (isDevEnabled()) {
+    await tomteLoaded; // the dev panel lists Tomten's scenes
     try {
       await startDevMode();
     } catch (err) {

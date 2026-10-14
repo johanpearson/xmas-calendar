@@ -26,6 +26,7 @@
   --accent-litet: #e8c36a;
   --accent-uppdrag: #e86a6a;
   --accent-rim: #c9a0e8;
+  --accent-jakt: #6fcf97;
 
   --radius: 12px;
   --flip-ms: 700ms;
@@ -490,6 +491,7 @@ body {
 .type-litet { --accent: var(--accent-litet); }
 .type-uppdrag { --accent: var(--accent-uppdrag); }
 .type-rim { --accent: var(--accent-rim); }
+.type-jakt { --accent: var(--accent-jakt); }
 
 /* Locked door feedback. */
 .door.is-shaking { animation: shake 420ms ease-in-out; }
@@ -523,6 +525,8 @@ body {
   height: 100%;
 }
 
+.fx-note { width: 110px; height: 138px; margin: -69px 0 0 -55px; filter: drop-shadow(0 6px 10px #0008); }
+.fx-magnifier { width: 96px; height: 96px; margin: -39px 0 0 -39px; filter: drop-shadow(0 6px 8px #0009); }
 .fx-letter { width: 150px; height: 112px; margin: -56px 0 0 -75px; filter: drop-shadow(0 6px 10px #0008); }
 
 .fx-gift { width: 140px; height: 130px; margin: -50px 0 0 -70px; }
@@ -633,6 +637,45 @@ body {
   animation: card-letter 380ms cubic-bezier(.2, .8, .3, 1);
 }
 .card[open][data-reveal="letter"] .card-inner > * { animation: card-text 300ms 200ms ease-out both; }
+/* jakt: the card pops in, a shine sweeps over it and glitter twinkles as the text shows. */
+.card[open][data-reveal="glint"] { animation: card-pop 320ms cubic-bezier(.2, .9, .3, 1.25); }
+.card[open][data-reveal="glint"] .card-inner > * { animation: card-text 280ms 120ms ease-out both; }
+.card-inner { position: relative; }
+.card[data-reveal="glint"] .card-inner::before,
+.card[data-reveal="glint"] .card-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.card[open][data-reveal="glint"] .card-inner::after {
+  background: linear-gradient(105deg, transparent 35%, #fff6cc99 50%, transparent 65%) no-repeat;
+  background-size: 250% 100%;
+  animation: card-shine 900ms 200ms ease-out both;
+}
+.card[open][data-reveal="glint"] .card-inner::before {
+  background:
+    radial-gradient(circle at 12% 18%, #f3c94d 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 12%, #f3c94d 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 90% 46%, #f3c94d 0 2px, transparent 3px),
+    radial-gradient(circle at 30% 60%, #f3c94d 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 62% 78%, #f3c94d 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 8% 88%, #f3c94d 0 2px, transparent 3px),
+    radial-gradient(circle at 50% 34%, #f3c94d 0 1.5px, transparent 2.5px);
+  animation: card-twinkle 1100ms 150ms ease-out both;
+}
+@keyframes card-shine {
+  from { opacity: 1; background-position: 100% 0; }
+  to { opacity: 1; background-position: -60% 0; }
+}
+@keyframes card-twinkle {
+  0% { opacity: 0; transform: scale(.96); }
+  20% { opacity: 1; }
+  45% { opacity: .3; }
+  65% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.02); }
+}
 @keyframes card-fade { from { opacity: 0; } }
 @keyframes card-pop { from { opacity: 0; transform: scale(.6); } }
 @keyframes card-rise { from { opacity: 0; transform: translateY(48px) scale(.94); } }
@@ -759,8 +802,132 @@ body {
 .dev-preview { display: grid; margin: 12px 0 0; padding: 8px 10px 10px; border: 2px solid #1a1300; border-radius: 10px; }
 .dev-preview legend { padding: 0 4px; font-size: .85rem; font-weight: 800; }
 .dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
+.dev-tomte { gap: 8px; }
+.dev-tomte-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.dev-tomte-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; }
+.dev-tomte-item.is-current { background: #ffd23f66; outline: 2px solid #1a1300; }
+.dev-tomte-text { display: grid; flex: 1; min-width: 0; font-size: .8rem; line-height: 1.3; }
+.dev-tomte-name { font-weight: 800; overflow-wrap: anywhere; }
+.dev-tomte-dates, .dev-tomte-status { color: #4d4426; }
+.dev-tomte-status:empty { display: none; }
 /* Keep the app's own top safe-area padding from doubling up under the banner. */
 .has-dev-banner .app { padding-top: 16px; }
+
+/* --- Tomten: Santa with a speech bubble (dialog built by js/tomte-ui.js) --- */
+.tomte {
+  width: min(92vw, 26rem);
+  max-height: 92vh;
+  max-height: 92dvh;
+  margin: auto auto max(16px, env(safe-area-inset-bottom));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overflow: visible;
+}
+.tomte[open] { display: flex; flex-direction: column; align-items: center; animation: card-fade 220ms ease-out; }
+.tomte::backdrop { background: #050a19b3; }
+.tomte-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tomte-close:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: -4px; }
+.tomte-figure { position: relative; width: 132px; flex: none; margin-bottom: -6px; }
+.tomte-svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 10px #0008); }
+.tomte-coat { fill: #c4252f; }
+.tomte-coat-fur, .tomte-beard, .tomte-moustache { fill: #f7f4ee; }
+.tomte-moustache { stroke: #ddd5c6; stroke-width: .8; }
+.tomte-face { fill: #f6cfb4; }
+.tomte-cheek { fill: #f08f8f; opacity: .65; }
+.tomte-nose { fill: #e8857a; }
+.tomte-mouth { fill: #7a2a2a; transform-box: fill-box; transform-origin: center; }
+.tomte-eyes { fill: #2b1a12; transform-box: fill-box; transform-origin: center; animation: tomte-blink 5s 2s infinite; }
+.tomte-brow { fill: none; stroke: #e9e4da; stroke-width: 2.4; stroke-linecap: round; }
+.tomte-bubble {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  padding: 16px 18px 14px;
+  border-radius: 18px;
+  border-top: 6px solid var(--red-2);
+  background: var(--paper);
+  box-shadow: 0 16px 40px #000a;
+}
+/* The bubble's tail points up at Tomten. */
+.tomte-bubble::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  margin-left: -10px;
+  border: 10px solid transparent;
+  border-bottom: 10px solid var(--red-2);
+}
+.tomte-name { margin: 0 0 4px; font-size: .85rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #8c1d26; }
+.tomte-text { margin: 0; min-height: 3em; font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; line-height: 1.4; }
+.tomte-extra:not(:empty) { margin-top: 12px; }
+.tomte-help { margin: 0; font-size: .9rem; color: #4a5776; }
+.tomte-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.tomte-actions .btn { flex: 1 1 auto; }
+
+/* Entrance: Tomten hops in, laughs (mouth opens) and "Ho ho ho!" floats up. */
+.tomte.is-hohoho .tomte-svg { animation: tomte-hop 900ms cubic-bezier(.3, .7, .4, 1) both; }
+.tomte.is-hohoho .tomte-mouth { animation: tomte-laugh 900ms 250ms ease-in-out both; }
+.tomte.is-hohoho .tomte-bubble { animation: card-pop 320ms 200ms cubic-bezier(.2, .9, .3, 1.25) both; }
+.tomte-hoho { position: absolute; left: 100%; top: 6px; pointer-events: none; }
+.tomte-hoho span {
+  position: absolute;
+  left: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--gold-strong);
+  text-shadow: 0 2px 6px #000a;
+  white-space: nowrap;
+  opacity: 0;
+}
+.tomte.is-hohoho .tomte-hoho span { animation: tomte-ho 1100ms ease-out both; }
+.tomte.is-hohoho .tomte-hoho span:nth-child(1) { animation-delay: 250ms; }
+.tomte.is-hohoho .tomte-hoho span:nth-child(2) { animation-delay: 500ms; left: 14px; }
+.tomte.is-hohoho .tomte-hoho span:nth-child(3) { animation-delay: 750ms; left: 30px; }
+@keyframes tomte-hop {
+  0% { opacity: 0; transform: translateY(40px) scale(.8); }
+  35% { opacity: 1; transform: translateY(-10px) scale(1.04); }
+  55% { transform: translateY(0) rotate(-3deg); }
+  70% { transform: translateY(-5px) rotate(3deg); }
+  85% { transform: translateY(0) rotate(-1deg); }
+  100% { transform: none; }
+}
+@keyframes tomte-laugh {
+  0%, 100% { transform: scale(1, 1); }
+  15%, 45%, 75% { transform: scale(1.3, 2); }
+  30%, 60%, 90% { transform: scale(1.1, 1.1); }
+}
+@keyframes tomte-ho {
+  0% { opacity: 0; transform: translate(-6px, 14px) scale(.6) rotate(-10deg); }
+  25% { opacity: 1; transform: translate(0, 0) scale(1.1) rotate(-6deg); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(10px, -26px) scale(1) rotate(-4deg); }
+}
+@keyframes tomte-blink {
+  0%, 95%, 100% { transform: scaleY(1); }
+  97% { transform: scaleY(.1); }
+}
+@media (min-width: 40em) {
+  .tomte { margin-bottom: auto; }
+}
 
 /* --- Reduced motion: no animations or transitions anywhere, the card just fades in --- */
 @media (prefers-reduced-motion: reduce) {

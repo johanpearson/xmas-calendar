@@ -12,6 +12,7 @@ const REVEALS = {
   gift: 'pop',
   bells: 'rise',
   ribbon: 'pop',
+  magnifier: 'glint',
   confetti: 'pop',
   snowburst: 'pop',
 };
@@ -21,6 +22,7 @@ const VIBRATIONS = {
   gift: [10, 60, 18],
   bells: [14, 90, 14],
   ribbon: [10, 50, 10, 50, 16],
+  magnifier: [8, 40, 8, 40, 20],
   confetti: [16],
   snowburst: [10],
 };
@@ -48,6 +50,19 @@ const PROPS = {
       stroke-linejoin="round"${mirrored ? ' transform="translate(32 0) scale(-1 1)"' : ''}/></svg>`,
   knot: (color, stroke) => `<svg viewBox="0 0 20 20" aria-hidden="true">
     <ellipse cx="10" cy="10" rx="7" ry="6" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`,
+  // A note with hidden writing, searched with the magnifier.
+  note: `<svg viewBox="0 0 64 80" aria-hidden="true">
+    <path d="M4 4h46l10 10v62H4z" fill="#fbf5e9" stroke="#c9a24d" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M50 4v10h10" fill="#efe3c6" stroke="#c9a24d" stroke-width="2" stroke-linejoin="round"/>
+    <g stroke="#c9b48a" stroke-width="2.4" stroke-linecap="round">
+      <path d="M12 22h30M12 31h40M12 40h36M12 49h40M12 58h24"/></g>
+    <path d="M44 62l3 6 6-10" fill="none" stroke="#d7263d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  magnifier: `<svg viewBox="0 0 64 64" aria-hidden="true">
+    <path d="M40 40l17 17" stroke="#5b2d0e" stroke-width="10" stroke-linecap="round"/>
+    <path d="M40 40l17 17" stroke="#b8642a" stroke-width="5.5" stroke-linecap="round"/>
+    <circle cx="26" cy="26" r="19" fill="#dff1ff" fill-opacity=".35"/>
+    <circle cx="26" cy="26" r="19" fill="none" stroke="#e8b93c" stroke-width="5"/>
+    <path d="M14 20a13 13 0 0 1 9-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`,
   bell: `<svg viewBox="0 0 48 52" aria-hidden="true">
     <path d="M24 2a3 3 0 0 1 3 3v1.5A13 13 0 0 1 37 19v11l5 8H6l5-8V19A13 13 0 0 1 21 6.5V5a3 3 0 0 1 3-3z"
       fill="#f0c04a" stroke="#8a5a00" stroke-width="2" stroke-linejoin="round"/>
@@ -244,6 +259,39 @@ const ANIMATIONS = {
     burst(stage, { count: 14, kinds: ['heart'], delay: 720, duration: 420, distance: [70, 150], spread: 150 });
     burst(stage, { count: 18, kinds: ['glitter', 'sparkle'], delay: 700, duration: 420, distance: [50, 150] });
     fadeOut(gift, 960, 140);
+    return 1100;
+  },
+
+  // jakt: a note flies out, a magnifier sweeps over it in a zigzag, then it glitters.
+  magnifier({ stage, ghost, from }) {
+    swingLeaf(ghost);
+    const note = prop(stage, 'fx-note', PROPS.note, from, { delay: 100, duration: 360 });
+    const glass = el('div', 'fx-prop fx-magnifier', PROPS.magnifier);
+    stage.append(glass);
+    // Lens centre path over the note (the lens sits in the top left of the svg).
+    glass.animate(
+      [
+        { transform: 'translate(-90px, -70px) rotate(-20deg) scale(.6)', opacity: 0 },
+        { transform: 'translate(-34px, -38px) rotate(-8deg) scale(1)', opacity: 1, offset: 0.18 },
+        { transform: 'translate(22px, -22px) rotate(6deg) scale(1)', offset: 0.4 },
+        { transform: 'translate(-30px, 4px) rotate(-6deg) scale(1)', offset: 0.62 },
+        { transform: 'translate(20px, 26px) rotate(8deg) scale(1.05)', opacity: 1, offset: 0.84 },
+        { transform: 'translate(70px, 60px) rotate(20deg) scale(.7)', opacity: 0 },
+      ],
+      { delay: 300, duration: 640, easing: 'ease-in-out', fill: 'both' },
+    );
+    // Little glints where the lens passes.
+    burst(stage, { x: -34, y: -38, count: 4, kinds: ['glitter'], delay: 420, duration: 300, distance: [8, 24] });
+    burst(stage, { x: 22, y: -22, count: 4, kinds: ['glitter'], delay: 560, duration: 300, distance: [8, 24] });
+    burst(stage, { x: -30, y: 4, count: 4, kinds: ['glitter'], delay: 700, duration: 300, distance: [8, 24] });
+    // Found it: the note glitters as the card takes over.
+    note.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.35)' }, { filter: 'brightness(1)' }], {
+      delay: 820,
+      duration: 240,
+      fill: 'both',
+    });
+    burst(stage, { count: 26, kinds: ['glitter', 'sparkle', 'star'], delay: 860, duration: 300, distance: [40, 140] });
+    fadeOut(note, 960, 120);
     return 1100;
   },
 
