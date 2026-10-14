@@ -339,6 +339,12 @@ och bumpa sedan `CACHE_VERSION`.
 - Tyst läge på iPhone stänger av Web Audio. Det är inget fel och appen märker det inte.
 - De nya filerna `js/audio.js` och `js/audio-ui.js` ligger i precache och `CACHE_VERSION`
   är `v5`.
+- Efter första lyssningen (`CACHE_VERSION` `v6`): bjällrorna lät mekaniska och byggs nu
+  av en liten bank syntetiserade bjällerslag (egna oharmoniska deltoner med lätt
+  svävning och ett kulklick) som spelas många i taget med olika hastighet, nivå och
+  stereoläge, mänsklig tajming och några som klingar efter. Förstoringsglasen som ikoner
+  för `ledtrad` och `jakt` är utbytta mot ett julbrev och en guldnyckel med rosett.
+  Animationen `magnifier` (förstoringsglaset som sveper) är kvar.
 
 ### Tomten och lucktypen jakt (milstolpe 8)
 
