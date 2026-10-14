@@ -55,6 +55,9 @@ npm test
 och `tests/tomte.test.js` testar tomtens logik och validerar `content/tomte.json` (se "Tomten").
 `tests/audio.test.js` testar ljudets rena logik: noter till frekvenser, melodier, jingelns
 längd och mute-reglerna (se "Ljud").
+`tests/weather.test.js` testar vädret med mockad `fetch`, falsk `localStorage` och falsk
+klocka: klassningens gränsvärden (precis under och på gränsen), cachereglerna (färsk,
+gammal men tillåten vid nätverksfel, för gammal), timeout, felsvar och saknad data (se "Väder").
 
 ### E2e (Playwright)
 
@@ -71,6 +74,11 @@ npm run test:e2e
 ```
 
 `tests/e2e/tomte.spec.js` testar tomten: intro, välkomst, scener, frågor, dev-panelen och offline.
+`tests/e2e/weather.spec.js` mockar Open-Meteo (`page.route`, inget går till riktiga API:t)
+och kontrollerar att väderscenen visar rätt variant vid simulerat datum 2026-12-14 (fint)
+och 2026-12-18 (regn), att anropet bara innehåller Höörs koordinater och de avtalade
+parametrarna, `unknown` vid felsvar och timeout, cachen och att service workern inte cachar
+väderanropen, samt dev-panelens senaste värden.
 `tests/e2e/audio.spec.js` testar ljudets koppling (inte hur det låter): ingen `AudioContext`
 före första trycket, jingeln startar på introts första "Nästa", knapparna, tyst läge,
 musiken och att den pausas när sidan är dold, samt att appen fungerar utan Web Audio.
@@ -119,9 +127,13 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     Scenen som det simulerade datumet pekar på är markerad "aktuell", och "sedd" visar vad
     som redan visats. Ladda om sidan för att se det Elin skulle se vid en appstart med det
     datumet. **Nollställ tomtescener** glömmer allt tomten visat och alla svar (även intro
-    och välkomst). **Väder i scener** väljer vilka väderrepliker (`good`, `bad` eller
-    `unknown`) som visas när en väderscen spelas upp härifrån. I appen visas alltid
-    `unknown` tills väderhämtning är inkopplad.
+    och välkomst).
+  - **Prognos**: *Riktig* (standard) hämtar prognosen från Open-Meteo. *Bra*, *Dålig* och
+    *Okänd* tvingar väderreplikerna `good`, `bad` eller `unknown` utan att fråga någon
+    källa. Valet sparas och gäller både **Spela upp** och scener vid appstart (även efter
+    omladdning) tills du byter tillbaka till *Riktig* eller stänger av dev-läget. Under
+    väljaren visas senast hämtade prognos: tidpunkt, vilket datum den gäller, nederbörd
+    och vind.
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
@@ -232,9 +244,9 @@ Allt innehåll ligger i `content/tomte.json`:
 - `questions` är valfritt. Första alternativet räknas som det positiva svaret: om alla svar
   var det första visas `closing.allPositive`, annars `closing.someNegative`. `closing` är
   valfritt (och båda texterna i den).
-- `weatherVariants` (`good`, `bad`, `unknown`) och `forecastFor` förbereder väder. Än så
-  länge visas alltid `unknown`: `getWeatherVariant()` i `js/tomte.js` returnerar
-  `"unknown"` tills väderhämtning kopplas in.
+- `weatherVariants` (`good`, `bad`, `unknown`) är väderrepliker och `forecastFor` de datum
+  prognosen gäller. Det **sista** datumet i `forecastFor` (promenaddagen) avgör vilken
+  variant som visas, se "Väder".
 - Överlappar flera scener visas den med senast `from`, och de andra räknas som sedda.
 - Texterna visas precis som de står (ingen HTML).
 - `npm test` validerar filen: giltiga och unika `id`, giltiga datum med `from` <= `until`,
@@ -243,6 +255,75 @@ Allt innehåll ligger i `content/tomte.json`:
 
 Prova tomten med dev-läget (se ovan). Precis som `days.json` hämtas `tomte.json` med
 stale-while-revalidate, så ändringar kräver ingen `CACHE_VERSION`-bump.
+
+## Väder
+
+Tomtens väderscener (de med `weatherVariants` i `content/tomte.json`) väljer repliker efter
+en riktig prognos för Höör. All logik ligger i `js/weather.js`.
+
+- **Källa:** [Open-Meteo](https://open-meteo.com/) Forecast API
+  (`https://api.open-meteo.com/v1/forecast`), utan API-nyckel och direkt från webbläsaren
+  (Open-Meteo tillåter CORS). Data under CC BY 4.0, därför står "Väderdata: Open-Meteo.com"
+  längst ned i tomtens bubbla när en väderscen visas.
+- **Anropet:** `latitude=55.94`, `longitude=13.54` (konstanterna `LATITUDE` och `LONGITUDE`),
+  `daily=precipitation_sum,wind_speed_10m_max,temperature_2m_max`, `wind_speed_unit=ms`,
+  `timezone=Europe/Stockholm` och `start_date` = `end_date` = promenaddagen. Inget annat
+  skickas: inga cookies och ingen referrer.
+- **Klassning** (konstanter överst i `js/weather.js`):
+  - `bad` om nederbörden är minst `BAD_PRECIPITATION_MM` (2 mm) eller vinden minst
+    `BAD_WIND_MS` (10 m/s)
+  - `good` om båda är kända och under gränserna
+  - `unknown` om data saknas eller anropet misslyckas
+- **När:** prognosen hämtas först när en väderscen ska visas, aldrig vid appstart. Tomten
+  väntar högst `FETCH_TIMEOUT_MS` (4 s), sedan blir det `unknown`.
+- **Cache:** svaret sparas per datum i `localStorage` (`advent.weather.cache`) med
+  tidsstämpel. Yngre än 3 timmar (`CACHE_FRESH_MS`) används det direkt. Misslyckas
+  hämtningen duger ett svar upp till 24 timmar gammalt (`CACHE_MAX_AGE_MS`), annars
+  `unknown`. Service workern rör aldrig väderanropen.
+- **För långt fram:** Open-Meteo ger prognos cirka 16 dagar framåt. Längre fram svarar den
+  med fel, och det blir `unknown` utan felmeddelande i appen. Väderscenerna 14-20 december
+  ligger alltid inom en vecka från promenaddagen.
+
+### Byta källa
+
+Källan är en *provider* i `js/weather.js`: ett objekt med
+
+```js
+{
+  id: 'smhi',                          // skiljer cachen mellan källor
+  attribution: 'Väderdata: SMHI',      // texten i tomtens bubbla
+  attributionUrl: 'https://www.smhi.se/',
+  async fetchDay(dateKey, { fetch, signal }) {
+    // hämta prognosen för dateKey ('YYYY-MM-DD', svensk tid) med fetch och signal
+    // (signal avbryter vid timeout) och returnera
+    // { precipitation, wind, temperature } i mm, m/s och °C, null där värde saknas.
+    // Kasta ett fel om något går snett.
+  },
+}
+```
+
+Skriv en sådan bredvid `openMeteo` och peka om `export const provider = openMeteo;` till
+den nya. Klassning, cache, timeout och dev-panelen fungerar som förut. För SMHI: använd
+snow1g version 1 (det gamla pmp3g-API:t är avvecklat sedan 31 mars 2026). SMHI ger
+tim- eller periodvärden, så `fetchDay` får själv summera nederbörden och ta högsta
+vindhastigheten för dygnet (svensk tid). Lägg till ett test i `tests/weather.test.js`,
+bumpa `CACHE_VERSION` och kontrollera att källan tillåter CORS.
+
+### Testa varianterna
+
+- **I dev-läget:** välj *Bra*, *Dålig* eller *Okänd* under **Prognos** och tryck **Spela
+  upp** på `v3-vader` eller `v3-vaderrapport`. För att se vad Elin ser vid en appstart:
+  sätt **Simulerat datum** (t.ex. 2026-12-14 eller 2026-12-18), tryck **Nollställ
+  tomtescener** och ladda om.
+- **Riktig prognos:** välj *Riktig*. Prognosen finns bara cirka 16 dagar framåt, så
+  för en riktig hämtning före december: ändra tillfälligt `forecastFor` lokalt till ett
+  datum inom två veckor och spela upp scenen. Värdena syns sedan i panelen.
+- **Automatiskt:** `npm test` och `npx playwright test tests/e2e/weather.spec.js`.
+- **CORS från webbläsaren** (en gång, på en dator med nät): öppna appen, öppna
+  utvecklarverktygens konsol och kör
+  `fetch('https://api.open-meteo.com/v1/forecast?latitude=55.94&longitude=13.54&daily=precipitation_sum,wind_speed_10m_max,temperature_2m_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&start_date=2026-12-20&end_date=2026-12-20').then((r) => r.json()).then(console.log)`.
+  Ett svar med `daily` (eller `error`/`reason` om datumet ligger för långt fram) betyder
+  att CORS fungerar; ett CORS-fel syns i konsolen.
 
 ## Ljud
 
@@ -309,6 +390,29 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Väder (milstolpe 10)
+
+- Promenaddagen är det sista datumet i `forecastFor`; bara den dagen hämtas och avgör.
+- Ett enda dåligt värde räcker för `bad` även om det andra saknas (t.ex. 12 m/s och ingen
+  nederbörd). `good` kräver att både nederbörd och vind finns. Temperaturen hämtas och
+  sparas (syns inte i panelen) men påverkar inte klassningen.
+- Alla misslyckanden behandlas lika: nätverksfel, timeout, HTTP-fel, `error: true`,
+  saknat datum i svaret eller saknade värden. Då används cache upp till 24 timmar, annars
+  `unknown`. Svar utan användbara värden cachas inte, så en senare start kan få en prognos.
+- Cachen gäller per källa (`id`), så ett byte av källa ignorerar gamla svar.
+- Medan prognosen hämtas (högst 4 s) visas ingen tomte; han dyker upp med hela scenen när
+  varianten är bestämd. Scenen markeras som sedd redan innan, som förut.
+- Dev-valet "Prognos" sparas i `localStorage` (`advent.dev.forecast`), gäller bara när
+  dev-läget är på och rensas när dev-läget stängs av.
+- Attributionen "Väderdata: Open-Meteo.com" är en länk till open-meteo.com och visas för
+  alla varianter av en väderscen, även `unknown` och när dev-valet tvingar en variant.
+- Open-Meteos dokumentationssida och API:t gick inte att nå från miljön där detta byggdes
+  (nätverkspolicy). Parametrarna är kontrollerade mot Open-Meteos källkod för
+  dokumentationen på GitHub (variabelnamn, enheter, CORS, 16 dagar). CORS och ett riktigt
+  svar bör verifieras en gång enligt "Testa varianterna" ovan.
+- Ett gammalt e2e-test i `tomte.spec.js` var instabilt: det kunde sätta simulerat datum
+  innan appens startkontroll (600 ms) hade körts. Testet väntar nu in den.
 
 ### Ljud (milstolpe 9)
 
