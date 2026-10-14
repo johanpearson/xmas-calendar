@@ -198,14 +198,17 @@ export function createTomte(tomte) {
     return onInstallChange(render);
   }
 
-  function play(kind, scene = null) {
+  // options.weather: dev only, forces a weather variant ("good", "bad" or "unknown").
+  function play(kind, scene = null, options = {}) {
     if (kind === 'intro' && tomte.intro) {
       run(buildScript(tomte.intro), { last: tomte.intro.doneButton, onLastStep: installExtra });
     } else if (kind === 'welcome' && tomte.welcome) {
       run(buildScript(tomte.welcome));
     } else if (kind === 'scene' && scene) {
       // Weather lookups come later: getWeatherVariant() is always "unknown" for now.
-      const weather = scene.weatherVariants ? getWeatherVariant(scene.forecastFor ?? []) : undefined;
+      const weather = scene.weatherVariants
+        ? (options.weather ?? getWeatherVariant(scene.forecastFor ?? []))
+        : undefined;
       run(buildScript(scene, { weather }), { scene });
     }
   }

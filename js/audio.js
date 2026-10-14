@@ -212,6 +212,7 @@ function ensureContext() {
   blip.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
   blip.connect(ctx.destination);
   blip.start(0);
+  setTimeout(() => safely(bellBank), 50); // ready before Tomten's first sleigh bells
   ctx.addEventListener?.('statechange', () => {
     if (ctx.state === 'running') flushPending();
   });
@@ -387,6 +388,65 @@ function noise(dest, { t, dur, peak = 0.2, attack = 0.003, filter = 'bandpass', 
   src.onended = () => gain.disconnect();
 }
 
+// A small set of single sleigh bell strikes, synthesised once into buffers. Each bell
+// has its own inharmonic partials, each doubled a little sharp so it shimmers (beats),
+// and starts with the click of its pellet. Playing many of them with slightly different
+// speeds, levels and pans sounds like a real shake instead of one tone repeated.
+function bellBank() {
+  if (engine.bells) return engine.bells;
+  const { ctx } = engine;
+  const rate = ctx.sampleRate;
+  const length = Math.floor(rate * 0.5);
+  const fadeFrom = Math.floor(length * 0.8);
+  const PARTIALS = [[1, 1, 0.16], [1.52, 0.65, 0.12], [2.03, 0.5, 0.09], [2.71, 0.35, 0.07], [3.39, 0.22, 0.05], [4.18, 0.14, 0.035]];
+  engine.bells = Array.from({ length: 6 }, () => {
+    const base = rand(2400, 3600);
+    const partials = PARTIALS.map(([ratio, level, tau]) => ({
+      w: 2 * Math.PI * base * ratio * rand(0.97, 1.03),
+      level: level * rand(0.7, 1),
+      tau: tau * rand(0.7, 1.3),
+      phase: rand(0, 2 * Math.PI),
+      beat: rand(1.002, 1.006),
+    }));
+    const buffer = ctx.createBuffer(1, length, rate);
+    const data = buffer.getChannelData(0);
+    let peak = 0;
+    for (let i = 0; i < length; i++) {
+      const time = i / rate;
+      let v = (Math.random() * 2 - 1) * Math.exp(-time / 0.004) * 0.8;
+      for (const p of partials) {
+        const ring = p.level * Math.exp(-time / p.tau);
+        v += ring * (Math.sin(p.w * time + p.phase) + 0.5 * Math.sin(p.w * p.beat * time));
+      }
+      if (i > fadeFrom) v *= (length - i) / (length - fadeFrom);
+      data[i] = v;
+      peak = Math.max(peak, Math.abs(v));
+    }
+    for (let i = 0; i < length; i++) data[i] /= peak;
+    return buffer;
+  });
+  return engine.bells;
+}
+
+// One bell from the bank at time t, with a level (0-1) and a stereo position (-1 to 1).
+function jingleHit(dest, t, level, pan) {
+  const { ctx } = engine;
+  const bells = bellBank();
+  const src = ctx.createBufferSource();
+  src.buffer = bells[Math.floor(Math.random() * bells.length)];
+  src.playbackRate.value = rand(0.94, 1.08);
+  const gain = ctx.createGain();
+  gain.gain.value = 0.11 * level;
+  src.connect(gain);
+  if (ctx.createStereoPanner) {
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    gain.connect(panner).connect(dest);
+  } else gain.connect(dest);
+  src.start(t);
+  src.onended = () => gain.disconnect();
+}
+
 // A small bell: a few inharmonic partials, the higher ones dying faster.
 function bell(dest, t, freq, { peak = 0.12, dur = 0.6 } = {}) {
   [[1, 1, 1], [2.76, 0.4, 0.55], [5.4, 0.2, 0.3], [8.93, 0.08, 0.18]].forEach(([ratio, level, length]) =>
@@ -421,20 +481,27 @@ function playSong(dest, t, song, bpm, { peak = 0.16 } = {}) {
 // --- The effects. Each takes the destination and a start time; all end within 1.5 s. ---
 
 const SOUNDS = {
-  // Sleigh bells: four shakes of tiny metallic hits and a hiss of shimmer.
+  // Sleigh bells: four humanised shakes of many small bells, then a few settling.
   sleighbells(dest, t) {
-    [0, 0.17, 0.34, 0.56].forEach((shake, i) => {
-      const last = i === 3;
-      for (let j = 0; j < 7; j++) {
-        const at = t + shake + rand(0, 0.06);
-        const base = rand(2300, 3400);
-        const dur = last ? rand(0.2, 0.4) : rand(0.08, 0.16);
-        [1, 1.48, 2.11].forEach((ratio, k) =>
-          tone(dest, { t: at, freq: base * ratio, dur, peak: 0.032 / (k + 1), attack: 0.001 }),
-        );
+    const accents = [0.7, 0.5, 0.65, 1];
+    let shake = 0;
+    accents.forEach((accent, i) => {
+      const at = Math.max(t, t + shake + rand(-0.012, 0.012)); // never before t
+      const sway = rand(-0.5, 0.5);
+      // Most bells strike right at the start of the shake, a few trail behind.
+      for (let j = 0; j < 14; j++) {
+        jingleHit(dest, at + 0.07 * Math.random() ** 1.7, accent * rand(0.3, 1), sway + rand(-0.3, 0.3));
       }
-      noise(dest, { t: t + shake, dur: last ? 0.3 : 0.12, peak: 0.09, filter: 'highpass', freq: 6000 });
+      // The pellets rattling inside: a short breathy "chsh".
+      noise(dest, { t: at, dur: 0.09, peak: 0.05 * accent, attack: 0.004, q: 0.7, freq: 7500 });
+      shake += [0.16, 0.15, 0.19][i] ?? 0;
     });
+    // The bells settle after the last shake.
+    const end = t + shake + 0.06;
+    for (let j = 0; j < 10; j++) {
+      const k = j / 10;
+      jingleHit(dest, end + 0.45 * k + rand(0, 0.03), 0.45 * (1 - k) * rand(0.5, 1), rand(-0.6, 0.6));
+    }
   },
 
   // A pling, then a glittering arpeggio upwards.

@@ -41,10 +41,17 @@ const ICONS = {
     <g fill="#fff"><rect x="9" y="10" width="2" height="2" rx=".5"/><rect x="20" y="9" width="2" height="2" rx=".5"/><rect x="22" y="19" width="2" height="2" rx=".5"/><rect x="12" y="23" width="2" height="2" rx=".5"/><rect x="17" y="13" width="1.6" height="1.6" rx=".4"/></g>`,
 
   // --- Content type icons (opened doors and the card) ---
+  // A Christmas letter: an envelope with a red wax seal and a sprig of holly.
   ledtrad: `
-    <circle cx="13.5" cy="13.5" r="8" fill="#dff1ff" stroke="#1d3b6b" stroke-width="2.6"/>
-    <path d="M19.5 19.5l7.5 7.5" stroke="#8a4f23" stroke-width="4" stroke-linecap="round"/>
-    <path d="M10 11.5a4 4 0 0 1 3.5-2.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`,
+    <rect x="3.5" y="9" width="25" height="17.5" rx="2" fill="#fbf0d6" stroke="#8a4f23" stroke-width="1.4"/>
+    <path d="M4.3 10l11.7 8.6L27.7 10" fill="none" stroke="#8a4f23" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="16" cy="18.6" r="3.8" fill="#c4252f" stroke="#8c1d26" stroke-width="1"/>
+    <path d="M16 16.4l.7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2z" fill="#f3d48a"/>
+    <g fill="#2f8f55" stroke="#14532d" stroke-width=".6">
+      <path d="M20.5 8.5c1.2-2.6 4-3.6 6.2-2.4-.9.5-1 1.6-.4 2.3-1 .2-1.6 1-1.4 2-1.2-.9-3-1.2-4.4-1.9z"/>
+      <path d="M20.5 8.5c-.4-2.8-3-4.4-5.5-3.8.8.7.7 1.8-.1 2.3.9.4 1.3 1.4.9 2.3 1.4-.6 3.2-.4 4.7-.8z"/>
+    </g>
+    <g fill="#d7263d"><circle cx="20.2" cy="9.3" r="1.5"/><circle cx="22" cy="10.2" r="1.3"/></g>`,
   litet: `
     <rect x="5" y="13" width="22" height="15" rx="1.5" fill="#d7263d"/>
     <rect x="4" y="9.5" width="24" height="5.5" rx="1.5" fill="#e33a4f"/>
@@ -62,14 +69,18 @@ const ICONS = {
     <path d="M8 6a3 3 0 0 0-3 3v2h3M11 28a3 3 0 0 0 3-3v-1H8" fill="#e6cf9e" stroke="#8a4f23" stroke-width="1.4"/>
     <path d="M12 11.5h10M12 15h10M12 18.5h7" stroke="#8a4f23" stroke-width="1.3" stroke-linecap="round"/>
     <path d="M24 16.5l-6 6-1 2.5 2.5-1 6-6c.6-.6.6-1.4 0-2-.6-.4-1-.4-1.5.5z" fill="#d7263d"/>`,
-  // A treasure hunt: a gold-rimmed magnifier with a sparkle in the lens.
+  // A treasure hunt: an old gold key with a red Christmas bow.
   jakt: `
-    <path d="M20 20l7.5 7.5" stroke="#5b2d0e" stroke-width="4.6" stroke-linecap="round"/>
-    <path d="M20 20l7.5 7.5" stroke="#b8642a" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="13.5" cy="13.5" r="9" fill="#14532d"/>
-    <circle cx="13.5" cy="13.5" r="9" fill="none" stroke="#e8b93c" stroke-width="2.8"/>
-    <path d="M13.5 8.2l1.4 3.9 3.9 1.4-3.9 1.4-1.4 3.9-1.4-3.9-3.9-1.4 3.9-1.4z" fill="#ffe08a"/>
-    <circle cx="9.6" cy="9.6" r="1.2" fill="#fff" opacity=".8"/>`,
+    <path d="M14.2 15.8L26.5 28" stroke="#8a5a00" stroke-width="4.6" stroke-linecap="round"/>
+    <path d="M22.6 24.2l-3 3M25.4 27l-2.4 2.4" stroke="#8a5a00" stroke-width="4.2" stroke-linecap="round"/>
+    <circle cx="10.5" cy="11.5" r="6.2" fill="none" stroke="#8a5a00" stroke-width="4.6"/>
+    <path d="M14.2 15.8L26.5 28" stroke="#f0c04a" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M22.6 24.2l-3 3M25.4 27l-2.4 2.4" stroke="#f0c04a" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="10.5" cy="11.5" r="6.2" fill="none" stroke="#f0c04a" stroke-width="2.6"/>
+    <path d="M7.6 9.3a4 4 0 0 1 3-1.8" fill="none" stroke="#fff6cc" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M15.2 6.8l-1.6 4.6 1.8-.6 1 1.6.4-4.8m.6-.6l3.4 3.4-1.9.2-.2 1.9-2.6-4.2" fill="#c4252f" stroke="#8c1d26" stroke-width=".7" stroke-linejoin="round"/>
+    <path d="M16.4 6.6c-2-3.6-6-3.2-5.2-.6.6 1.8 3.4 1.4 5.2.6zm0 0c3.6-2 3.2-6 .6-5.2-1.8.6-1.4 3.4-.6 5.2z" fill="#d7263d" stroke="#8c1d26" stroke-width=".8" stroke-linejoin="round"/>
+    <circle cx="16.4" cy="6.6" r="1.4" fill="#e33a4f" stroke="#8c1d26" stroke-width=".7"/>`,
   unknown: `
     <path d="M16 3l2.6 9.4L28 15l-9.4 2.6L16 27l-2.6-9.4L4 15l9.4-2.6z" fill="#e8c36a" stroke="#8a5a00" stroke-width="1.2" stroke-linejoin="round"/>`,
 
