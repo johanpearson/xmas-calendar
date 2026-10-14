@@ -180,3 +180,29 @@ test('dev: the panel shows the last fetched values and when', async ({ page }) =
     'Senast hämtat 18 dec. 10:00, för 20 december: nederbörd 3,5 mm, vind 6 m/s.',
   );
 });
+
+test('dev: "Testa hämtning (imorgon)" fetches tomorrow by the real date and shows the result', async ({ page }) => {
+  await skipIntro(page);
+  let answer = rainy;
+  const requests = await mockOpenMeteo(page, (url) => answer(url));
+  await page.clock.setFixedTime(at('2026-10-14'));
+  await page.addInitScript(() => localStorage.setItem('advent.dateOverride', '2026-12-18'));
+  await page.goto('./?dev=on');
+  await expect(page.locator('#grid .door').first()).toBeVisible();
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click(); // the 18 Dec scene
+  requests.length = 0;
+
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  const panel = page.locator('#dev-panel');
+  await panel.getByRole('button', { name: 'Testa hämtning (imorgon)' }).click();
+  await expect(page.locator('#toast')).toHaveText('Prognos för 15 oktober: dålig');
+  expect(requests).toHaveLength(1);
+  expect(requests[0].url.searchParams.get('start_date')).toBe('2026-10-15'); // real date, not the simulated one
+  await expect(panel.locator('.dev-forecast-last')).toHaveText(
+    'Senast hämtat 14 okt. 11:00, för 15 oktober: nederbörd 3,5 mm, vind 6 m/s.',
+  );
+
+  answer = () => ({ status: 400, body: { error: true, reason: 'out of range' } });
+  await panel.getByRole('button', { name: 'Testa hämtning (imorgon)' }).click();
+  await expect(page.locator('#toast')).toHaveText('Hämtningen misslyckades: Open-Meteo: HTTP 400');
+});
