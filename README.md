@@ -119,7 +119,9 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     Scenen som det simulerade datumet pekar på är markerad "aktuell", och "sedd" visar vad
     som redan visats. Ladda om sidan för att se det Elin skulle se vid en appstart med det
     datumet. **Nollställ tomtescener** glömmer allt tomten visat och alla svar (även intro
-    och välkomst).
+    och välkomst). **Väder i scener** väljer vilka väderrepliker (`good`, `bad` eller
+    `unknown`) som visas när en väderscen spelas upp härifrån. I appen visas alltid
+    `unknown` tills väderhämtning är inkopplad.
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
