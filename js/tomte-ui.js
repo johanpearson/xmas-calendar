@@ -13,6 +13,8 @@ import {
 } from './tomte.js';
 import { getTomteSeen, setTomteSeen, getTomteAnswers, saveTomteAnswer } from './storage.js';
 import { canInstall, onInstallChange, promptInstall } from './install.js';
+import { playEffect, tomteArrives, tomteLeaves } from './audio.js';
+import { soundButton } from './audio-ui.js';
 
 const TOMTE_URL = './content/tomte.json';
 const LAST_BUTTON = 'Hej då!';
@@ -97,10 +99,13 @@ export function createTomte(tomte) {
     const extra = el('div', 'tomte-extra');
     const actions = el('div', 'tomte-actions');
     bubble.append(name, text, extra, actions);
+    const speaker = soundButton();
+    if (speaker) bubble.append(speaker);
 
     dialog.append(close, figure, bubble);
     // No backdrop close: a stray tap shouldn't cut Tomten off mid-sentence. × and Esc close.
     dialog.addEventListener('close', () => {
+      tomteLeaves();
       cleanup?.();
       cleanup = null;
     });
@@ -126,7 +131,12 @@ export function createTomte(tomte) {
     }
 
     function nextButton() {
-      if (hasMore()) return button('Nästa', 'btn btn-primary', next);
+      if (hasMore()) {
+        return button('Nästa', 'btn btn-primary', () => {
+          playEffect('click');
+          next();
+        });
+      }
       return button(last, 'btn btn-primary', () => dialog.close());
     }
 
@@ -164,6 +174,8 @@ export function createTomte(tomte) {
     void dialog.offsetWidth;
     dialog.classList.add('is-hohoho');
     if (!dialog.open) dialog.showModal();
+    // Sleigh bells and the jingle. Before the first tap they wait for it (the intro's "Nästa").
+    tomteArrives();
     next();
   }
 

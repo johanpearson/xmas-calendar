@@ -53,6 +53,8 @@ npm test
 
 `tests/content.test.js` validerar även `content/days.json` (se "Lägga till och ändra luckor")
 och `tests/tomte.test.js` testar tomtens logik och validerar `content/tomte.json` (se "Tomten").
+`tests/audio.test.js` testar ljudets rena logik: noter till frekvenser, melodier, jingelns
+längd och mute-reglerna (se "Ljud").
 
 ### E2e (Playwright)
 
@@ -69,6 +71,9 @@ npm run test:e2e
 ```
 
 `tests/e2e/tomte.spec.js` testar tomten: intro, välkomst, scener, frågor, dev-panelen och offline.
+`tests/e2e/audio.spec.js` testar ljudets koppling (inte hur det låter): ingen `AudioContext`
+före första trycket, jingeln startar på introts första "Nästa", knapparna, tyst läge,
+musiken och att den pausas när sidan är dold, samt att appen fungerar utan Web Audio.
 De andra e2e-testerna markerar alla tomtescener som sedda (`tests/e2e/helpers.js`), så att
 tomten inte står i vägen.
 
@@ -107,6 +112,8 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
   - **Spela upp animation**: välj lucka och animation ("Luckans egen" är den som
     `type`/`animation` ger) och förhandsgranska. Luckan markeras inte som öppnad och
     det fungerar även på låsta luckor.
+  - **Ljud**: **Spela alla ljud** spelar effekterna en i taget (namnet visas i en
+    toast) och **Testa jingle** spelar tomtens jingel. Ljudknappen måste vara på.
   - **Tomten**: intro, välkomst och alla scener med knappen **Spela upp**, som visar dem
     direkt oavsett datum och om de redan setts (och utan att markera dem som sedda).
     Scenen som det simulerade datumet pekar på är markerad "aktuell", och "sedd" visar vad
@@ -235,6 +242,38 @@ Allt innehåll ligger i `content/tomte.json`:
 Prova tomten med dev-läget (se ovan). Precis som `days.json` hämtas `tomte.json` med
 stale-while-revalidate, så ändringar kräver ingen `CACHE_VERSION`-bump.
 
+## Ljud
+
+Allt ljud skapas i webbläsaren med Web Audio API i `js/audio.js` (oscillatorer, brus,
+filter och envelopes). Det finns inga ljudfiler och inga beroenden.
+
+- **Ljudknappen** (högtalaren under rubriken och i tomtens pratbubbla) slår på och av allt
+  ljud. Standard: på. Av betyder helt tyst, även musiken.
+- **Musik** (bredvid) slår på en lugn speldosa-version av tomtens melodi som loopar med
+  en paus mellan varven. Standard: av.
+- Inget ljud spelas före första trycket i appen (webbläsarnas autoplay-regler). För en ny
+  användare är det tomtens första "Nästa", och då börjar hans jingel.
+- Ljudet pausas när appen eller fliken hamnar i bakgrunden och fortsätter när den visas.
+
+| Händelse | Ljud |
+|---|---|
+| `bells` (`uppdrag`), tomtens entré | bjällror |
+| `sparkle` (`ledtrad`), `ribbon` (`rim`), `snowburst` | pling och glittrande arpeggio |
+| `gift` (`litet`), `confetti` | mjukt pop och glitter |
+| `magnifier` (`jakt`) | sökarsvep och ding |
+| låst lucka | lågt "tonk" |
+| "Nästa" hos tomten | litet klick |
+| tomten dyker upp | bjällror och jingel (refrängen ur "Jingle Bells") |
+
+Ljudet följer animationen, så fältet `animation` i `days.json` byter även ljudet.
+
+**Ändra melodin:** den ligger i `JINGLE_BELLS` i `js/audio.js` som en lista per stämma med
+`[notnamn, taktslag]`, t.ex. `['E5', 1]` (fjärdedel) eller `['C5', 4]` (helnot). Notnamn
+är bokstav, valfritt `#` eller `b` och oktav (`A4` = 440 Hz), `'R'` är paus. `bpm` styr
+jingelns tempo (testet kräver 5-8 s) och `calmBpm` bakgrundsmusikens. Ljudnivåer och
+klangfärger ändras i `SOUNDS` och `MASTER_GAIN`. Kör `npm test` efteråt och bumpa
+`CACHE_VERSION`.
+
 ## Deploy och CACHE_VERSION
 
 Sajten deployas direkt från `main` med GitHub Pages
@@ -268,6 +307,38 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Ljud (milstolpe 9)
+
+- Melodin är refrängen ur "Jingle Bells" (James Lord Pierpont, 1857, public domain) i
+  C-dur med slutet "...one-horse open sleigh" som landar på grundtonen. Den är
+  nedskriven för hand som noter i `js/audio.js` (ingen inspelning eller ljudfil). En enkel
+  stämma med grundton och kvint ligger under. Jingeln är cirka 7 s (270 bpm),
+  bakgrundsmusiken samma melodi i 132 bpm (cirka 14,5 s) med 6 s paus mellan varven.
+- Speldosan är en triangelvåg med mjuk attack (12 ms) och lång avklingning plus en svag
+  oktav ovanför, så att tonerna ringer som en speldosa oavsett notlängd.
+- "Första trycket" är vilket tryck eller tangent som helst i appen, inte bara introts
+  "Nästa" (som är första trycket för en ny användare). Dök tomten upp innan dess spelas
+  hans jingel på första trycket så länge han är kvar på skärmen. Bjällrorna hoppas då över,
+  annars skulle de låta mitt i en replik.
+- Är ljudet avstängt skapas ingen `AudioContext` alls. Den skapas när ljudet slås på
+  (knapptrycket räknas som användartryck).
+- Ljudknappen är en `aria-pressed`-knapp med namnet "Ljud". Knappen i tomtens bubbla och
+  den under rubriken är samma inställning. Slås ljudet av tystnar även ljud som redan
+  spelas.
+- Musikknappen visar "av" när ljudet är avstängt (musiken hörs ju inte då), och ett tryck
+  på "Musik" slår på både musik och ljud.
+- Jingeln tonas ut när tomten stängs, och bakgrundsmusiken sänks medan jingeln spelar.
+- Med `prefers-reduced-motion` hoppas animationen över men ljudet spelas ändå (det är
+  ingen rörelse). Redan öppnade luckor ger inget ljud, precis som de inte animeras.
+  Hoppar man över en animation med ett tryck klingar ljudet ut (högst cirka 1,2 s).
+- Dev-förhandsvisningen ("Spela upp animation") spelar också ljudet.
+- `snowburst` får plinget med arpeggio och `confetti` popet (de saknade ljud i önskemålen).
+- Nivåerna är uppmätta genom att rendera varje effekt i en `OfflineAudioContext`: alla
+  effekter klingar ut inom 1,2 s och ligger på ungefär samma nivå, med master gain 0,25.
+- Tyst läge på iPhone stänger av Web Audio. Det är inget fel och appen märker det inte.
+- De nya filerna `js/audio.js` och `js/audio-ui.js` ligger i precache och `CACHE_VERSION`
+  är `v5`.
 
 ### Tomten och lucktypen jakt (milstolpe 8)
 

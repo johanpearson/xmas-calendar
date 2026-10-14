@@ -938,6 +938,45 @@ body {
   .card[open] { animation: card-fade 200ms ease-out !important; }
 }
 
+/* --- Sound and music buttons --- */
+.audio-controls { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+.audio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 36px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid #f6efe266;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.audio-btn[aria-pressed="true"] { color: var(--gold-strong); border-color: var(--gold); background: #e8c36a1f; }
+.audio-btn:hover { background: #e8c36a2e; }
+.audio-btn:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 2px; }
+.audio-icon { width: 20px; height: 20px; flex: none; pointer-events: none; }
+/* In Tomten's bubble: a round speaker in the top right corner, on paper. */
+.tomte-bubble .audio-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  color: #4a5776;
+  border-color: transparent;
+  background: transparent;
+}
+.tomte-bubble .audio-btn[aria-pressed="true"] { color: #8c1d26; }
+.tomte-bubble .audio-btn:hover { background: #14244314; }
+.tomte-bubble .audio-btn:focus-visible { outline-color: #8c1d26; outline-offset: 0; }
+.tomte-name { padding-right: 40px; }
+
 /* --- Install flow --- */
 .install-btn {
   display: inline-flex;

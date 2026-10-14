@@ -2,6 +2,7 @@
 // unavailable (private mode, blocked site data) and the app must still work.
 
 import { isValidDateKey } from './dates.js';
+import { parseToggle } from './audio.js';
 
 const KEY_OPENED = 'advent.opened';
 const KEY_DEV = 'advent.dev';
@@ -10,6 +11,8 @@ const KEY_TOMTE_INTRO = 'advent.tomte.introSeen';
 const KEY_TOMTE_WELCOME = 'advent.tomte.welcomeSeen';
 const KEY_TOMTE_SCENES = 'advent.tomte.scenesSeen';
 const KEY_TOMTE_ANSWERS = 'advent.tomte.answers';
+const KEY_SOUND = 'advent.sound';
+const KEY_MUSIC = 'advent.music';
 
 function read(key) {
   try {
@@ -120,4 +123,23 @@ export function saveTomteAnswer(sceneId, questionId, optionIndex) {
 // Forgets everything Tomten has shown and been told (dev mode).
 export function clearTomte() {
   for (const key of [KEY_TOMTE_INTRO, KEY_TOMTE_WELCOME, KEY_TOMTE_SCENES, KEY_TOMTE_ANSWERS]) write(key, null);
+}
+
+// --- Sound ---
+
+// Sound is on unless turned off; background music is off unless turned on.
+export function getSoundOn() {
+  return parseToggle(read(KEY_SOUND), true);
+}
+
+export function setSoundOn(on) {
+  write(KEY_SOUND, on ? 'on' : 'off');
+}
+
+export function getMusicOn() {
+  return parseToggle(read(KEY_MUSIC), false);
+}
+
+export function setMusicOn(on) {
+  write(KEY_MUSIC, on ? 'on' : 'off');
 }
