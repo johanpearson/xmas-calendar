@@ -147,16 +147,6 @@ export function pickStartup({ tomte, todayKey, standalone, seen = emptySeen() })
   return { kind: 'scene', scene: pickLatest(candidates), seen: { ...seen, scenes: [...seenScenes] } };
 }
 
-// --- Weather ---
-
-/**
- * Which weather lines a scene should use for the given forecast dates.
- * Weather lookups come in a later milestone; until then this is always "unknown".
- */
-export function getWeatherVariant(forecastForDates) {
-  return 'unknown';
-}
-
 // --- Scripts: what Tomten says, step by step ---
 
 /**
