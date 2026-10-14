@@ -205,6 +205,22 @@ export async function getForecast(dateKey, { source = provider, fetch, storage =
 }
 
 /**
+ * Dev: asks the source right away, ignoring the cache, and caches a usable answer (so it
+ * shows as the last fetch). Never throws. Resolves to { ok: true, variant, values } or
+ * { ok: false, error } with the reason, which only the dev panel shows.
+ */
+export async function testFetch(dateKey, { source = provider, fetch, storage = defaultStorage(), now = Date.now, timeoutMs } = {}) {
+  try {
+    const values = await fetchDayWithTimeout(dateKey, { source, fetch, timeoutMs });
+    const variant = classify(values);
+    if (variant !== 'unknown') writeCache(storage, dateKey, values, now(), source.id);
+    return { ok: true, variant, values };
+  } catch (err) {
+    return { ok: false, error: err?.message ?? String(err) };
+  }
+}
+
+/**
  * Which weather lines a scene should use for its forecast dates: "good", "bad" or "unknown".
  * options.override (dev mode) wins when it is one of those; anything else, such as
  * "real" or null, means a real forecast. Other options go to getForecast().
