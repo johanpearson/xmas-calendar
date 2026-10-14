@@ -19,6 +19,7 @@ import {
   getDateOverride,
   setDateOverride,
 } from './storage.js';
+import { setupInstall } from './install.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -34,6 +35,7 @@ const DEFAULT_ICON = '✨';
 const $ = (id) => document.getElementById(id);
 const els = {
   app: $('app'),
+  header: $('header'),
   title: $('title'),
   subtitle: $('subtitle'),
   loading: $('loading'),
@@ -351,8 +353,18 @@ async function startDevMode() {
   });
 }
 
+// Relative path and scope, so it works under /<repo>/ on GitHub Pages.
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js').catch((err) => {
+    console.warn('Service worker registration failed', err);
+  });
+}
+
 async function init() {
   handleDevParam();
+  registerServiceWorker();
+  setupInstall({ container: els.header });
 
   let content;
   try {
