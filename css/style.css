@@ -1,0 +1,402 @@
+/* Mobile first: base styles target ~360px wide screens, wider screens are enhancements. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Author display rules (e.g. display: grid) would otherwise override the hidden attribute. */
+[hidden] { display: none !important; }
+
+:root {
+  --bg: #0b1a33;
+  --bg-2: #13284d;
+  --text: #f6efe2;
+  --text-muted: #c3cde3;
+  --gold: #e8c36a;
+  --gold-strong: #f3d48a;
+  --red: #a3212b;
+  --red-2: #c4313b;
+  --locked: #1a2c52;
+  --locked-border: #42557d;
+  --paper: #fbf5e9;
+  --ink: #142443;
+
+  /* Type accents (icon and colour stripe only). */
+  --accent-ledtrad: #7fb4e8;
+  --accent-litet: #e8c36a;
+  --accent-uppdrag: #e86a6a;
+  --accent-rim: #c9a0e8;
+
+  --radius: 12px;
+  --flip-ms: 700ms;
+
+  color-scheme: dark;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; }
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: radial-gradient(120% 80% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* --- Snow: two drifting layers of dots, pure CSS --- */
+.snow, .snow::before {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.snow {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #fff9, transparent),
+    radial-gradient(2px 2px at 120px 80px, #fff8, transparent),
+    radial-gradient(1.5px 1.5px at 200px 150px, #fff7, transparent),
+    radial-gradient(2px 2px at 60px 200px, #fff6, transparent),
+    radial-gradient(1.5px 1.5px at 260px 240px, #fff8, transparent);
+  background-size: 300px 300px;
+  animation: snow 28s linear infinite;
+  opacity: .55;
+}
+.snow::before {
+  content: "";
+  background-image:
+    radial-gradient(1px 1px at 40px 60px, #fff8, transparent),
+    radial-gradient(1px 1px at 160px 20px, #fff7, transparent),
+    radial-gradient(1.5px 1.5px at 90px 130px, #fff6, transparent),
+    radial-gradient(1px 1px at 180px 180px, #fff8, transparent);
+  background-size: 200px 200px;
+  animation: snow 40s linear infinite;
+}
+@keyframes snow {
+  from { background-position: 0 0; }
+  to { background-position: 60px 600px; }
+}
+
+/* --- Layout --- */
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.app-header { text-align: center; margin: 8px 0 20px; }
+.app-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  color: var(--gold);
+  letter-spacing: .01em;
+}
+.app-subtitle { margin: 4px 0 0; color: var(--text-muted); }
+
+.status-message { text-align: center; color: var(--text-muted); }
+.error {
+  background: var(--bg-2);
+  border: 1px solid var(--locked-border);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  color: var(--text);
+}
+.error-title { font-weight: 700; color: var(--gold); margin-top: 0; }
+
+.special { display: grid; gap: 10px; margin-bottom: 14px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+}
+
+/* --- Doors --- */
+.door {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1.1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  perspective: 600px;
+  -webkit-tap-highlight-color: transparent;
+}
+.door.is-special { aspect-ratio: auto; min-height: 112px; }
+
+.door:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 3px; border-radius: var(--radius); }
+
+.door-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform var(--flip-ms) cubic-bezier(.3, .7, .3, 1.15);
+}
+.door.is-opened .door-flip { transform: rotateY(180deg); }
+
+.door-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.door-front {
+  background: linear-gradient(160deg, var(--red-2), var(--red));
+  border: 2px solid var(--gold);
+  color: var(--text);
+  box-shadow: 0 4px 10px #0006, inset 0 0 0 3px #0000001a;
+}
+.door-back {
+  transform: rotateY(180deg);
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--paper);
+  border-top: 6px solid var(--accent, var(--gold));
+}
+
+.door-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.door-label {
+  font-size: .7rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  max-width: 100%;
+}
+.door-icon { font-size: 1.2rem; line-height: 1; }
+.door-lock { display: none; position: absolute; top: 4px; right: 6px; font-size: .7rem; opacity: .85; }
+.door.is-locked .door-lock { display: block; }
+
+/* Locked: muted navy, still readable (AA). */
+.door.is-locked .door-front {
+  background: var(--locked);
+  border-color: var(--locked-border);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+/* Today: gold glow and a small badge. */
+.door.is-today .door-front,
+.door.is-today .door-back {
+  box-shadow: 0 0 0 3px var(--gold-strong), 0 0 18px 4px #e8c36a88;
+}
+.door.is-today:not(.is-opened) .door-front { animation: glow 2.4s ease-in-out infinite; }
+@keyframes glow {
+  50% { box-shadow: 0 0 0 3px var(--gold-strong), 0 0 26px 8px #e8c36aaa; }
+}
+.door-badge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--gold-strong);
+  color: var(--ink);
+  font-size: .7rem;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Special doors (before December 1st): wide box above the grid. */
+.door.is-special .door-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.6rem; }
+.door.is-special .door-label { font-size: .9rem; font-weight: 500; }
+.door.is-special .door-icon { font-size: 1.6rem; }
+
+/* Type accents. */
+.type-ledtrad { --accent: var(--accent-ledtrad); }
+.type-litet { --accent: var(--accent-litet); }
+.type-uppdrag { --accent: var(--accent-uppdrag); }
+.type-rim { --accent: var(--accent-rim); }
+
+/* Locked door feedback. */
+.door.is-shaking { animation: shake 420ms ease-in-out; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-2deg); }
+  40% { transform: translateX(6px) rotate(2deg); }
+  60% { transform: translateX(-4px) rotate(-1deg); }
+  80% { transform: translateX(4px) rotate(1deg); }
+}
+
+/* --- Toast --- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
+  z-index: 20;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 6px 20px #0008;
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms, transform 200ms;
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* --- Card (dialog) --- */
+.card {
+  width: min(92vw, 32rem);
+  max-height: 85vh;
+  max-height: 85dvh;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 20px 60px #000a;
+  overflow: auto;
+}
+.card[open] { animation: card-in 320ms cubic-bezier(.2, .8, .3, 1.2); }
+@keyframes card-in {
+  from { opacity: 0; transform: scale(.9) translateY(10px); }
+}
+.card::backdrop { background: #050a19b3; }
+.card-inner {
+  padding: 20px 20px 16px;
+  border-top: 8px solid var(--accent, var(--gold));
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #4a5776;
+}
+.card-icon { font-size: 1.3rem; }
+.card-title {
+  margin: 6px 0 10px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+.card-body p { margin: 0 0 .8em; }
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.card-actions form { margin: 0; }
+
+/* --- Buttons --- */
+.btn {
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 2px; }
+.btn-primary { background: var(--red); color: #fff; }
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
+
+/* --- Dev mode (elements only exist when the dev flag is set) --- */
+.dev-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: max(6px, env(safe-area-inset-top)) 16px 6px;
+  background: repeating-linear-gradient(135deg, #ffd23f 0 14px, #ffc400 14px 28px);
+  color: #1a1300;
+  font-weight: 800;
+  text-align: center;
+  font-size: .9rem;
+}
+.dev-toggle {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 31;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #1a1300;
+  background: #ffd23f;
+  color: #1a1300;
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px #0008;
+}
+.dev-panel {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 58px);
+  z-index: 31;
+  width: min(300px, calc(100vw - 24px));
+  max-height: calc(100dvh - 100px);
+  overflow: auto;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fffbe8;
+  color-scheme: light;
+  color: #1a1300;
+  box-shadow: 0 10px 30px #000a;
+}
+.dev-heading { margin: 0 0 4px; font-size: 1rem; }
+.dev-info { margin: 0 0 10px; font-size: .8rem; color: #4d4426; }
+.dev-field { display: grid; gap: 4px; font-size: .85rem; font-weight: 700; margin-bottom: 10px; }
+.dev-input { font: inherit; font-size: 16px; padding: 6px 8px; min-height: 40px; }
+.dev-actions { display: grid; gap: 6px; }
+.dev-btn {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid #1a1300;
+  border-radius: 8px;
+  background: #ffd23f;
+  color: #1a1300;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dev-btn-quiet { background: transparent; }
+.dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
+/* Keep the app's own top safe-area padding from doubling up under the banner. */
+.has-dev-banner .app { padding-top: 16px; }
+
+/* --- Reduced motion: no animations or transitions anywhere --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .snow { display: none; }
+}
