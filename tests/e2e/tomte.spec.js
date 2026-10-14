@@ -175,3 +175,20 @@ test('dev: play any scene, the date override picks the current one, reset scenes
   await expect(panel.locator('.dev-tomte-item.is-current')).not.toContainText('sedd');
   expect(await page.evaluate(() => localStorage.getItem('advent.tomte.scenesSeen'))).toBeNull();
 });
+
+test('Tomten works offline after the first visit', async ({ page, context }) => {
+  await markSeen(page);
+  await page.clock.setFixedTime(at('2026-11-29'));
+  await gotoApp(page);
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise((resolve) => navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true }));
+    }
+  });
+
+  await context.setOffline(true);
+  await page.clock.setFixedTime(at('2026-11-30'));
+  await page.reload();
+  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+});

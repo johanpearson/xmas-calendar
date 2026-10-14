@@ -51,7 +51,8 @@ node --test
 npm test
 ```
 
-`tests/content.test.js` validerar även `content/days.json` (se "Lägga till och ändra luckor").
+`tests/content.test.js` validerar även `content/days.json` (se "Lägga till och ändra luckor")
+och `tests/tomte.test.js` testar tomtens logik och validerar `content/tomte.json` (se "Tomten").
 
 ### E2e (Playwright)
 
@@ -66,6 +67,10 @@ npm install                       # bara dev-beroendet @playwright/test
 npx playwright install chromium   # första gången
 npm run test:e2e
 ```
+
+`tests/e2e/tomte.spec.js` testar tomten: intro, välkomst, scener, frågor, dev-panelen och offline.
+De andra e2e-testerna markerar alla tomtescener som sedda (`tests/e2e/helpers.js`), så att
+tomten inte står i vägen.
 
 Playwright startar själv en liten testserver (`tests/e2e/serve.mjs`) på port 4173.
 
@@ -102,6 +107,12 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
   - **Spela upp animation**: välj lucka och animation ("Luckans egen" är den som
     `type`/`animation` ger) och förhandsgranska. Luckan markeras inte som öppnad och
     det fungerar även på låsta luckor.
+  - **Tomten**: intro, välkomst och alla scener med knappen **Spela upp**, som visar dem
+    direkt oavsett datum och om de redan setts (och utan att markera dem som sedda).
+    Scenen som det simulerade datumet pekar på är markerad "aktuell", och "sedd" visar vad
+    som redan visats. Ladda om sidan för att se det Elin skulle se vid en appstart med det
+    datumet. **Nollställ tomtescener** glömmer allt tomten visat och alla svar (även intro
+    och välkomst).
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
@@ -156,6 +167,74 @@ Efter en ändring: ladda om i webbläsaren och kontrollera att kalendern syns (e
 fil ger ett felmeddelande). Pusha till `main`, så når ändringen telefonen nästa gång
 appen startas. Ingen `CACHE_VERSION`-bump behövs för innehållsändringar.
 
+## Tomten
+
+En tomte (SVG med samma tomteluva som rubriken) som pratar med Elin i en pratbubbla. Han
+dyker upp högst en gång per appstart:
+
+1. **Intro** första gången appen öppnas i en vanlig webbläsarflik. Sista repliken visar
+   knappen "Installera appen" om Chrome erbjuder installation, annars en kort hjälptext.
+2. **Välkomst** första gången appen startas installerad (från hemskärmen).
+3. Annars en **scen** om dagens datum ligger mellan scenens `from` och `until` och den
+   inte redan visats. Varje scen visas bara en gång.
+
+"Nästa" stegar mellan replikerna, frågor har en knapp per svar och tomten svarar direkt.
+Svaren sparas bara i telefonen (`localStorage`) och används bara för tomtens repliker.
+Allt innehåll ligger i `content/tomte.json`:
+
+```json
+{
+  "name": "Tomten",
+  "intro": {
+    "lines": ["Ho ho ho! Hej Elin, det är jag, tomten.", "..."],
+    "installButton": "Installera appen",
+    "installHelp": "Om knappen inte syns: ...",
+    "doneButton": "Nu kör vi"
+  },
+  "welcome": { "lines": ["Ho ho ho, välkommen, Elin!"] },
+  "scenes": [
+    {
+      "id": "v1-uppfoljning",
+      "from": "2026-12-03",
+      "until": "2026-12-06",
+      "lines": ["Hej igen, Elin!"],
+      "questions": [
+        {
+          "id": "gran",
+          "text": "Har ni fixat julgranen?",
+          "options": [
+            { "label": "Ja, den står där", "reply": "Fint!" },
+            { "label": "Inte än", "reply": "Då är det dags." }
+          ]
+        }
+      ],
+      "closing": { "allPositive": "Fantastiskt!", "someNegative": "Jag tror på er." }
+    }
+  ]
+}
+```
+
+- `name` visas ovanför pratbubblan (valfritt, standard "Tomten").
+- `intro` och `welcome` är valfria. `lines` visas en i taget. `installButton`,
+  `installHelp` och `doneButton` (bara intro) har svenska standardtexter om de saknas.
+- `scenes[].id` måste vara unikt. Byt inte `id` på en scen som redan visats.
+- `from` och `until` är `YYYY-MM-DD` (lokalt datum), båda inklusive.
+- Ordningen i en scen: `lines`, sedan väderrepliker, sedan `questions` och sist `closing`.
+- `questions` är valfritt. Första alternativet räknas som det positiva svaret: om alla svar
+  var det första visas `closing.allPositive`, annars `closing.someNegative`. `closing` är
+  valfritt (och båda texterna i den).
+- `weatherVariants` (`good`, `bad`, `unknown`) och `forecastFor` förbereder väder. Än så
+  länge visas alltid `unknown`: `getWeatherVariant()` i `js/tomte.js` returnerar
+  `"unknown"` tills väderhämtning kopplas in.
+- Överlappar flera scener visas den med senast `from`, och de andra räknas som sedda.
+- Texterna visas precis som de står (ingen HTML).
+- `npm test` validerar filen: giltiga och unika `id`, giltiga datum med `from` <= `until`,
+  frågor med svarsalternativ och `reply`, och att väderscener har `unknown`.
+- Är filen trasig eller saknas syns ingen tomte, men kalendern fungerar som vanligt.
+
+Prova tomten med dev-läget (se ovan). Precis som `days.json` hämtas `tomte.json` med
+stale-while-revalidate, så ändringar kräver ingen `CACHE_VERSION`-bump.
+
 ## Deploy och CACHE_VERSION
 
 Sajten deployas direkt från `main` med GitHub Pages
@@ -171,8 +250,8 @@ const CACHE_VERSION = 'v2'; // var 'v1'
 ```
 
 - Lägger du till en ny fil i appskalet: lägg även till den i `SHELL_FILES` i `sw.js`.
-- Ändrar du bara `content/days.json` behövs ingen bump. Filen hämtas med
-  stale-while-revalidate: appen visar den sparade versionen direkt och hämtar en ny
+- Ändrar du bara `content/days.json` eller `content/tomte.json` behövs ingen bump.
+  Filerna hämtas med stale-while-revalidate: appen visar den sparade versionen direkt och hämtar en ny
   i bakgrunden, som syns vid nästa start.
 - Efter en bump laddas den nya versionen ner när appen startas och används från
   starten därefter (alltså ibland först vid andra starten).
@@ -189,6 +268,45 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Tomten och lucktypen jakt (milstolpe 8)
+
+- `PLAN.md` sa att allt innehåll ligger i `days.json`. Det gäller fortfarande luckorna;
+  tomtens repliker ligger i `content/tomte.json` som önskat, och "Beslut" är uppdaterat
+  med det.
+- "Max en scen per appstart, intro och welcome går först" tolkas som att tomten visar
+  högst en sak per start. Visas intro eller välkomst kommer en aktuell scen vid nästa
+  start (om den fortfarande är i sitt datumfönster).
+- En "appstart" är när sidan laddas, och även när appen kommer tillbaka från bakgrunden
+  på en ny dag. Telefoner håller ofta en installerad app vid liv i dagar, och då skulle
+  veckans scen annars missas.
+- En scen räknas som sedd så fort den visas, inte när man klickat sig igenom den. Stänger
+  Elin tomten med × eller Esc kommer scenen alltså inte tillbaka. Ett tryck utanför
+  pratbubblan stänger inte (så att man inte råkar avbryta tomten).
+- Tomten väntar 0,6 s efter att kalendern visats, och väntar tills en öppnad lucka är
+  stängd. Med `prefers-reduced-motion` dyker han upp direkt utan hopp och "Ho ho ho".
+- Sista knappen heter "Hej då!" (introts heter `doneButton`, "Nu kör vi"). Det finns även
+  ett × för att stänga.
+- Intro och välkomst har egna flaggor. På iOS har den installerade appen egen
+  `localStorage`, så där får Elin både introt (i Safari) och välkomsten (i appen).
+- Introts installationsknapp använder samma `beforeinstallprompt` som knappen
+  "Installera" under rubriken: används prompten på det ena stället försvinner båda.
+  Dyker prompten upp medan introt visas byts hjälptexten ut mot knappen. iOS-rutan
+  ("Lägg till på hemskärmen") visas som förut, under tomten.
+- Svaren sparas per scen och fråga som index för valt alternativ
+  (`advent.tomte.answers`). En obesvarad fråga räknas inte som positiv.
+- Väderscener visar alltid `unknown`. Saknar en scen en variant används `unknown`.
+- I dev-panelen markeras inte en uppspelad scen som sedd, så att man kan spela upp den
+  flera gånger. "Nollställ tomtescener" glömmer även intro, välkomst och svar.
+- `tomte.json` valideras strikt (samma princip som `days.json`): ett fel gör att tomten
+  inte visas alls, i stället för att visa fel scen.
+- Lucktypen `jakt` har en mintgrön accent och ett förstoringsglas med guldkant och
+  gnistra i glaset (`ledtrad` har redan ett blått förstoringsglas). Animationen heter
+  `magnifier`: en lapp flyger ut ur luckan, förstoringsglaset sveper i sicksack över den,
+  och kortet glittrar (en glansrand och små guldprickar) när texten visas.
+- `verse` renderades redan i kursiv under titeln (milstolpe 7), så inget ändrades där.
+- Skärmdumpsskriptet tar nu bilder av alla fem typer från riktiga luckor (det behöver inte
+  längre låna en dag för `litet`) och två bilder på tomten.
 
 ### Jul-design och animationer (milstolpe 7)
 
@@ -227,8 +345,7 @@ och bumpa sedan `CACHE_VERSION`.
 - Bara `label` för 2026-12-13 ändrades i `days.json`. Titeln ("Vi lussar för Saga och
   mormor") och texten ("Glad Lucia!") handlar redan om Lucia och lämnades orörda.
 - Skärmdumparna i `docs/screenshots/` tas med `npm run screenshots` (Playwright, 360 px).
-  `days.json` saknar ännu en lucka av typen `litet`, så skriptet lånar 2 december för den
-  bilden. Mappen ingår inte i appskalet.
+  Mappen ingår inte i appskalet.
 
 ### PWA, tester och deploy (milstolpe 4 och 5)
 

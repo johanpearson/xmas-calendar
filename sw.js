@@ -1,9 +1,10 @@
 // Service worker: makes the app work offline after the first visit.
 //
 // Bump CACHE_VERSION whenever anything in the app shell changes (HTML, CSS, JS, icons,
-// manifest). Pure content changes in content/days.json need no bump: that file is
-// served stale-while-revalidate, so edits reach the phone on the next start.
-const CACHE_VERSION = 'v3';
+// manifest). Pure content changes in content/days.json or content/tomte.json need no
+// bump: those files are served stale-while-revalidate, so edits reach the phone on the
+// next start.
+const CACHE_VERSION = 'v4';
 
 const SHELL_CACHE = `advent-shell-${CACHE_VERSION}`;
 // Not versioned, so the last known content survives a shell update.
@@ -24,13 +25,15 @@ const SHELL_FILES = [
   'js/themes.js',
   'js/icons.js',
   'js/effects.js',
+  'js/tomte.js',
+  'js/tomte-ui.js',
   'icons/favicon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon-180.png',
 ];
-const CONTENT_FILE = 'content/days.json';
+const CONTENT_FILES = ['content/days.json', 'content/tomte.json'];
 
 const scoped = (path) => new URL(path, self.registration.scope).href;
 
@@ -44,9 +47,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       await precache(SHELL_CACHE, SHELL_FILES);
-      // The first page load fetches days.json before this worker controls the page,
+      // The first page load fetches the content before this worker controls the page,
       // so cache it here too, otherwise the app would not start offline.
-      await precache(CONTENT_CACHE, [CONTENT_FILE]);
+      await precache(CONTENT_CACHE, CONTENT_FILES);
       await self.skipWaiting();
     })(),
   );
@@ -87,9 +90,8 @@ async function navigate(request) {
 }
 
 // Stale-while-revalidate: answer from the cache at once, refresh it in the background.
-async function staleWhileRevalidate(event) {
+async function staleWhileRevalidate(event, key) {
   const cache = await caches.open(CONTENT_CACHE);
-  const key = scoped(CONTENT_FILE);
   const cached = await cache.match(key);
   const refresh = fetch(key, { cache: 'no-cache' }).then(async (response) => {
     if (response.ok) await cache.put(key, response.clone());
@@ -108,8 +110,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) return;
 
-  if (withoutQuery(url) === scoped(CONTENT_FILE)) {
-    event.respondWith(staleWhileRevalidate(event));
+  const contentKey = CONTENT_FILES.map(scoped).find((key) => key === withoutQuery(url));
+  if (contentKey) {
+    event.respondWith(staleWhileRevalidate(event, contentKey));
   } else if (request.mode === 'navigate' && isAppPage(url)) {
     event.respondWith(navigate(request));
   } else {
