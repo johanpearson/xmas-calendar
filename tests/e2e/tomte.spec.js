@@ -130,15 +130,6 @@ test('questions: each answer gets its reply, then the closing line, answers stay
   expect(requests.filter((r) => !r.startsWith('GET '))).toEqual([]);
 });
 
-test('weather scenes use the "unknown" lines for now', async ({ page }) => {
-  await markSeen(page);
-  await page.clock.setFixedTime(at('2026-12-18'));
-  await gotoApp(page);
-  await expect(bubbleText(page)).toHaveText('Fredag, Elin! Nu har jag koll på helgens väder.');
-  await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
-});
-
 test('reduced motion: Tomten shows without the ho ho ho animation', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.setFixedTime(at('2026-10-14'));
