@@ -147,7 +147,7 @@ En lucka ser ut så här:
 - `id` måste vara unikt. Byt inte `id` på en lucka som redan öppnats, då glömmer
   appen att den är öppnad.
 - `type` är `ledtrad`, `litet`, `uppdrag`, `rim` eller `jakt` (styr ikon, färg och öppna-animation).
-  `jakt` är en skattjakt i huset: förstoringsglas som ikon och mintgrön accent.
+  `jakt` är en skattjakt i huset: en guldnyckel med röd rosett som ikon och mintgrön accent.
 - `animation` är valfri och byter öppna-animationen för just den luckan:
 
   | Värde | Animation | Standard för |
@@ -371,8 +371,9 @@ och bumpa sedan `CACHE_VERSION`.
   flera gånger. "Nollställ tomtescener" glömmer även intro, välkomst och svar.
 - `tomte.json` valideras strikt (samma princip som `days.json`): ett fel gör att tomten
   inte visas alls, i stället för att visa fel scen.
-- Lucktypen `jakt` har en mintgrön accent och ett förstoringsglas med guldkant och
-  gnistra i glaset (`ledtrad` har redan ett blått förstoringsglas). Animationen heter
+- Lucktypen `jakt` har en mintgrön accent och (sedan milstolpe 9) en gammal guldnyckel
+  med röd julrosett som ikon. `ledtrad` har ett julbrev med röd vaxsigill och järnek.
+  Förstoringsglasen som ikoner var för svåra att förstå. Animationen heter
   `magnifier`: en lapp flyger ut ur luckan, förstoringsglaset sveper i sicksack över den,
   och kortet glittrar (en glansrand och små guldprickar) när texten visas.
 - `verse` renderades redan i kursiv under titeln (milstolpe 7), så inget ändrades där.
@@ -396,7 +397,7 @@ och bumpa sedan `CACHE_VERSION`.
   Adventsluckorna är adventslila med guldkant och ljusen tänds från vänster. Om julafton
   är en söndag (fjärde advent) vinner julklappsutseendet.
 - Lucka 24 är julklappen för alla år (datum `12-24`), oavsett `type`.
-- Ikonen inne i en öppnad lucka följer innehållstypen: förstoringsglas (`ledtrad`),
+- Ikonen inne i en öppnad lucka följer innehållstypen: julbrev (`ledtrad`, ändrad från förstoringsglas),
   paket (`litet`), klocka (`uppdrag`) och skriftrulle (`rim`). Samma ikon visas i kortet.
 - Låsta luckor dämpas med natthimlens färg över temat. Texten är alltid ljus där, och
   på de mönstrade temana (godisrandig, rutig, julklapp) ligger siffran på en ljus skylt.
