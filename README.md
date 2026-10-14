@@ -133,7 +133,10 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     källa. Valet sparas och gäller både **Spela upp** och scener vid appstart (även efter
     omladdning) tills du byter tillbaka till *Riktig* eller stänger av dev-läget. Under
     väljaren visas senast hämtade prognos: tidpunkt, vilket datum den gäller, nederbörd
-    och vind.
+    och vind. **Testa hämtning (imorgon)** hämtar direkt (utan cache) en riktig prognos
+    för morgondagen enligt det riktiga datumet, inte det simulerade, och visar resultatet
+    i en toast ("Prognos för 15 oktober: bra" eller varför det misslyckades). Scenerna
+    påverkas inte.
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
@@ -315,9 +318,11 @@ bumpa `CACHE_VERSION` och kontrollera att källan tillåter CORS.
   upp** på `v3-vader` eller `v3-vaderrapport`. För att se vad Elin ser vid en appstart:
   sätt **Simulerat datum** (t.ex. 2026-12-14 eller 2026-12-18), tryck **Nollställ
   tomtescener** och ladda om.
-- **Riktig prognos:** välj *Riktig*. Prognosen finns bara cirka 16 dagar framåt, så
-  för en riktig hämtning före december: ändra tillfälligt `forecastFor` lokalt till ett
-  datum inom två veckor och spela upp scenen. Värdena syns sedan i panelen.
+- **Riktig prognos:** Open-Meteo ger bara prognos cirka 16 dagar framåt räknat från det
+  *riktiga* datumet. Före början av december blir väderscenerna därför `unknown` även med
+  *Riktig*, också med simulerat datum. Tryck **Testa hämtning (imorgon)** för att se att
+  källan svarar; värdena syns sedan i panelen. Vill du se en hel scen med riktig
+  prognos: ändra tillfälligt `forecastFor` lokalt till ett datum inom två veckor.
 - **Automatiskt:** `npm test` och `npx playwright test tests/e2e/weather.spec.js`.
 - **CORS från webbläsaren** (en gång, på en dator med nät): öppna appen, öppna
   utvecklarverktygens konsol och kör
