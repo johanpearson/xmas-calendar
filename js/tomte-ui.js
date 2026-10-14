@@ -9,9 +9,16 @@ import {
   replyFor,
   closingFor,
   stepHasText,
-  getWeatherVariant,
 } from './tomte.js';
-import { getTomteSeen, setTomteSeen, getTomteAnswers, saveTomteAnswer } from './storage.js';
+import { getWeatherVariant, provider as weatherProvider } from './weather.js';
+import {
+  getTomteSeen,
+  setTomteSeen,
+  getTomteAnswers,
+  saveTomteAnswer,
+  isDevEnabled,
+  getForecastOverride,
+} from './storage.js';
 import { canInstall, onInstallChange, promptInstall } from './install.js';
 import { playEffect, tomteArrives, tomteLeaves } from './audio.js';
 import { soundButton } from './audio-ui.js';
@@ -67,13 +74,15 @@ export async function loadTomte() {
 
 /**
  * Creates Tomten for the given content. Returns { play, check, isOpen, whenClosed }.
- *  play(kind, scene?)  shows intro, welcome or a scene right away (dev: ignores dates and seen)
+ *  play(kind, scene?)  shows intro, welcome or a scene (dev: ignores dates and seen); a weather
+ *                      scene waits for its forecast first (at most FETCH_TIMEOUT_MS)
  *  check(todayKey, standalone)  shows whatever is due at this app start, if anything
  */
 export function createTomte(tomte) {
   let dialog = null;
   let parts = null;
   let cleanup = null;
+  let starting = null; // a scene waiting for its forecast before it shows
 
   function build() {
     dialog = el('dialog', 'tomte');
@@ -98,7 +107,15 @@ export function createTomte(tomte) {
     text.setAttribute('aria-live', 'polite');
     const extra = el('div', 'tomte-extra');
     const actions = el('div', 'tomte-actions');
-    bubble.append(name, text, extra, actions);
+    // Attribution for the forecast, shown under weather scenes only.
+    const credit = el('p', 'tomte-credit');
+    const creditLink = el('a', null, weatherProvider.attribution);
+    creditLink.href = weatherProvider.attributionUrl;
+    creditLink.target = '_blank';
+    creditLink.rel = 'noopener noreferrer';
+    credit.append(creditLink);
+    credit.hidden = true;
+    bubble.append(name, text, extra, actions, credit);
     const speaker = soundButton();
     if (speaker) bubble.append(speaker);
 
@@ -110,7 +127,7 @@ export function createTomte(tomte) {
       cleanup = null;
     });
     document.body.append(dialog);
-    parts = { figure, text, extra, actions };
+    parts = { figure, text, extra, actions, credit };
   }
 
   // Runs a conversation: steps from buildScript(), finished with the `last` button label.
@@ -118,6 +135,7 @@ export function createTomte(tomte) {
     if (!dialog) build();
     cleanup?.();
     cleanup = null;
+    parts.credit.hidden = !scene?.weatherVariants;
     const answers = scene ? { ...getTomteAnswers(scene.id) } : {};
     let index = -1;
 
@@ -198,17 +216,29 @@ export function createTomte(tomte) {
     return onInstallChange(render);
   }
 
-  // options.weather: dev only, forces a weather variant ("good", "bad" or "unknown").
-  function play(kind, scene = null, options = {}) {
+  // Weather scenes look up the forecast first (at most a few seconds, never throws).
+  // In dev mode the "Prognos" setting can force a variant.
+  async function weatherFor(scene) {
+    const override = isDevEnabled() ? getForecastOverride() : null;
+    return getWeatherVariant(scene.forecastFor ?? [], { override });
+  }
+
+  // Resolves once the conversation is showing.
+  async function play(kind, scene = null) {
     if (kind === 'intro' && tomte.intro) {
       run(buildScript(tomte.intro), { last: tomte.intro.doneButton, onLastStep: installExtra });
     } else if (kind === 'welcome' && tomte.welcome) {
       run(buildScript(tomte.welcome));
     } else if (kind === 'scene' && scene) {
-      // Weather lookups come later: getWeatherVariant() is always "unknown" for now.
-      const weather = scene.weatherVariants
-        ? (options.weather ?? getWeatherVariant(scene.forecastFor ?? []))
-        : undefined;
+      if (!scene.weatherVariants) {
+        run(buildScript(scene), { scene });
+        return;
+      }
+      const ready = weatherFor(scene);
+      starting = ready;
+      const weather = await ready;
+      if (starting !== ready) return; // another conversation started meanwhile
+      starting = null;
       run(buildScript(scene, { weather }), { scene });
     }
   }
@@ -216,17 +246,20 @@ export function createTomte(tomte) {
   // Shows what is due now (at most one thing) and remembers it as seen right away,
   // so closing early or reloading never shows it again.
   function check(todayKey, standalone) {
-    if (dialog?.open) return;
+    if (dialog?.open || starting) return;
     const pick = pickStartup({ tomte, todayKey, standalone, seen: getTomteSeen() });
     if (!pick) return;
     setTomteSeen(pick.seen);
-    play(pick.kind, pick.scene);
+    return play(pick.kind, pick.scene);
   }
 
   // Resolves once no conversation is showing.
   async function whenClosed() {
-    while (dialog?.open) await new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
+    while (starting || dialog?.open) {
+      if (starting) await starting;
+      else await new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
+    }
   }
 
-  return { play, check, whenClosed, isOpen: () => Boolean(dialog?.open) };
+  return { play, check, whenClosed, isOpen: () => Boolean(starting || dialog?.open) };
 }

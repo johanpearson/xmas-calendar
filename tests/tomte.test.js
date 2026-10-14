@@ -9,7 +9,6 @@ import {
   currentScene,
   pickStartup,
   emptySeen,
-  getWeatherVariant,
   buildScript,
   replyFor,
   closingFor,
@@ -198,16 +197,13 @@ test('a scene script: lines, then questions, then closing', () => {
 
 // --- Weather ---
 
-test('getWeatherVariant is "unknown" for now', () => {
-  assert.equal(getWeatherVariant(['2026-12-19', '2026-12-20']), 'unknown');
-  assert.equal(getWeatherVariant([]), 'unknown');
-});
-
 test('weather scenes add the chosen variant after their lines', () => {
   const scene = fixture().scenes[3];
   const texts = (weather) => buildScript(scene, { weather }).map((s) => s.text);
-  assert.deepEqual(texts(getWeatherVariant(scene.forecastFor)), ['Väder:', 'Vet inte']);
+  assert.deepEqual(texts('unknown'), ['Väder:', 'Vet inte']);
+  assert.deepEqual(texts(undefined), ['Väder:', 'Vet inte'], 'no forecast means unknown');
   assert.deepEqual(texts('good'), ['Väder:', 'Sol']);
+  assert.deepEqual(texts('bad'), ['Väder:', 'Regn']);
   assert.deepEqual(texts('storm'), ['Väder:', 'Vet inte'], 'unknown variants fall back to unknown');
 });
 

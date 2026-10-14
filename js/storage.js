@@ -13,6 +13,9 @@ const KEY_TOMTE_SCENES = 'advent.tomte.scenesSeen';
 const KEY_TOMTE_ANSWERS = 'advent.tomte.answers';
 const KEY_SOUND = 'advent.sound';
 const KEY_MUSIC = 'advent.music';
+const KEY_FORECAST_OVERRIDE = 'advent.dev.forecast';
+
+const FORECAST_OVERRIDES = ['good', 'bad', 'unknown'];
 
 function read(key) {
   try {
@@ -70,7 +73,10 @@ export function isDevEnabled() {
 // Turning dev mode off also drops the date override so nothing lingers.
 export function setDevEnabled(enabled) {
   write(KEY_DEV, enabled ? 'on' : null);
-  if (!enabled) write(KEY_DATE_OVERRIDE, null);
+  if (!enabled) {
+    write(KEY_DATE_OVERRIDE, null);
+    write(KEY_FORECAST_OVERRIDE, null);
+  }
 }
 
 // Applies ?dev=on / ?dev=off from a URL. Returns true if the URL had a dev parameter.
@@ -88,6 +94,17 @@ export function getDateOverride() {
 
 export function setDateOverride(dateKey) {
   write(KEY_DATE_OVERRIDE, isValidDateKey(dateKey) ? dateKey : null);
+}
+
+// Dev "Prognos": "good", "bad" or "unknown" forces Tomten's weather lines, null means
+// the real forecast. Only honoured while dev mode is on.
+export function getForecastOverride() {
+  const value = read(KEY_FORECAST_OVERRIDE);
+  return FORECAST_OVERRIDES.includes(value) ? value : null;
+}
+
+export function setForecastOverride(value) {
+  write(KEY_FORECAST_OVERRIDE, FORECAST_OVERRIDES.includes(value) ? value : null);
 }
 
 // --- Tomten ---

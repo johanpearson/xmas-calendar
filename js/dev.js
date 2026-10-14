@@ -163,6 +163,28 @@ export function mountDevPanel(api) {
   return refresh;
 }
 
+const FORECAST_CHOICES = [
+  ['real', 'Riktig'],
+  ['good', 'Bra'],
+  ['bad', 'Dålig'],
+  ['unknown', 'Okänd'],
+];
+
+const decimal = (value, unit) =>
+  typeof value === 'number' ? `${value.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} ${unit}` : 'saknas';
+
+// "Senast hämtat 18 dec 14:03, för 20 december: nederbörd 1,2 mm, vind 6,5 m/s"
+function describeLastFetch(last) {
+  if (!last) return 'Ingen prognos hämtad än.';
+  const when = new Date(last.fetchedAt).toLocaleString('sv-SE', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `Senast hämtat ${when}, för ${formatDate(last.date)}: nederbörd ${decimal(last.precipitation, 'mm')}, vind ${decimal(last.wind, 'm/s')}.`;
+}
+
 const SOUND_LABELS = {
   sleighbells: 'Bjällror',
   chime: 'Pling och arpeggio',
@@ -194,19 +216,26 @@ function audioSection(audio, toast) {
 function tomteSection(tomte, closePanel, toast) {
   const node = el('fieldset', 'dev-preview dev-tomte');
   node.append(el('legend', null, 'Tomten'));
-  // Weather scenes always say "unknown" until weather lookups exist; preview the others here.
+  // "Prognos": the real forecast, or a forced variant for weather scenes (saved, and used
+  // by "Spela upp" and by scenes at app start alike).
   const weatherSelect = el('select', 'dev-input');
-  weatherSelect.id = 'dev-weather';
-  for (const [value, label] of [['unknown', 'Okänt (som i appen nu)'], ['good', 'Fint väder'], ['bad', 'Dåligt väder']]) {
+  weatherSelect.id = 'dev-forecast';
+  for (const [value, label] of FORECAST_CHOICES) {
     const option = el('option', null, label);
     option.value = value;
     weatherSelect.append(option);
   }
+  weatherSelect.value = tomte.forecast.get() ?? 'real';
+  weatherSelect.addEventListener('change', () => {
+    tomte.forecast.set(weatherSelect.value === 'real' ? null : weatherSelect.value);
+    toast(`Prognos: ${weatherSelect.selectedOptions[0].textContent}`);
+  });
   const weatherField = el('div', 'dev-field');
-  const weatherLabel = el('label', null, 'Väder i scener');
-  weatherLabel.htmlFor = 'dev-weather';
+  const weatherLabel = el('label', null, 'Prognos');
+  weatherLabel.htmlFor = 'dev-forecast';
   weatherField.append(weatherLabel, weatherSelect);
-  node.append(weatherField);
+  const lastInfo = el('p', 'dev-info dev-forecast-last');
+  node.append(weatherField, lastInfo);
   const list = el('ul', 'dev-tomte-list');
   const rows = tomte.items.map((item) => {
     const row = el('li', 'dev-tomte-item');
@@ -215,7 +244,7 @@ function tomteSection(tomte, closePanel, toast) {
     const status = el('span', 'dev-tomte-status');
     const play = button('Spela upp', () => {
       closePanel();
-      tomte.play(item, { weather: weatherSelect.value });
+      tomte.play(item);
     });
     play.setAttribute('aria-label', `Spela upp ${item.label}`);
     const text = el('span', 'dev-tomte-text');
@@ -236,6 +265,7 @@ function tomteSection(tomte, closePanel, toast) {
   );
 
   function refresh() {
+    lastInfo.textContent = describeLastFetch(tomte.forecast.last());
     const current = tomte.currentId();
     for (const { item, row, status } of rows) {
       const isCurrent = item.kind === 'scene' && item.id === current;

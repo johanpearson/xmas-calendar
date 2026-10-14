@@ -130,15 +130,6 @@ test('questions: each answer gets its reply, then the closing line, answers stay
   expect(requests.filter((r) => !r.startsWith('GET '))).toEqual([]);
 });
 
-test('weather scenes use the "unknown" lines for now', async ({ page }) => {
-  await markSeen(page);
-  await page.clock.setFixedTime(at('2026-12-18'));
-  await gotoApp(page);
-  await expect(bubbleText(page)).toHaveText('Fredag, Elin! Nu har jag koll på helgens väder.');
-  await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
-});
-
 test('reduced motion: Tomten shows without the ho ho ho animation', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.setFixedTime(at('2026-10-14'));
@@ -152,6 +143,9 @@ test('dev: play any scene, the date override picks the current one, reset scenes
   await markSeen(page);
   await page.clock.setFixedTime(at('2026-10-14'));
   await gotoApp(page, './?dev=on');
+  // Let the start-up check (600 ms after load) run first, or it would pick up the date
+  // simulated below and show that scene before the reload.
+  await page.waitForTimeout(900);
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
   const panel = page.locator('#dev-panel');
 
@@ -208,23 +202,48 @@ test('resuming on a new day shows that day\'s scene, after a conversation left o
   await expect(bubbleText(page)).toHaveText('Hej igen, Elin! Jag har en snabb koll inför julen.');
 });
 
-test('dev: preview a weather scene with fine or bad weather', async ({ page }) => {
+test('dev: "Prognos" forces the weather lines, is saved and also used by "Spela upp"', async ({ page }) => {
+  const requests = [];
+  await page.route('https://api.open-meteo.com/**', (route) => {
+    requests.push(route.request().url());
+    return route.abort();
+  });
   await markSeen(page);
   await page.clock.setFixedTime(at('2026-10-14'));
   await gotoApp(page, './?dev=on');
   const panel = page.locator('#dev-panel');
-  const playWeather = async (weather) => {
+  const playWeather = async (choice) => {
     await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
-    await panel.getByLabel('Väder i scener').selectOption(weather);
+    await panel.getByLabel('Prognos').selectOption({ label: choice });
     await panel.getByRole('button', { name: 'Spela upp v3-vaderrapport' }).click();
     await tomte(page).getByRole('button', { name: 'Nästa' }).click();
   };
-  await playWeather('good');
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  await expect(panel.getByLabel('Prognos')).toHaveValue('real');
+  await expect(panel.locator('.dev-forecast-last')).toHaveText('Ingen prognos hämtad än.');
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+
+  await playWeather('Bra');
   await expect(bubbleText(page)).toHaveText(/Det blir fint/);
+  await expect(tomte(page).locator('.tomte-credit')).toHaveText('Väderdata: Open-Meteo.com');
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
-  await playWeather('bad');
+  await playWeather('Dålig');
   await expect(bubbleText(page)).toHaveText(/Plan B gäller/);
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
-  await playWeather('unknown');
+  await playWeather('Okänd');
   await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click();
+  expect(requests).toEqual([]); // forced variants never ask Open-Meteo
+
+  // Saved across reloads.
+  await page.reload();
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  await expect(panel.getByLabel('Prognos')).toHaveValue('unknown');
+
+  // "Riktig" asks Open-Meteo; here the request fails, so "unknown" with no error shown.
+  await panel.getByLabel('Prognos').selectOption({ label: 'Riktig' });
+  await panel.getByRole('button', { name: 'Spela upp v3-vaderrapport' }).click();
+  await tomte(page).getByRole('button', { name: 'Nästa' }).click();
+  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+  expect(requests).toHaveLength(1);
 });
