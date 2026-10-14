@@ -16,9 +16,32 @@ npx serve
 
 Öppna sedan <http://localhost:8080/>.
 
-För att titta på telefonen i samma wifi: öppna `http://<datorns-ip>:8080/` där.
+### Som på GitHub Pages (under en undermapp)
+
+På GitHub Pages ligger sajten under `/<repo-namn>/`, så alla sökvägar måste vara relativa
+(`./sw.js`, aldrig `/sw.js`). Så här provar du det lokalt:
+
+```sh
+mkdir -p /tmp/pages && ln -sfn "$PWD" /tmp/pages/xmas-calendar
+cd /tmp/pages && python3 -m http.server 8080
+```
+
+Öppna <http://localhost:8080/xmas-calendar/>. E2e-testerna (nedan) kör alltid appen
+på det här sättet och fallerar om något hämtas utanför undermappen.
+
+## Testa på telefon
+
+- **Samma wifi:** starta servern lokalt och öppna `http://<datorns-ip>:8080/` i telefonen.
+  Datumlogik och utseende går att testa så, men service worker och installation kräver
+  HTTPS (eller `localhost`), så de fungerar inte via en IP-adress.
+- **Installation och offline:** testa på den riktiga Pages-adressen
+  `https://<user>.github.io/<repo>/` (se checklistan nedan).
+- Telefonens egen klocka styr vilka luckor som är öppna. För att prova andra datum,
+  använd dev-läget i webbläsaren (inte i den installerade appen, se nedan).
 
 ## Tester
+
+### Enhetstester
 
 Kräver Node 20 eller senare. Inga beroenden behöver installeras.
 
@@ -27,6 +50,38 @@ node --test
 # eller
 npm test
 ```
+
+### E2e (Playwright)
+
+Smoke-tester i `tests/e2e/` som kör appen i Chromium under `/xmas-calendar/`, med låst
+klocka (`page.clock`) på 2026-12-05: luckor till och med den 5:e går att öppna och den 6:e
+är låst, öppnad lucka finns kvar efter omladdning, appen startar offline, manifestet är
+giltigt och Chrome bedömer appen som installerbar, inga rot-absoluta sökvägar, samt
+installationsknappen och iOS-rutan.
+
+```sh
+npm install                       # bara dev-beroendet @playwright/test
+npx playwright install chromium   # första gången
+npm run test:e2e
+```
+
+Playwright startar själv en liten testserver (`tests/e2e/serve.mjs`) på port 4173.
+
+### Manuellt: installation på riktig telefon
+
+**iOS Safari**
+1. Öppna Pages-adressen i Safari. En ruta "Lägg kalendern på hemskärmen" visas en gång.
+2. Tryck på Dela, sedan "Lägg till på hemskärmen". Namnet ska vara "Advent" och ikonen
+   den röda luckan med guldstjärna.
+3. Starta från hemskärmen: ingen adressrad, ingen installationsruta.
+4. Sätt telefonen i flygplansläge och starta igen: kalendern ska visas.
+
+**Android Chrome**
+1. Öppna Pages-adressen i Chrome. Efter en stund visas en liten knapp "Installera"
+   under rubriken (eller välj "Installera app" i menyn ⋮).
+2. Installera. Ikonen ska fylla hela formen (maskable) utan vita kanter.
+3. Starta från hemskärmen: fristående fönster, knappen "Installera" syns inte.
+4. Flygplansläge och starta igen: kalendern ska visas.
 
 ## Dev-läge
 
@@ -51,7 +106,97 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
 Allt innehåll ligger i `content/days.json`. Varje lucka styrs av sitt `date`
 (`YYYY-MM-DD`, lokalt datum), inte av sin position i listan. Se datamodellen i `PLAN.md`.
 
+En lucka ser ut så här:
+
+```json
+{
+  "id": "d-2026-12-06",
+  "date": "2026-12-06",
+  "label": "2:a advent",
+  "type": "uppdrag",
+  "title": "Baka lussekatter",
+  "body": "Första stycket.\nAndra stycket.",
+  "alternative": { "title": "Plan B", "body": "Valfri reservplan" }
+}
+```
+
+- `id` måste vara unikt. Byt inte `id` på en lucka som redan öppnats, då glömmer
+  appen att den är öppnad.
+- `type` är `ledtrad`, `litet`, `uppdrag` eller `rim` (styr ikon och färg).
+- `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
+- Luckor med datum före 1 december visas som en stor specialruta överst.
+- Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
+
+Efter en ändring: ladda om i webbläsaren och kontrollera att kalendern syns (en trasig
+fil ger ett felmeddelande). Pusha till `main`, så når ändringen telefonen nästa gång
+appen startas. Ingen `CACHE_VERSION`-bump behövs för innehållsändringar.
+
+## Deploy och CACHE_VERSION
+
+Sajten deployas direkt från `main` med GitHub Pages
+(Settings, Pages, Deploy from branch: `main` och `/ (root)`).
+URL: `https://<user>.github.io/<repo>/`.
+
+Service workern (`sw.js`) sparar appskalet (HTML, CSS, JS, ikoner, manifest) i en cache
+och svarar från den först. Därför måste du **bumpa `CACHE_VERSION`** i `sw.js` varje gång
+något i appskalet ändras, annars fortsätter telefonen att visa den gamla versionen:
+
+```js
+const CACHE_VERSION = 'v2'; // var 'v1'
+```
+
+- Lägger du till en ny fil i appskalet: lägg även till den i `SHELL_FILES` i `sw.js`.
+- Ändrar du bara `content/days.json` behövs ingen bump. Filen hämtas med
+  stale-while-revalidate: appen visar den sparade versionen direkt och hämtar en ny
+  i bakgrunden, som syns vid nästa start.
+- Efter en bump laddas den nya versionen ner när appen startas och används från
+  starten därefter (alltså ibland först vid andra starten).
+
+### Ikoner
+
+Ikonerna i `icons/` genereras från `icons/favicon.svg`. Efter att du ändrat SVG:n:
+
+```sh
+npm install
+npm run icons
+```
+
+och bumpa sedan `CACHE_VERSION`.
+
 ## Antaganden
+
+### PWA, tester och deploy (milstolpe 4 och 5)
+
+- Ikonen är en röd lucka med guldstjärna på natthimmelsblå botten (samma färger som appen).
+  PNG-varianterna renderas från `favicon.svg` med Chromium via Playwright
+  (`npm run icons`), så inget extra verktyg behövs. Maskable-ikonen har motivet inom
+  den säkra zonen och apple-touch-ikonen har heltäckande bakgrund (iOS rundar själv hörnen).
+- `@playwright/test` är ett dev-beroende (låst till 1.56.1, samma version som
+  Chromium i utvecklingsmiljön). Appen själv har fortfarande inga beroenden.
+- `content/days.json` ligger i en egen, oversionerad cache (`advent-content`), så att
+  senast kända innehåll finns kvar även när appskalet uppdateras. Den precachas vid
+  installation eftersom första sidladdningen sker innan service workern tagit över.
+- Alla navigeringar till appen (även `?dev=on`) besvaras med den cachade `index.html`,
+  så dev-läget fungerar offline. Okända filer under sajten cachas vid första hämtningen.
+- Service workern laddar inte om sidan när en ny version tagit över. Den nya versionen
+  används vid nästa start, vilket räcker för en kalender och undviker att sidan hoppar.
+- Installera-knappen ligger diskret under rubriken och visas bara när Chrome skickar
+  `beforeinstallprompt`. Den försvinner efter ett klick (prompten kan bara användas en
+  gång) och när appen installerats.
+- iOS-rutan visas i Safari på iPhone/iPad (inte i Chrome/Firefox på iOS, vars menyer ser
+  annorlunda ut) när appen inte körs fristående. Den räknas som visad först när man
+  trycker "Okej", så den kommer tillbaka om man bara navigerar bort.
+- Manifestet har även `id`, `description` och `orientation: portrait`. Statusfältet på
+  iOS är `black-translucent`, så den mörka bakgrunden går hela vägen upp (innehållet
+  respekterar redan `safe-area-inset-top`).
+- E2e-testerna kör bara Chromium (Pixel 7-emulering). Safari kan inte testas
+  automatiskt här, därav den manuella checklistan. iOS-rutan testas med Safaris
+  user agent i Chromium.
+- "Lighthouse PWA-kontroller" tolkas som Chromes egna installationskontroller
+  (`Page.getInstallabilityErrors`), som e2e-testet kör. Nyare Lighthouse har ingen
+  PWA-kategori längre.
+
+### Milstolpe 1-3
 
 - `package.json` finns bara för att Node ska tolka `.js` som ES-moduler i testerna
   (`"type": "module"`) och för `npm test`. Den har inga beroenden.
