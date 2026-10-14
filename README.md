@@ -76,3 +76,6 @@ Allt innehåll ligger i `content/days.json`. Varje lucka styrs av sitt `date`
 - `?dev=on`/`?dev=off` tas bort ur adressen efter att de lästs, så att en länk med
   `?dev=on` inte sparas som bokmärke eller delas av misstag.
 - Ett simulerat datum som ligger kvar i `localStorage` ignoreras helt när dev-flaggan är av.
+- `days.json` valideras strikt: ett ogiltigt datum (t.ex. `2026-12-5`) eller två luckor
+  med samma `id` ger felmeddelandet i stället för en kalender där en lucka saknas eller
+  öppnar fel innehåll. Testa därför alltid i webbläsaren efter att du ändrat filen.

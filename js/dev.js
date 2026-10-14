@@ -66,7 +66,8 @@ export function mountDevPanel(api) {
   );
 
   panel.append(heading, realInfo, dateLabel, actions);
-  document.body.append(panel, toggle);
+  // Toggle first so Tab moves from it into the open panel.
+  document.body.append(toggle, panel);
 
   function setPanelOpen(open) {
     panel.hidden = !open;

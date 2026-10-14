@@ -2,6 +2,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Author display rules (e.g. display: grid) would otherwise override the hidden attribute. */
+[hidden] { display: none !important; }
+
 :root {
   --bg: #0b1a33;
   --bg-2: #13284d;

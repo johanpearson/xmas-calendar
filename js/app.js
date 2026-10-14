@@ -65,15 +65,17 @@ const prefersReducedMotion = () =>
 
 // --- Content loading and validation ---
 
-// Keeps only usable entries and sorts them by date.
-// Throws if nothing usable remains or if two doors share an id (ids key the door map).
+// Validates entries and sorts them by date. Throws on any invalid date, an empty list
+// or a duplicate id (ids key the door map), so mistakes show the error state.
 function normalizeContent(json) {
   if (!json || !Array.isArray(json.days)) throw new Error('days.json: "days" must be an array');
+  json.days.forEach((d, i) => {
+    if (!d || !isValidDateKey(d.date)) throw new Error(`days.json: entry ${i} has an invalid date`);
+  });
   const days = json.days
-    .filter((d) => d && isValidDateKey(d.date))
     .map((d) => ({ ...d, id: typeof d.id === 'string' && d.id ? d.id : `d-${d.date}` }))
     .sort((a, b) => a.date.localeCompare(b.date));
-  if (days.length === 0) throw new Error('days.json: no valid days');
+  if (days.length === 0) throw new Error('days.json: no days');
   const ids = new Set();
   for (const d of days) {
     if (ids.has(d.id)) throw new Error(`days.json: duplicate id "${d.id}"`);
