@@ -14,6 +14,8 @@
   --gold-strong: #f3d48a;
   --red: #a3212b;
   --red-2: #c4313b;
+  --green: #17462f;
+  --green-2: #23673f;
   --locked: #1a2c52;
   --locked-border: #42557d;
   --paper: #fbf5e9;
@@ -35,6 +37,7 @@ html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; }
 
 body {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   background: radial-gradient(120% 80% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%) fixed, var(--bg);
@@ -44,37 +47,85 @@ body {
   overflow-x: hidden;
 }
 
-/* --- Snow: two drifting layers of dots, pure CSS --- */
-.snow, .snow::before {
+/* --- Scene: stars, garland, trees and snowy ground. Behind everything, never tappable --- */
+.scene {
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
-.snow {
-  background-image:
-    radial-gradient(2px 2px at 20px 30px, #fff9, transparent),
-    radial-gradient(2px 2px at 120px 80px, #fff8, transparent),
-    radial-gradient(1.5px 1.5px at 200px 150px, #fff7, transparent),
-    radial-gradient(2px 2px at 60px 200px, #fff6, transparent),
-    radial-gradient(1.5px 1.5px at 260px 240px, #fff8, transparent);
-  background-size: 300px 300px;
-  animation: snow 28s linear infinite;
-  opacity: .55;
+.sky, .sky::after {
+  position: absolute;
+  inset: 0;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420"%3E%3Ccircle cx="48" cy="356" r="0.6" fill="%23fff" opacity="0.53"/%3E%3Ccircle cx="178" cy="189" r="1.2" fill="%23fff" opacity="0.79"/%3E%3Ccircle cx="34" cy="12" r="1.2" fill="%23fff" opacity="0.62"/%3E%3Ccircle cx="274" cy="1" r="1.2" fill="%23fff" opacity="0.53"/%3E%3Ccircle cx="289" cy="248" r="0.6" fill="%23fff" opacity="0.85"/%3E%3Ccircle cx="11" cy="11" r="0.6" fill="%23fff" opacity="0.87"/%3E%3Ccircle cx="137" cy="91" r="1.2" fill="%23fff" opacity="0.76"/%3E%3Ccircle cx="190" cy="321" r="1.2" fill="%23fff" opacity="0.68"/%3E%3Ccircle cx="124" cy="284" r="1.2" fill="%23fff" opacity="0.88"/%3E%3Ccircle cx="334" cy="175" r="0.6" fill="%23fff" opacity="0.49"/%3E%3Ccircle cx="357" cy="361" r="0.6" fill="%23fff" opacity="0.77"/%3E%3Ccircle cx="322" cy="409" r="1.2" fill="%23fff" opacity="0.65"/%3E%3Ccircle cx="328" cy="80" r="1" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="318" cy="355" r="1.2" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="12" cy="102" r="1.2" fill="%23fff" opacity="0.61"/%3E%3Ccircle cx="62" cy="230" r="1" fill="%23fff" opacity="0.44"/%3E%3Ccircle cx="239" cy="45" r="0.8" fill="%23fff" opacity="0.66"/%3E%3Ccircle cx="142" cy="206" r="0.6" fill="%23fff" opacity="0.63"/%3E%3Ccircle cx="111" cy="356" r="1.2" fill="%23fff" opacity="0.72"/%3E%3Ccircle cx="61" cy="95" r="0.6" fill="%23fff" opacity="0.79"/%3E%3Ccircle cx="194" cy="361" r="0.8" fill="%23fff" opacity="0.60"/%3E%3Ccircle cx="124" cy="356" r="1" fill="%23fff" opacity="0.63"/%3E%3Ccircle cx="97" cy="230" r="0.6" fill="%23fff" opacity="0.59"/%3E%3Ccircle cx="309" cy="401" r="0.8" fill="%23fff" opacity="0.66"/%3E%3Ccircle cx="202" cy="179" r="0.6" fill="%23fff" opacity="0.64"/%3E%3Ccircle cx="131" cy="233" r="1.2" fill="%23fff" opacity="0.64"/%3E%3Ccircle cx="128" cy="145" r="1" fill="%23fff" opacity="0.63"/%3E%3Ccircle cx="10" cy="96" r="0.8" fill="%23fff" opacity="0.68"/%3E%3Cpath d="M71 42.5Q71 47 75.6 47Q71 47 71 50.7Q71 47 67.4 47Q71 47 71 42.5z" fill="%23fff3c4"/%3E%3Cpath d="M299 379.3Q299 382 302.5 382Q299 382 299 385.4Q299 382 296.4 382Q299 382 299 379.3z" fill="%23fff3c4"/%3E%3C/svg%3E');
+  background-size: 360px 420px;
+  /* Fade the stars out towards the horizon. */
+  -webkit-mask-image: linear-gradient(#000 0 45%, transparent 85%);
+  mask-image: linear-gradient(#000 0 45%, transparent 85%);
 }
-.snow::before {
+.sky::after {
   content: "";
-  background-image:
-    radial-gradient(1px 1px at 40px 60px, #fff8, transparent),
-    radial-gradient(1px 1px at 160px 20px, #fff7, transparent),
-    radial-gradient(1.5px 1.5px at 90px 130px, #fff6, transparent),
-    radial-gradient(1px 1px at 180px 180px, #fff8, transparent);
-  background-size: 200px 200px;
-  animation: snow 40s linear infinite;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 330" width="250" height="330"%3E%3Ccircle cx="81" cy="50" r="0.6" fill="%23fff" opacity="0.44"/%3E%3Ccircle cx="134" cy="121" r="0.6" fill="%23fff" opacity="0.85"/%3E%3Ccircle cx="54" cy="28" r="1.2" fill="%23fff" opacity="0.43"/%3E%3Ccircle cx="23" cy="140" r="0.6" fill="%23fff" opacity="0.87"/%3E%3Ccircle cx="158" cy="192" r="0.6" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="99" cy="322" r="0.6" fill="%23fff" opacity="0.68"/%3E%3Ccircle cx="33" cy="138" r="0.6" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="140" cy="225" r="0.6" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="160" cy="123" r="0.6" fill="%23fff" opacity="0.68"/%3E%3Ccircle cx="155" cy="164" r="1.2" fill="%23fff" opacity="0.79"/%3E%3Ccircle cx="116" cy="305" r="1" fill="%23fff" opacity="0.55"/%3E%3Ccircle cx="199" cy="231" r="0.8" fill="%23fff" opacity="0.44"/%3E%3Ccircle cx="75" cy="163" r="1" fill="%23fff" opacity="0.76"/%3E%3Ccircle cx="72" cy="323" r="0.6" fill="%23fff" opacity="0.66"/%3E%3Ccircle cx="41" cy="113" r="1.2" fill="%23fff" opacity="0.61"/%3E%3Ccircle cx="241" cy="26" r="1" fill="%23fff" opacity="0.57"/%3E%3Cpath d="M91 159.4Q91 164 95.1 164Q91 164 91 168.6Q91 164 85.9 164Q91 164 91 159.4z" fill="%23fff3c4"/%3E%3Cpath d="M26 35.5Q26 39 29.4 39Q26 39 26 42.6Q26 39 22.3 39Q26 39 26 35.5z" fill="%23fff3c4"/%3E%3C/svg%3E');
+  background-size: 250px 330px;
+  background-position: 70px 40px;
+  animation: twinkle 3.6s ease-in-out infinite alternate;
 }
-@keyframes snow {
-  from { background-position: 0 0; }
-  to { background-position: 60px 600px; }
+@keyframes twinkle {
+  from { opacity: .25; }
+  to { opacity: 1; }
+}
+
+/* Trees and snowy ground at the very bottom of the page. */
+.horizon {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(118px + env(safe-area-inset-bottom));
+  background:
+    url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 44" width="300" height="44"%3E%3Cpath d="M0 18C40 8 80 6 120 14s90 14 130 6 40-6 50-4V44H0z" fill="%23e4ecf7"/%3E%3Cpath d="M0 28c50-8 100-6 150 2s110 6 150-2V44H0z" fill="%23f6f9fd"/%3E%3C/svg%3E') repeat-x 0 100% / 300px 44px,
+    url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 110" width="260" height="110"%3E%3Cpolygon points="40.0,14.0 56.8,52.4 48.4,54.3 64.0,81.2 53.2,83.1 70.0,106.2 44.8,106.2 44.8,110.0 35.2,110.0 35.2,106.2 10.0,106.2 26.8,83.1 16.0,81.2 31.6,54.3 23.2,52.4" fill="%230c2a22"/%3E%3Cpolygon points="40.0,14.0 47.8,33.2 42.4,35.1 37.0,31.3 32.2,33.2" fill="%23c9d6e6"/%3E%3Cpolygon points="48.4,54.3 55.6,62.0 46.0,60.1 36.4,63.0 24.4,62.0 31.6,54.3" fill="%23c9d6e6"/%3E%3Cpolygon points="53.2,83.1 60.4,90.8 46.0,88.9 32.8,91.8 19.6,89.8 26.8,83.1" fill="%23c9d6e6"/%3E%3Cpolygon points="150.0,40.0 162.9,68.0 156.4,69.4 168.4,89.0 160.1,90.4 173.0,107.2 153.7,107.2 153.7,110.0 146.3,110.0 146.3,107.2 127.0,107.2 139.9,90.4 131.6,89.0 143.6,69.4 137.1,68.0" fill="%230c2a22"/%3E%3Cpolygon points="150.0,40.0 156.0,54.0 151.8,55.4 147.7,52.6 144.0,54.0" fill="%23c9d6e6"/%3E%3Cpolygon points="156.4,69.4 162.0,75.0 154.6,73.6 147.2,75.7 138.0,75.0 143.6,69.4" fill="%23c9d6e6"/%3E%3Cpolygon points="160.1,90.4 165.6,96.0 154.6,94.6 144.5,96.7 134.4,95.3 139.9,90.4" fill="%23c9d6e6"/%3E%3Cpolygon points="215.0,6.0 232.9,47.6 224.0,49.7 240.6,78.8 229.1,80.9 247.0,105.8 220.1,105.8 220.1,110.0 209.9,110.0 209.9,105.8 183.0,105.8 200.9,80.9 189.4,78.8 206.0,49.7 197.1,47.6" fill="%230c2a22"/%3E%3Cpolygon points="215.0,6.0 223.3,26.8 217.6,28.9 211.8,24.7 206.7,26.8" fill="%23c9d6e6"/%3E%3Cpolygon points="224.0,49.7 231.6,58.0 221.4,55.9 211.2,59.0 198.4,58.0 206.0,49.7" fill="%23c9d6e6"/%3E%3Cpolygon points="229.1,80.9 236.8,89.2 221.4,87.1 207.3,90.2 193.2,88.2 200.9,80.9" fill="%23c9d6e6"/%3E%3C/svg%3E') repeat-x 30px calc(100% - 14px) / 260px 110px,
+    url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 90" width="170" height="90"%3E%3Cpolygon points="30.0,28.0 41.2,52.8 35.6,54.0 46.0,71.4 38.8,72.6 50.0,87.5 33.2,87.5 33.2,90.0 26.8,90.0 26.8,87.5 10.0,87.5 21.2,72.6 14.0,71.4 24.4,54.0 18.8,52.8" fill="%2314324a"/%3E%3Cpolygon points="30.0,28.0 35.2,40.4 31.6,41.6 28.0,39.2 24.8,40.4" fill="%233d5a78"/%3E%3Cpolygon points="35.6,54.0 40.4,59.0 34.0,57.8 27.6,59.6 19.6,59.0 24.4,54.0" fill="%233d5a78"/%3E%3Cpolygon points="38.8,72.6 43.6,77.6 34.0,76.4 25.2,78.2 16.4,77.0 21.2,72.6" fill="%233d5a78"/%3E%3Cpolygon points="95.0,10.0 109.0,42.0 102.0,43.6 115.0,66.0 106.0,67.6 120.0,86.8 99.0,86.8 99.0,90.0 91.0,90.0 91.0,86.8 70.0,86.8 84.0,67.6 75.0,66.0 88.0,43.6 81.0,42.0" fill="%2314324a"/%3E%3Cpolygon points="95.0,10.0 101.5,26.0 97.0,27.6 92.5,24.4 88.5,26.0" fill="%233d5a78"/%3E%3Cpolygon points="102.0,43.6 108.0,50.0 100.0,48.4 92.0,50.8 82.0,50.0 88.0,43.6" fill="%233d5a78"/%3E%3Cpolygon points="106.0,67.6 112.0,74.0 100.0,72.4 89.0,74.8 78.0,73.2 84.0,67.6" fill="%233d5a78"/%3E%3Cpolygon points="148.0,36.0 157.5,57.6 152.8,58.7 161.6,73.8 155.5,74.9 165.0,87.8 150.7,87.8 150.7,90.0 145.3,90.0 145.3,87.8 131.0,87.8 140.5,74.9 134.4,73.8 143.2,58.7 138.5,57.6" fill="%2314324a"/%3E%3Cpolygon points="148.0,36.0 152.4,46.8 149.4,47.9 146.3,45.7 143.6,46.8" fill="%233d5a78"/%3E%3Cpolygon points="152.8,58.7 156.8,63.0 151.4,61.9 146.0,63.5 139.2,63.0 143.2,58.7" fill="%233d5a78"/%3E%3Cpolygon points="155.5,74.9 159.6,79.2 151.4,78.1 143.9,79.7 136.4,78.7 140.5,74.9" fill="%233d5a78"/%3E%3C/svg%3E') repeat-x 0 calc(100% - 26px) / 170px 90px;
+}
+/* Bottom safe area: the snow continues below the trees. */
+.horizon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: env(safe-area-inset-bottom);
+  background: #f6f9fd;
+}
+
+.snow-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The garland hangs across the top of the page and scrolls with it. */
+.garland {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+  height: 48px;
+  overflow: hidden;
+}
+.garland svg { display: block; }
+.garland-wire { fill: none; stroke: #1c3a2c; stroke-width: 2; }
+.bulb-cap { fill: #6b6f63; }
+.bulb { animation: bulb 2.6s ease-in-out var(--d, 0s) infinite alternate; }
+@keyframes bulb {
+  from { opacity: 1; }
+  to { opacity: .45; }
 }
 
 /* --- Layout --- */
@@ -86,17 +137,40 @@ body {
   padding:
     max(16px, env(safe-area-inset-top))
     max(16px, env(safe-area-inset-right))
-    max(24px, env(safe-area-inset-bottom))
+    calc(96px + env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
 }
 
-.app-header { text-align: center; margin: 8px 0 20px; }
+.app-header { text-align: center; margin: 50px 0 20px; }
+.title-wrap { position: relative; display: inline-block; }
+.santa-hat {
+  position: absolute;
+  left: -27px;
+  top: -23px;
+  width: 50px;
+  height: 40px;
+  transform: rotate(-18deg);
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px #0007);
+}
+.hat-body { fill: #c4252f; }
+.hat-shade { fill: #9c1823; }
+.hat-fur, .hat-ball { fill: #f7f4ee; }
+.hat-ball {
+  transform-origin: 66px 21px;
+  animation: hat-sway 3.2s ease-in-out infinite alternate;
+}
+@keyframes hat-sway {
+  from { transform: rotate(-14deg); }
+  to { transform: rotate(16deg); }
+}
 .app-title {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(1.6rem, 7vw, 2.4rem);
   color: var(--gold);
   letter-spacing: .01em;
+  text-shadow: 0 2px 10px #0009;
 }
 .app-subtitle { margin: 4px 0 0; color: var(--text-muted); }
 
@@ -120,8 +194,15 @@ body {
   .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 }
 
-/* --- Doors --- */
+/* --- Doors ---
+   A door is an inside (seen once opened) and a leaf hinged on the left. The leaf gets its
+   look from a theme (data-theme), or is a present (24th) or an advent door (candles). */
 .door {
+  --leaf-bg: linear-gradient(160deg, var(--red-2), var(--red));
+  --leaf-fg: #fff8ec;
+  --leaf-border: var(--gold);
+  --plaque-bg: transparent;
+  --plaque-fg: var(--leaf-fg);
   position: relative;
   display: block;
   width: 100%;
@@ -132,85 +213,258 @@ body {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  perspective: 600px;
+  perspective: 520px;
   -webkit-tap-highlight-color: transparent;
 }
-.door.is-special { aspect-ratio: auto; min-height: 112px; }
+/* Wide doors need a deeper perspective, or the swinging leaf would fly at the viewer. */
+.door.is-special { aspect-ratio: auto; min-height: 120px; perspective: 2000px; }
 
 .door:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 3px; border-radius: var(--radius); }
 
-.door-flip {
+.door-inside, .door-leaf {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  transition: transform var(--flip-ms) cubic-bezier(.3, .7, .3, 1.15);
+  border-radius: var(--radius);
 }
-.door.is-opened .door-flip { transform: rotateY(180deg); }
 
-.door-face {
-  position: absolute;
-  inset: 0;
+/* Inside: a warm, lit recess with an icon for the content type. */
+.door-inside {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 4px;
-  border-radius: var(--radius);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  overflow: hidden;
-}
-
-.door-front {
-  background: linear-gradient(160deg, var(--red-2), var(--red));
-  border: 2px solid var(--gold);
-  color: var(--text);
-  box-shadow: 0 4px 10px #0006, inset 0 0 0 3px #0000001a;
-}
-.door-back {
-  transform: rotateY(180deg);
-  background: var(--paper);
+  padding-left: 26%;
+  background: radial-gradient(circle at 62% 45%, #fffaf0 0%, #f6e4b8 55%, #e2c27f 100%);
+  box-shadow: inset 0 3px 10px #5a3a0a88, inset 0 0 0 2px #c9a24d;
   color: var(--ink);
-  border: 2px solid var(--paper);
-  border-top: 6px solid var(--accent, var(--gold));
+}
+.door-type-icon { width: 46%; max-width: 36px; height: auto; }
+.door-inside-num { font-size: .95rem; font-weight: 800; line-height: 1; }
+
+.door-leaf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  overflow: hidden;
+  background: var(--leaf-bg);
+  border: 2px solid var(--leaf-border);
+  color: var(--leaf-fg);
+  box-shadow: 0 4px 10px #0007;
+  transform-origin: left center;
+  transition: transform var(--flip-ms) cubic-bezier(.3, .7, .3, 1.1), box-shadow var(--flip-ms);
+}
+/* Opened: the leaf stands ajar so the inside shows. */
+.door.is-opened .door-leaf {
+  transform: rotateY(-72deg);
+  box-shadow: 6px 4px 12px #0006;
 }
 
-.door-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.door-deco { width: 42%; max-width: 34px; height: auto; flex: none; filter: drop-shadow(0 1px 1px #0005); }
+.door-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--plaque-bg);
+  color: var(--plaque-fg);
+}
+.door-num { font-size: 1.45rem; font-weight: 800; line-height: 1; text-shadow: 0 1px 2px #0004; }
 .door-label {
   font-size: .7rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.15;
   text-align: center;
   max-width: 100%;
 }
-.door-icon { font-size: 1.2rem; line-height: 1; }
-.door-lock { display: none; position: absolute; top: 4px; right: 6px; font-size: .7rem; opacity: .85; }
-.door.is-locked .door-lock { display: block; }
+.door-knob {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6d0, #c9961f);
+  box-shadow: 0 1px 1px #0006;
+}
+.door-lock { display: none; position: absolute; top: 5px; right: 5px; width: 14px; height: 14px; color: #f3d48a; z-index: 3; }
 
-/* Locked: muted navy, still readable (AA). */
-.door.is-locked .door-front {
-  background: var(--locked);
-  border-color: var(--locked-border);
-  color: var(--text-muted);
+/* --- Themes --- */
+.door[data-theme="red"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #d63a44, #a3212b 70%);
+  --leaf-border: #e8c36a;
+}
+.door[data-theme="red"] .door-leaf { box-shadow: 0 4px 10px #0007, inset 0 0 0 3px #a3212b, inset 0 0 0 4px #e8c36a99; }
+.door[data-theme="green"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #2d7d4f, #17462f 75%);
+  --leaf-border: #3f9a63;
+}
+.door[data-theme="green"] .door-leaf { box-shadow: 0 4px 10px #0007, inset 0 0 0 3px #17462f, inset 0 0 0 4px #e8c36a88; }
+.door[data-theme="gingerbread"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #ae6b35, #87491d 80%);
+  --leaf-border: #87491d;
+}
+/* Wavy white icing just inside the edge. */
+.door[data-theme="gingerbread"] .door-leaf::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed #fffaf2;
+  border-radius: 9px;
+  opacity: .9;
+}
+.door[data-theme="candy"] {
+  --leaf-bg: repeating-linear-gradient(135deg, #d7263d 0 9px, #fff8f2 9px 18px);
+  --leaf-border: #b51a2e;
+  --plaque-bg: #fffaf4;
+  --plaque-fg: #a3121e;
+}
+.door[data-theme="gold"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #fbe39a, #e2b64a 55%, #c4922c);
+  --leaf-border: #a97a1d;
+  --leaf-fg: #3b2606;
+}
+.door[data-theme="gold"] .door-num { text-shadow: 0 1px 0 #fff6; }
+.door[data-theme="plaid"] {
+  --leaf-bg:
+    repeating-linear-gradient(90deg, #0f3b26aa 0 6px, transparent 6px 22px, #f3d48a88 22px 23px, transparent 23px 28px),
+    repeating-linear-gradient(0deg, #0f3b26aa 0 6px, transparent 6px 22px, #f3d48a88 22px 23px, transparent 23px 28px),
+    #b3202c;
+  --leaf-border: #0f3b26;
+  --plaque-bg: #fffaf4;
+  --plaque-fg: #8e1520;
+}
+/* Busy patterns get a light plaque behind the text. */
+.door[data-theme="candy"] .door-text,
+.door[data-theme="plaid"] .door-text { padding: 2px 7px; border-radius: 10px; box-shadow: 0 1px 3px #0005; }
+.door[data-theme="frost"] {
+  --leaf-bg:
+    radial-gradient(circle at 0 0, #fff 0 14%, transparent 34%),
+    radial-gradient(circle at 100% 100%, #fff 0 12%, transparent 32%),
+    linear-gradient(160deg, #f4f8fc, #cfdff0);
+  --leaf-border: #9fbcdc;
+  --leaf-fg: #17325c;
+}
+.door[data-theme="frost"] .door-num { text-shadow: 0 1px 0 #fff; }
+
+/* Christmas Eve: a red present with a gold ribbon and a bow. */
+.door.look-christmas {
+  --leaf-bg:
+    linear-gradient(90deg, transparent calc(50% - 7px), #e8c36a calc(50% - 7px) calc(50% + 7px), transparent 0),
+    linear-gradient(0deg, transparent calc(50% - 7px), #e8c36a calc(50% - 7px) calc(50% + 7px), transparent 0),
+    radial-gradient(circle at 30% 20%, #d63a44, #9a1b25 75%);
+  --leaf-border: #e8c36a;
+  --plaque-bg: #fffaf0;
+  --plaque-fg: #8e1520;
+}
+.door.look-christmas .door-text { border: 1px solid #a87a17; border-radius: 8px; box-shadow: 0 2px 4px #0005; }
+.door-bow {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 44%;
+  max-width: 40px;
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 2px #0006);
+}
+.door.look-christmas .door-leaf { padding-top: 22%; }
+.door.look-christmas .door-knob { display: none; }
+
+/* Advent Sundays: deep advent violet with advent candles, 1-4 of them lit. */
+.door.look-advent {
+  --leaf-bg: radial-gradient(circle at 50% 25%, #6a2c70, #3a1240 75%);
+  --leaf-border: #e8c36a;
+}
+.door.look-advent .door-leaf {
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 7px 4px 5px;
+  box-shadow: 0 4px 10px #0007, inset 0 0 0 3px #3a1240, inset 0 0 0 4px #e8c36a88;
+}
+.door.look-advent .door-num { font-size: 1.25rem; }
+.door.look-advent .door-label { font-size: .64rem; white-space: nowrap; color: #f3d48a; }
+.door-candles { width: 86%; max-width: 120px; height: auto; margin-top: auto; flex: none; }
+.door.look-advent:not(.is-special) .door-knob { display: none; }
+.door.is-special.look-advent .door-leaf { flex-direction: row; justify-content: center; gap: 18px; padding: 10px 20px; }
+.door.is-special.look-advent .door-candles { width: 132px; margin: 0; }
+.door.is-special.look-advent .door-num { font-size: 1.7rem; }
+.door.is-special.look-advent .door-label { font-size: .95rem; color: #f3d48a; }
+.door.is-locked.look-advent .door-label { color: #f3d48a; }
+
+/* Candle flames flicker gently, each slightly out of step. */
+.candle-flame, .candle-glow {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flicker 1.3s ease-in-out calc(var(--i, 0) * -.37s) infinite alternate;
+}
+.candle-glow { transform-origin: 50% 50%; animation-name: glow-flicker; }
+@keyframes flicker {
+  0% { transform: scale(1, 1) rotate(-2deg); }
+  40% { transform: scale(.92, 1.08) rotate(2deg); }
+  100% { transform: scale(1.05, .94) rotate(-1deg); }
+}
+@keyframes glow-flicker {
+  from { opacity: .7; transform: scale(.9); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+/* --- States --- */
+
+/* Locked: the leaf is dimmed with the night colour and carries a lock. Text stays light
+   on every theme (white on the dimmed leaf passes AA). */
+.door.is-locked .door-leaf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #0b1a33a6;
+}
+.door.is-locked .door-leaf { box-shadow: 0 2px 6px #0006; }
+.door.is-locked .door-text {
+  position: relative;
+  z-index: 2;
+  --plaque-bg: transparent;
+  color: #f6efe2;
+  border-color: transparent;
   box-shadow: none;
 }
+.door.is-locked .door-num { text-shadow: 0 1px 3px #000a; }
+.door.is-locked .door-lock { display: block; }
 
-/* Today: gold glow and a small badge. */
-.door.is-today .door-front,
-.door.is-today .door-back {
-  box-shadow: 0 0 0 3px var(--gold-strong), 0 0 18px 4px #e8c36a88;
+/* Today: a pulsing gold glow and a small badge. */
+.door.is-today::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--radius) + 3px);
+  box-shadow: 0 0 0 3px var(--gold-strong), 0 0 22px 6px #f3d48aaa;
+  animation: today-pulse 1.8s ease-in-out infinite alternate;
+  pointer-events: none;
 }
-.door.is-today:not(.is-opened) .door-front { animation: glow 2.4s ease-in-out infinite; }
-@keyframes glow {
-  50% { box-shadow: 0 0 0 3px var(--gold-strong), 0 0 26px 8px #e8c36aaa; }
+@keyframes today-pulse {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+.door.is-today:not(.is-opened) .door-leaf { animation: today-nudge 3.6s ease-in-out infinite; }
+@keyframes today-nudge {
+  0%, 82%, 100% { transform: rotateY(0); }
+  88% { transform: rotateY(-14deg); }
+  94% { transform: rotateY(-4deg); }
 }
 .door-badge {
   position: absolute;
-  top: -8px;
+  top: -9px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 4;
   padding: 0 8px;
   border-radius: 999px;
   background: var(--gold-strong);
@@ -220,14 +474,18 @@ body {
   line-height: 1.5;
   white-space: nowrap;
   pointer-events: none;
+  box-shadow: 0 2px 4px #0006;
 }
 
 /* Special doors (before December 1st): wide box above the grid. */
-.door.is-special .door-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.6rem; }
-.door.is-special .door-label { font-size: .9rem; font-weight: 500; }
-.door.is-special .door-icon { font-size: 1.6rem; }
+.door.is-special .door-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.7rem; }
+.door.is-special .door-label { font-size: .95rem; font-weight: 600; }
+.door.is-special .door-inside { flex-direction: row; gap: 12px; padding-left: 22%; }
+.door.is-special .door-type-icon { width: 44px; }
+.door.is-special .door-inside-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; }
+.door.is-special.is-opened .door-leaf { transform: rotateY(-80deg); }
 
-/* Type accents. */
+/* Type accents (card stripe). */
 .type-ledtrad { --accent: var(--accent-ledtrad); }
 .type-litet { --accent: var(--accent-litet); }
 .type-uppdrag { --accent: var(--accent-uppdrag); }
@@ -241,6 +499,90 @@ body {
   40% { transform: translateX(6px) rotate(2deg); }
   60% { transform: translateX(-4px) rotate(-1deg); }
   80% { transform: translateX(4px) rotate(1deg); }
+}
+
+/* --- Opening animations (js/effects.js). The overlay only exists while one plays. --- */
+.fx {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.door.is-fx-hidden { visibility: hidden; }
+.fx-dim { position: absolute; inset: 0; background: #050a19b3; }
+.fx-door { position: fixed; margin: 0; pointer-events: none; }
+.fx-door .door-leaf { will-change: transform; }
+.fx-stage { position: fixed; width: 0; height: 0; }
+.fx-prop, .fx-bell, .fx-rays, .fx-p { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.fx-prop svg, .fx-bell svg, .fx-gift-box svg, .fx-gift-lid svg, .fx-loop svg, .fx-knot svg, .fx-gift-bow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fx-letter { width: 150px; height: 112px; margin: -56px 0 0 -75px; filter: drop-shadow(0 6px 10px #0008); }
+
+.fx-gift { width: 140px; height: 130px; margin: -50px 0 0 -70px; }
+.fx-gift-box { position: absolute; left: 0; right: 0; bottom: 0; height: 88px; filter: drop-shadow(0 6px 10px #0008); }
+.fx-gift-lid { position: absolute; left: -5px; right: -5px; top: 22px; height: 35px; }
+.fx-gift-bow { position: absolute; left: 50%; bottom: 22px; width: 60px; height: 60px; margin-left: -30px; }
+.fx-loop { position: absolute; bottom: 26px; width: 50px; height: 38px; transform-origin: 100% 85%; }
+.fx-loop-l { left: calc(50% - 47px); }
+.fx-loop-r { left: calc(50% - 3px); transform-origin: 0 85%; }
+.fx-knot { position: absolute; left: 50%; bottom: 20px; width: 24px; height: 24px; margin-left: -12px; }
+
+.fx-light {
+  position: fixed;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8dcf2 0%, #ffe9a0aa 35%, transparent 70%);
+  pointer-events: none;
+}
+.fx-rays {
+  width: 380px;
+  height: 380px;
+  margin: -190px 0 0 -190px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, #fff1b8b3 0deg 7deg, transparent 7deg 22.5deg);
+  -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 68%);
+  mask-image: radial-gradient(circle, #000 15%, transparent 68%);
+}
+.fx-bell { width: 84px; height: 92px; margin: -46px 0 0 -42px; transform-origin: 50% 8%; filter: drop-shadow(0 4px 6px #0008); }
+
+/* Particles: simple shapes, no filters, so the compositor can move them cheaply. */
+.fx-p { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+.fx-p-star {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  background: #f3d48a;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.fx-p-sparkle {
+  background: #fffbe8;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+}
+.fx-p-glitter { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #ffe7a3; box-shadow: 0 0 4px #fff3; }
+.fx-p-confetti { width: 9px; height: 14px; margin: -7px 0 0 -4.5px; border-radius: 1px; }
+.fx-p-heart {
+  width: 22px;
+  height: 20px;
+  margin: -10px 0 0 -11px;
+  background: #ff5a7a;
+  clip-path: path("M11 20C4 15 0 11 0 6A5.8 5.8 0 0 1 11 3.2 5.8 5.8 0 0 1 22 6C22 11 18 15 11 20z");
+}
+.fx-p-heart:nth-child(3n) { background: #d7263d; }
+.fx-p-snow {
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  background: #fff;
+  clip-path: polygon(45% 0, 55% 0, 55% 38%, 87% 19%, 92% 28%, 60% 47%, 60% 53%, 92% 72%, 87% 81%, 55% 62%, 55% 100%, 45% 100%, 45% 62%, 13% 81%, 8% 72%, 40% 53%, 40% 47%, 8% 28%, 13% 19%, 45% 38%);
 }
 
 /* --- Toast --- */
@@ -281,6 +623,24 @@ body {
 @keyframes card-in {
   from { opacity: 0; transform: scale(.9) translateY(10px); }
 }
+/* Entrances after an opening animation (data-reveal is set by app.js). */
+.card[open][data-reveal="fade"] { animation: card-fade 220ms ease-out; }
+.card[open][data-reveal="pop"] { animation: card-pop 320ms cubic-bezier(.2, .9, .3, 1.25); }
+.card[open][data-reveal="rise"] { animation: card-rise 340ms cubic-bezier(.2, .8, .3, 1.1); }
+/* A letter that unfolds from the top, then the text fades in. */
+.card[open][data-reveal="letter"] {
+  transform-origin: 50% 0;
+  animation: card-letter 380ms cubic-bezier(.2, .8, .3, 1);
+}
+.card[open][data-reveal="letter"] .card-inner > * { animation: card-text 300ms 200ms ease-out both; }
+@keyframes card-fade { from { opacity: 0; } }
+@keyframes card-pop { from { opacity: 0; transform: scale(.6); } }
+@keyframes card-rise { from { opacity: 0; transform: translateY(48px) scale(.94); } }
+@keyframes card-letter {
+  from { opacity: 0; transform: perspective(900px) rotateX(-80deg) scaleY(.5); }
+  40% { opacity: 1; }
+}
+@keyframes card-text { from { opacity: 0; transform: translateY(6px); } }
 .card::backdrop { background: #050a19b3; }
 .card-inner {
   padding: 20px 20px 16px;
@@ -295,7 +655,8 @@ body {
   font-weight: 600;
   color: #4a5776;
 }
-.card-icon { font-size: 1.3rem; }
+.card-icon { display: inline-flex; }
+.card-icon svg { width: 28px; height: 28px; }
 .card-title {
   margin: 6px 0 10px;
   font-family: Georgia, "Times New Roman", serif;
@@ -388,17 +749,19 @@ body {
   cursor: pointer;
 }
 .dev-btn-quiet { background: transparent; }
+.dev-preview { display: grid; margin: 12px 0 0; padding: 8px 10px 10px; border: 2px solid #1a1300; border-radius: 10px; }
+.dev-preview legend { padding: 0 4px; font-size: .85rem; font-weight: 800; }
 .dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
 /* Keep the app's own top safe-area padding from doubling up under the banner. */
 .has-dev-banner .app { padding-top: 16px; }
 
-/* --- Reduced motion: no animations or transitions anywhere --- */
+/* --- Reduced motion: no animations or transitions anywhere, the card just fades in --- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
   }
-  .snow { display: none; }
+  .card[open] { animation: card-fade 200ms ease-out !important; }
 }
 
 /* --- Install flow --- */

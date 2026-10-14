@@ -20,17 +20,13 @@ import {
   setDateOverride,
 } from './storage.js';
 import { setupInstall } from './install.js';
+import { mountScene } from './scene.js';
+import { assignThemes, doorLook, animationFor } from './themes.js';
+import { playOpening, revealFor } from './effects.js';
+import { icon, typeIcon, adventCandles } from './icons.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
-
-const TYPE_ICONS = {
-  ledtrad: '🔍',
-  litet: '🎁',
-  uppdrag: '⭐',
-  rim: '📜',
-};
-const DEFAULT_ICON = '✨';
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -118,33 +114,37 @@ function el(tag, className, text) {
   return node;
 }
 
-function createDoor(day) {
+// Door markup: the inside (seen when opened) and the leaf that swings open on its left hinge.
+function createDoor(day, theme) {
   const special = isBeforeDecember(day.date);
-  const icon = TYPE_ICONS[day.type] ?? DEFAULT_ICON;
+  const look = doorLook(day.date, theme);
 
-  const btn = el('button', `door type-${day.type ?? 'unknown'}`);
+  const btn = el('button', `door type-${day.type ?? 'unknown'} look-${look.kind}`);
   btn.type = 'button';
   btn.dataset.date = day.date;
+  if (look.theme) btn.dataset.theme = look.theme;
   if (special) btn.classList.add('is-special');
-
-  const flip = el('span', 'door-flip');
-  flip.setAttribute('aria-hidden', 'true');
 
   // Special doors lead with their label; grid doors lead with the day number.
   const mainText = special ? (day.label ?? formatDate(day.date)) : String(dayOfMonth(day.date));
   const subText = special ? formatDate(day.date) : day.label;
 
-  const front = el('span', 'door-face door-front');
-  front.append(el('span', 'door-num', mainText));
-  if (subText) front.append(el('span', 'door-label', subText));
-  front.append(el('span', 'door-lock', '🔒'));
+  const inside = el('span', 'door-inside');
+  inside.setAttribute('aria-hidden', 'true');
+  inside.append(typeIcon(day.type, 'door-type-icon'), el('span', 'door-inside-num', mainText));
 
-  const back = el('span', 'door-face door-back');
-  back.append(el('span', 'door-icon', icon), el('span', 'door-num', mainText));
-  if (subText) back.append(el('span', 'door-label', subText));
+  const leaf = el('span', 'door-leaf');
+  leaf.setAttribute('aria-hidden', 'true');
+  if (look.kind === 'theme') leaf.append(icon(look.icon, 'door-deco'));
+  if (look.kind === 'christmas') leaf.append(icon('bow', 'door-bow'));
+  const text = el('span', 'door-text');
+  text.append(el('span', 'door-num', mainText));
+  if (subText) text.append(el('span', 'door-label', subText));
+  leaf.append(text);
+  if (look.kind === 'advent') leaf.append(adventCandles(look.advent, 'door-candles'));
+  leaf.append(icon('lock', 'door-lock'), el('span', 'door-knob'));
 
-  flip.append(front, back);
-  btn.append(flip);
+  btn.append(inside, leaf);
   btn.addEventListener('click', () => onDoorClick(day.id));
   btn.addEventListener('animationend', (e) => {
     if (e.animationName === 'shake') btn.classList.remove('is-shaking');
@@ -156,10 +156,18 @@ function renderGrid() {
   els.special.replaceChildren();
   els.grid.replaceChildren();
   state.doors.clear();
+  const gridDays = state.days.filter((d) => !isBeforeDecember(d.date));
+  const gridThemes = assignThemes(gridDays.map((d) => d.date));
+  const themeById = new Map(gridDays.map((d, i) => [d.id, gridThemes[i]]));
+  // Special doors (before December) sit outside the grid, so they can't clash with it.
+  const specialThemes = assignThemes(state.days.filter((d) => isBeforeDecember(d.date)).map((d) => d.date), [1]);
+  let specialIndex = 0;
   for (const day of state.days) {
-    const btn = createDoor(day);
+    const special = isBeforeDecember(day.date);
+    const theme = special ? specialThemes[specialIndex++] : themeById.get(day.id);
+    const btn = createDoor(day, theme);
     state.doors.set(day.id, { day, btn });
-    (isBeforeDecember(day.date) ? els.special : els.grid).append(btn);
+    (special ? els.special : els.grid).append(btn);
   }
   els.special.hidden = els.special.childElementCount === 0;
   els.grid.hidden = els.grid.childElementCount === 0;
@@ -225,15 +233,18 @@ function onDoorClick(id) {
   markOpened(day.id);
   updateDoors();
 
-  if (firstTime && !prefersReducedMotion()) {
-    state.busy = true;
-    const flipMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--flip-ms')) || 700;
-    setTimeout(() => {
-      state.busy = false;
-      showCard(day);
-    }, flipMs);
-  } else {
-    showCard(day);
+  if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
+  else showCard(day, firstTime ? 'fade' : null);
+}
+
+// Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
+async function playThenShow(day, btn, animation, { haptics = true } = {}) {
+  state.busy = true;
+  try {
+    const { skipped } = await playOpening(btn, animation, { haptics });
+    showCard(day, skipped ? 'fade' : revealFor(animation));
+  } finally {
+    state.busy = false;
   }
 }
 
@@ -248,9 +259,12 @@ function setCardContent(title, body) {
   els.cardBody.replaceChildren(...paragraphs);
 }
 
-function showCard(day) {
+// reveal: how the card enters (see .card[data-reveal] in style.css), null for the default.
+function showCard(day, reveal = null) {
   els.card.className = `card type-${day.type ?? 'unknown'}`;
-  els.cardIcon.textContent = TYPE_ICONS[day.type] ?? DEFAULT_ICON;
+  if (reveal) els.card.dataset.reveal = reveal;
+  else delete els.card.dataset.reveal;
+  els.cardIcon.replaceChildren(typeIcon(day.type));
   els.cardDate.textContent = day.label ? `${day.label} · ${formatDate(day.date)}` : formatDate(day.date);
   setCardContent(day.title, day.body);
 
@@ -345,6 +359,15 @@ async function startDevMode() {
       clearOpened();
       updateDoors();
     },
+    // Preview: plays an animation on a door without marking it opened (works on locked doors too).
+    async playAnimation(id, animation) {
+      const entry = state.doors.get(id);
+      if (!entry || state.busy) return;
+      if (els.card.open) els.card.close();
+      entry.btn.scrollIntoView({ block: 'center' });
+      if (prefersReducedMotion()) showCard(entry.day, 'fade');
+      else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false });
+    },
     disable() {
       setDevEnabled(false);
       location.reload();
@@ -364,6 +387,7 @@ function registerServiceWorker() {
 async function init() {
   handleDevParam();
   registerServiceWorker();
+  mountScene();
   setupInstall({ container: els.header });
 
   let content;

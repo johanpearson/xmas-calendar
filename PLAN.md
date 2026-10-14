@@ -33,6 +33,10 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/dates.js      ren logik: today(), isUnlocked(), formatDate()
   js/storage.js    öppnade luckor, dev-flagga, datum-override
   js/dev.js        dev-panel
+  js/scene.js      bakgrund: ljusslinga och snö
+  js/themes.js     ren logik: lucktema och adventssöndagar
+  js/icons.js      inline-SVG-ikoner
+  js/effects.js    öppna-animationer
   content/days.json
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
                    apple-touch-icon-180.png, favicon.svg
@@ -63,8 +67,9 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
 ```
 
 - `date`: `YYYY-MM-DD`, lokalt datum. Luckorna styrs av `date`, inte av position. Hårdkoda aldrig "1 till 24".
-- `type`: `ledtrad` | `litet` | `uppdrag` | `rim`. Används bara för ikon och färgaccent.
+- `type`: `ledtrad` | `litet` | `uppdrag` | `rim`. Styr ikon, färgaccent och öppna-animation.
 - `label`: valfri text på luckan, annars dagens nummer i månaden.
+- `animation`: valfri. Överstyr typens öppna-animation: `sparkle` (standard för `ledtrad`), `gift` (`litet`), `bells` (`uppdrag`), `ribbon` (`rim`), `confetti` eller `snowburst`. Okänt värde ger typens standard.
 - `alternative`: valfri. Om den finns visas knappen "Dåligt väder? Visa plan B" som byter innehåll i kortet.
 - `body` renderas med `textContent` (aldrig `innerHTML`), stycken delas på `\n`.
 
@@ -87,7 +92,7 @@ Skapa dessa med riktigt innehåll:
 1. "Idag" är lokalt datum via `getFullYear/getMonth/getDate`. Använd aldrig `toISOString()` (UTC ger fel dag nära midnatt). Jämför strängar på formen `YYYY-MM-DD`.
 2. En lucka är upplåst om `today >= date`.
 3. Låst lucka: kort skak-animation och en toast, t.ex. "Den här luckan öppnas 6 december" (formatera med `sv-SE`).
-4. Upplåst men ej öppnad: öppna-animation (CSS 3D-flip), visa innehållet i ett kort, spara som öppnad i `localStorage`.
+4. Upplåst men ej öppnad: öppna-animation (efter typ, se milstolpe 7), visa innehållet i ett kort, spara som öppnad i `localStorage`.
 5. Öppnad lucka kan öppnas igen. Missade dagar går att öppna i efterhand.
 6. Dagens lucka markeras tydligt. Luckor visas i datumordning. Luckor med datum före 1 december (i år bara 2026-11-29) visas som en större specialruta ovanför rutnätet. Finns inga sådana luckor (som nästa år) renderas ingen specialruta.
 7. Omvärdera "idag" vid `visibilitychange` och med en timer till nästa midnatt, så en öppen app uppdateras utan omstart.
@@ -143,6 +148,11 @@ Skapa dessa med riktigt innehåll:
 4. **PWA.** Manifest, ikoner, service worker, installationsflöde. Klar när: Lighthouse PWA-kontroller passerar och appen startar offline.
 5. **Tester, README, deploy.** Klar när: Pages-URL:en fungerar och går att installera på riktig telefon.
 6. **Innehåll.** Johan (och Claude i chatten) fyller `days.json` med alla luckor. Inte en uppgift för Claude Code.
+7. **Jul-design och animationer.** Det ska kännas som en riktig julkalender, inte blå rutor. Natthimlen är kvar som bas, med rött, grönt och guld. Allt ritas med CSS och inline-SVG, inga bilder eller beroenden. Klar när: punkterna nedan fungerar på 360 px, testerna är gröna och `CACHE_VERSION` är bumpad med alla nya filer i precache.
+   - **Tema och dekor.** Tomteluva på rubriken (svajande boll), fallande snö (canvas, pausas när fliken är dold, av vid `prefers-reduced-motion`), ljusslinga med glimmande lampor överst, stjärnhimmel, granar och snötäckt mark längst ner. Allt ligger bakom innehållet och tar inga tryck.
+   - **Lucktema.** 7 teman (röd med guldkant, grön, pepparkaka, godisrandig, guld, rutig röd, vit med frost) med varsin SVG-ikon. Temat väljs deterministiskt per lucka (samma varje gång) och grannar i rutnätet (4 och 6 kolumner) får aldrig samma tema. Adventssöndagar får adventsljus med 1-4 tända lågor (räknas ut från datumet, ingen årsspecifik logik), lucka 24 ser ut som en julklapp med rosett. Tillstånd: låst (dämpad med lås), dagens (glöd och puls), öppnad (öppen dörr med ikon efter innehållstyp).
+   - **Öppna-animationer** efter `type`: `ledtrad` gnistor och stjärnor och kortet viks ut som ett brev, `litet` presentlocket lyfter med konfetti, `uppdrag` dörren svänger upp i 3D med ljus och strålar och klockor ploppar upp, `rim` rosetten knyts upp, paketet öppnas med glitter och hjärtan. Max cirka 1,2 s, tryck för att hoppa över, partiklarna tas bort ur DOM:en efteråt. `prefers-reduced-motion` ger bara en enkel fade. Kort vibration där det stöds, inget ljud. Dev-panelen får "Spela upp animation".
+   - **Fält `animation`** (valfritt) i `days.json` överstyr typens animation: `sparkle`, `gift`, `bells`, `ribbon`, `confetti` eller `snowburst`.
 
 ## Öppna frågor
 

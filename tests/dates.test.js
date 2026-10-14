@@ -10,6 +10,8 @@ import {
   dayOfMonth,
   isBeforeDecember,
   msUntilNextMidnight,
+  adventSunday,
+  isChristmasEve,
 } from '../js/dates.js';
 
 const DOOR = '2026-12-06';
@@ -99,4 +101,29 @@ test('dayOfMonth and isBeforeDecember', () => {
 test('msUntilNextMidnight', () => {
   assert.equal(msUntilNextMidnight(new Date(2026, 11, 5, 23, 59, 0)), 60_000);
   assert.equal(msUntilNextMidnight(new Date(2026, 11, 5, 0, 0, 0)), 24 * 3600_000);
+});
+
+test('adventSunday finds the four advent Sundays of any year', () => {
+  const advents = (year) =>
+    Array.from({ length: 40 }, (_, i) => toDateKey(new Date(year, 10, 20 + i)))
+      .filter((key) => adventSunday(key))
+      .map((key) => `${key}:${adventSunday(key)}`);
+  assert.deepEqual(advents(2026), ['2026-11-29:1', '2026-12-06:2', '2026-12-13:3', '2026-12-20:4']);
+  assert.deepEqual(advents(2027), ['2027-11-28:1', '2027-12-05:2', '2027-12-12:3', '2027-12-19:4']);
+  // Christmas Eve on a Sunday is also the fourth advent.
+  assert.deepEqual(advents(2023), ['2023-12-03:1', '2023-12-10:2', '2023-12-17:3', '2023-12-24:4']);
+  // Christmas Day on a Sunday: the fourth advent is a week earlier.
+  assert.deepEqual(advents(2022), ['2022-11-27:1', '2022-12-04:2', '2022-12-11:3', '2022-12-18:4']);
+});
+
+test('adventSunday is 0 for other days and invalid keys', () => {
+  assert.equal(adventSunday('2026-12-14'), 0);
+  assert.equal(adventSunday('2026-11-22'), 0);
+  assert.equal(adventSunday('2026-12-27'), 0);
+  assert.equal(adventSunday('nope'), 0);
+});
+
+test('isChristmasEve', () => {
+  assert.equal(isChristmasEve('2026-12-24'), true);
+  assert.equal(isChristmasEve('2026-12-23'), false);
 });

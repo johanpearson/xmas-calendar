@@ -97,6 +97,9 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
   - **Använd riktigt datum**: tar bort det simulerade datumet.
   - **Öppna alla**: markerar alla luckor som öppnade.
   - **Nollställ öppnade luckor**: glömmer vilka luckor som öppnats.
+  - **Spela upp animation**: välj lucka och animation ("Luckans egen" är den som
+    `type`/`animation` ger) och förhandsgranska. Luckan markeras inte som öppnad och
+    det fungerar även på låsta luckor.
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
@@ -122,7 +125,19 @@ En lucka ser ut så här:
 
 - `id` måste vara unikt. Byt inte `id` på en lucka som redan öppnats, då glömmer
   appen att den är öppnad.
-- `type` är `ledtrad`, `litet`, `uppdrag` eller `rim` (styr ikon och färg).
+- `type` är `ledtrad`, `litet`, `uppdrag` eller `rim` (styr ikon, färg och öppna-animation).
+- `animation` är valfri och byter öppna-animationen för just den luckan:
+
+  | Värde | Animation | Standard för |
+  |---|---|---|
+  | `sparkle` | gnistor och stjärnor, kortet viks ut som ett brev | `ledtrad` |
+  | `gift` | presentlocket lyfter, konfetti | `litet` |
+  | `bells` | dörren svänger upp med ljus och strålar, klockor ploppar upp | `uppdrag` |
+  | `ribbon` | rosetten knyts upp, paketet öppnas, glitter och hjärtan | `rim` |
+  | `confetti` | konfetti från luckan | |
+  | `snowburst` | snöyra från luckan | |
+
+  Ett okänt värde ger typens standard. Prova animationerna med "Spela upp animation" i dev-läget.
 - `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
@@ -165,6 +180,46 @@ och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
 
+### Jul-design och animationer (milstolpe 7)
+
+- Allt är ritat med CSS och inline-SVG (inga bildfiler, typsnitt eller beroenden).
+  Stjärnor, granar och snömark är små SVG:er som data-URI i `style.css`, ljusslingan
+  byggs av `js/scene.js` efter skärmens bredd och ikonerna ligger i `js/icons.js`.
+- Snön ritas på en `<canvas>` (max cirka 110 flingor, högst 2x pixeltäthet). Den stoppas
+  när fliken är dold och finns inte alls med `prefers-reduced-motion`. Ljusslingan och
+  marken skrollar med sidan, stjärnhimlen och snön ligger fast.
+- Lucktemat (7 st) väljs med en fröad slump utifrån luckornas datum: samma varje gång
+  med samma `days.json`, men ändras datumen (t.ex. nästa år) blir det en ny placering.
+  "Grannar" betyder vänster/höger och ovanför/under i både 4-kolumns- (mobil) och
+  6-kolumnsrutnätet. Specialrutan ovanför rutnätet räknas inte som granne.
+- Adventssöndagarna räknas ut från datumet (fjärde advent är sista söndagen före
+  juldagen), så ingen årsspecifik logik behövs och nästa år blir rätt av sig själv.
+  Adventsluckorna är adventslila med guldkant och ljusen tänds från vänster. Om julafton
+  är en söndag (fjärde advent) vinner julklappsutseendet.
+- Lucka 24 är julklappen för alla år (datum `12-24`), oavsett `type`.
+- Ikonen inne i en öppnad lucka följer innehållstypen: förstoringsglas (`ledtrad`),
+  paket (`litet`), klocka (`uppdrag`) och skriftrulle (`rim`). Samma ikon visas i kortet.
+- Låsta luckor dämpas med natthimlens färg över temat. Texten är alltid ljus där, och
+  på de mönstrade temana (godisrandig, rutig, julklapp) ligger siffran på en ljus skylt.
+  Kontrasten har mätts mot pixlarna bakom texten i alla teman och tillstånd: minst
+  4,9:1 (AA även för liten text).
+- Öppna-animationen spelas bara första gången en lucka öppnas. Redan öppnade luckor visar
+  kortet direkt. Animationerna tar 1,0-1,1 s plus kortets entré (0,2-0,4 s). Ett tryck
+  var som helst eller valfri tangent hoppar över, och då tonar kortet bara in.
+- Under animationen dämpas sidan till samma nyans som kortets bakgrund, så övergången
+  till kortet blir sömlös.
+- Vibrationen är kort (10-90 ms) och körs bara vid riktig öppning, inte i
+  dev-förhandsvisningen. iOS Safari saknar `navigator.vibrate`, där händer inget.
+- Värdet `ribbon` är mitt namn för `rim`-animationen (rosetten). De andra namnen
+  kommer från önskemålen.
+- "Spela upp animation" i dev-panelen visar kortet efteråt men markerar inte luckan som
+  öppnad, så att man kan förhandsgranska utan att nollställa något.
+- Bara `label` för 2026-12-13 ändrades i `days.json`. Titeln ("Vi lussar för Saga och
+  mormor") och texten ("Glad Lucia!") handlar redan om Lucia och lämnades orörda.
+- Skärmdumparna i `docs/screenshots/` tas med `npm run screenshots` (Playwright, 360 px).
+  `days.json` saknar ännu en lucka av typen `litet`, så skriptet lånar 2 december för den
+  bilden. Mappen ingår inte i appskalet.
+
 ### PWA, tester och deploy (milstolpe 4 och 5)
 
 - Ikonen är en röd lucka med guldstjärna på natthimmelsblå botten (samma färger som appen).
@@ -206,12 +261,14 @@ och bumpa sedan `CACHE_VERSION`.
   som liten text under numret, så att rutnätet går att skumma. I specialrutan visas
   `label` stort och datumet under.
 - Ikoner per typ: `ledtrad` 🔍, `litet` 🎁, `uppdrag` ⭐, `rim` 📜 (okänd typ ✨).
+  (Ersatta av SVG-ikoner i milstolpe 7.)
 - Plan B-knappen växlar: "Dåligt väder? Visa plan B" och tillbaka med
   "Tillbaka till ursprungsplanen". Kortet visar alltid ursprungsplanen när det öppnas.
 - Kortet stängs med "Stäng", Esc eller tryck utanför kortet.
 - Låsning går alltid före "öppnad": en lucka som sparats som öppnad men vars datum inte
   är nått (kan hända efter att man bytt datum i dev-läget) visas som låst.
 - Öppna-animationen (3D-flip) körs bara första gången. Redan öppnade luckor visar kortet direkt.
+  (Animationerna är ersatta i milstolpe 7, men regeln gäller fortfarande.)
 - Innehållet hämtas med `cache: 'no-cache'` så att ändringar i `days.json` slår igenom
   utan hård omladdning.
 - "Öppna alla" markerar alla luckor som öppnade. Eftersom låsning alltid går före
