@@ -959,7 +959,7 @@ body {
 .audio-btn[aria-pressed="true"] { color: var(--gold-strong); border-color: var(--gold); background: #e8c36a1f; }
 .audio-btn:hover { background: #e8c36a2e; }
 .audio-btn:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 2px; }
-.audio-icon { width: 20px; height: 20px; flex: none; }
+.audio-icon { width: 20px; height: 20px; flex: none; pointer-events: none; }
 /* In Tomten's bubble: a round speaker in the top right corner, on paper. */
 .tomte-bubble .audio-btn {
   position: absolute;

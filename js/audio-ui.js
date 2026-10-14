@@ -17,11 +17,16 @@ export function soundButton(className = 'audio-btn') {
   if (!audioSupported()) return null;
   const btn = toggleButton(`${className} audio-sound`, () => setSound(!isSoundOn()));
   btn.setAttribute('aria-label', 'Ljud');
+  // Both icons stay in the button: swapping nodes mid-tap would swallow the click.
+  const onIcon = icon('speaker', 'audio-icon');
+  const offIcon = icon('speakerOff', 'audio-icon');
+  btn.append(onIcon, offIcon);
   const render = () => {
     const on = isSoundOn();
     btn.setAttribute('aria-pressed', String(on));
     btn.title = on ? 'Ljud på' : 'Ljud av';
-    btn.replaceChildren(icon(on ? 'speaker' : 'speakerOff', 'audio-icon'));
+    onIcon.style.display = on ? '' : 'none';
+    offIcon.style.display = on ? 'none' : '';
   };
   render();
   onAudioChange(render);

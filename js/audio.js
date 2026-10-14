@@ -204,7 +204,7 @@ function ensureContext() {
   if (!Ctor) return false;
   const ctx = new Ctor({ latencyHint: 'interactive' });
   engine.ctx = ctx;
-  engine.master = bus(0, ctx.destination);
+  engine.master = bus(MASTER_GAIN, ctx.destination); // only ever created with the sound on
   engine.fx = bus(1, engine.master);
   engine.musicBus = bus(MUSIC_GAIN, engine.master);
   // Older iOS only unlocks output once something has played inside the gesture.
@@ -345,6 +345,7 @@ function noiseBuffer() {
 // An envelope: a soft attack to `peak`, then an exponential decay to silence at t + dur.
 function envelope(t, dur, peak, attack) {
   const gain = engine.ctx.createGain();
+  gain.gain.value = 0; // silent until t, not the default 1
   gain.gain.setValueAtTime(0.0001, t);
   gain.gain.linearRampToValueAtTime(peak, t + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -356,6 +357,7 @@ function tone(dest, { t, freq, dur, type = 'sine', peak = 0.2, attack = 0.005, f
   const { ctx } = engine;
   const osc = ctx.createOscillator();
   osc.type = type;
+  osc.frequency.value = freq;
   osc.frequency.setValueAtTime(freq, t);
   if (freqTo) osc.frequency.exponentialRampToValueAtTime(freqTo, t + dur);
   const gain = envelope(t, dur, peak, attack);
@@ -374,6 +376,8 @@ function noise(dest, { t, dur, peak = 0.2, attack = 0.003, filter = 'bandpass', 
   const biquad = ctx.createBiquadFilter();
   biquad.type = filter;
   biquad.Q.value = q;
+  // Set right away too: a filter jumping from its default 350 Hz at t clicks loudly.
+  biquad.frequency.value = freq;
   biquad.frequency.setValueAtTime(freq, t);
   for (const [offset, f] of sweep ?? []) biquad.frequency.exponentialRampToValueAtTime(f, t + offset);
   const gain = envelope(t, dur, peak, attack);
@@ -426,10 +430,10 @@ const SOUNDS = {
         const base = rand(2300, 3400);
         const dur = last ? rand(0.2, 0.4) : rand(0.08, 0.16);
         [1, 1.48, 2.11].forEach((ratio, k) =>
-          tone(dest, { t: at, freq: base * ratio, dur, peak: 0.045 / (k + 1), attack: 0.001 }),
+          tone(dest, { t: at, freq: base * ratio, dur, peak: 0.032 / (k + 1), attack: 0.001 }),
         );
       }
-      noise(dest, { t: t + shake, dur: last ? 0.3 : 0.12, peak: 0.07, filter: 'highpass', freq: 6000 });
+      noise(dest, { t: t + shake, dur: last ? 0.3 : 0.12, peak: 0.09, filter: 'highpass', freq: 6000 });
     });
   },
 
@@ -444,7 +448,7 @@ const SOUNDS = {
 
   // A soft pop (a quick downward blip), then glitter.
   pop(dest, t) {
-    tone(dest, { t, freq: 620, freqTo: 150, dur: 0.12, peak: 0.45, attack: 0.003 });
+    tone(dest, { t, freq: 620, freqTo: 150, dur: 0.12, peak: 0.3, attack: 0.003 });
     noise(dest, { t, dur: 0.05, peak: 0.08, filter: 'lowpass', freq: 1800 });
     glitter(dest, t + 0.1, { count: 9, over: 0.7, peak: 0.04 });
   },
@@ -465,14 +469,14 @@ const SOUNDS = {
 
   // A low, dull "tonk": the door won't budge.
   locked(dest, t) {
-    tone(dest, { t, freq: 150, freqTo: 110, dur: 0.3, peak: 0.6, attack: 0.003 });
+    tone(dest, { t, freq: 150, freqTo: 110, dur: 0.3, peak: 0.42, attack: 0.003 });
     tone(dest, { t, freq: 310, freqTo: 240, dur: 0.12, type: 'triangle', peak: 0.12, attack: 0.002 });
     noise(dest, { t, dur: 0.04, peak: 0.12, filter: 'lowpass', freq: 900 });
   },
 
   // A tiny click for "Nästa".
   click(dest, t) {
-    noise(dest, { t, dur: 0.025, peak: 0.12, filter: 'highpass', freq: 3000, attack: 0.001 });
+    noise(dest, { t, dur: 0.025, peak: 0.08, filter: 'highpass', freq: 3000, attack: 0.001 });
     tone(dest, { t, freq: 1900, dur: 0.035, peak: 0.06, attack: 0.001 });
   },
 };

@@ -1,0 +1,177 @@
+// Sound (milestone 9): the wiring, not the sound itself (that is tested by ear).
+// AudioContext is wrapped so the tests can see when it is created, its state and how
+// many oscillators have been started.
+import { test, expect } from '@playwright/test';
+import { skipTomte } from './helpers.js';
+
+const at = (date) => new Date(`${date}T10:00:00+01:00`);
+
+async function spyOnAudio(page) {
+  await page.addInitScript(() => {
+    const spy = { contexts: [], oscillators: 0 };
+    window.__audio = spy;
+    const Real = window.AudioContext;
+    window.AudioContext = class extends Real {
+      constructor(...args) {
+        super(...args);
+        spy.contexts.push(this);
+      }
+      createOscillator() {
+        const osc = super.createOscillator();
+        const start = osc.start.bind(osc);
+        osc.start = (...a) => {
+          spy.oscillators++;
+          return start(...a);
+        };
+        return osc;
+      }
+    };
+  });
+}
+
+const audio = (page) =>
+  page.evaluate(() => ({
+    contexts: window.__audio.contexts.length,
+    state: window.__audio.contexts[0]?.state ?? null,
+    oscillators: window.__audio.oscillators,
+  }));
+
+// Collects uncaught errors and console errors.
+function watchErrors(page) {
+  const errors = [];
+  page.on('pageerror', (err) => errors.push(err.message));
+  page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
+  return errors;
+}
+
+async function gotoApp(page) {
+  await page.goto('./');
+  await expect(page.locator('#grid .door').first()).toBeVisible();
+}
+
+const header = (page) => page.locator('.audio-controls');
+const tomte = (page) => page.locator('dialog.tomte');
+
+test('no sound before the first tap; the intro\'s first "Nästa" starts the jingle', async ({ page }) => {
+  const errors = watchErrors(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-10-14'));
+  await gotoApp(page);
+  await expect(tomte(page)).toBeVisible();
+  await page.waitForTimeout(800); // Tomten's entrance has happened, silently
+  expect(await audio(page)).toEqual({ contexts: 0, state: null, oscillators: 0 });
+
+  await tomte(page).getByRole('button', { name: 'Nästa' }).click();
+  await expect.poll(async () => (await audio(page)).state).toBe('running');
+  const after = await audio(page);
+  expect(after.contexts).toBe(1);
+  expect(after.oscillators).toBeGreaterThan(60); // the click and the whole jingle
+  expect(errors).toEqual([]);
+});
+
+test('sound buttons: on by default, music off, in sync with Tomten, saved', async ({ page }) => {
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-10-14'));
+  await gotoApp(page);
+  const speaker = header(page).getByRole('button', { name: 'Ljud' });
+  const music = header(page).getByRole('button', { name: 'Musik' });
+  const bubbleSpeaker = tomte(page).getByRole('button', { name: 'Ljud' });
+  await expect(speaker).toHaveAttribute('aria-pressed', 'true');
+  await expect(music).toHaveAttribute('aria-pressed', 'false');
+  await expect(bubbleSpeaker).toHaveAttribute('aria-pressed', 'true');
+
+  await bubbleSpeaker.click();
+  await expect(bubbleSpeaker).toHaveAttribute('aria-pressed', 'false');
+  await expect(speaker).toHaveAttribute('aria-pressed', 'false');
+  expect(await page.evaluate(() => localStorage.getItem('advent.sound'))).toBe('off');
+  await expect.poll(async () => (await audio(page)).state).toBe('suspended');
+
+  // Muted from the start: taps create no AudioContext at all.
+  await page.reload();
+  await expect(header(page).getByRole('button', { name: 'Ljud' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(tomte(page)).toBeHidden(); // the intro has been seen
+  await page.locator('#grid .door').first().click();
+  await page.keyboard.press('Enter');
+  expect((await audio(page)).contexts).toBe(0);
+});
+
+test('sound off is silent: tapping a locked door starts nothing', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  const locked = page.locator('.door[data-date="2026-12-06"]');
+
+  await locked.click(); // first tap: unlocks audio and plays the "tonk"
+  await expect.poll(async () => (await audio(page)).state).toBe('running');
+  const tonk = (await audio(page)).oscillators;
+  expect(tonk).toBeGreaterThan(0);
+
+  await header(page).getByRole('button', { name: 'Ljud' }).click();
+  await expect.poll(async () => (await audio(page)).state).toBe('suspended');
+  await locked.click();
+  await page.waitForTimeout(100);
+  expect((await audio(page)).oscillators).toBe(tonk);
+});
+
+test('opening a door plays its sound', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  await header(page).getByRole('button', { name: 'Ljud' }).click(); // off
+  await header(page).getByRole('button', { name: 'Ljud' }).click(); // on again: a click
+  await expect.poll(async () => (await audio(page)).state).toBe('running');
+  const before = (await audio(page)).oscillators;
+  await page.locator('.door[data-date="2026-12-05"]').click();
+  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before + 2);
+});
+
+test('music: off by default, the button starts it, a hidden page suspends it', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  const music = header(page).getByRole('button', { name: 'Musik' });
+  await music.click();
+  await expect(music).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(60);
+  expect(await page.evaluate(() => localStorage.getItem('advent.music'))).toBe('on');
+
+  // Pretend the app went to the background, then came back.
+  const setVisibility = (state) =>
+    page.evaluate((state) => {
+      Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, state);
+  await setVisibility('hidden');
+  await expect.poll(async () => (await audio(page)).state).toBe('suspended');
+  await setVisibility('visible');
+  await expect.poll(async () => (await audio(page)).state).toBe('running');
+});
+
+test('without Web Audio: no sound buttons and no errors', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.addInitScript(() => {
+    delete window.AudioContext;
+    delete window.webkitAudioContext;
+  });
+  await page.clock.setFixedTime(at('2026-10-14'));
+  await gotoApp(page);
+  await expect(tomte(page)).toBeVisible();
+  await tomte(page).getByRole('button', { name: 'Nästa' }).click();
+  await expect(page.locator('.audio-btn')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('dev panel: "Spela alla ljud" and "Testa jingle"', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await page.goto('./?dev=on');
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  await page.getByRole('button', { name: 'Testa jingle' }).click();
+  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(60);
+  await page.getByRole('button', { name: 'Spela alla ljud' }).click();
+  await expect(page.locator('#toast')).toHaveText('Bjällror');
+});
