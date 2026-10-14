@@ -194,8 +194,15 @@ body {
   .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 }
 
-/* --- Doors --- */
+/* --- Doors ---
+   A door is an inside (seen once opened) and a leaf hinged on the left. The leaf gets its
+   look from a theme (data-theme), or is a present (24th) or an advent door (candles). */
 .door {
+  --leaf-bg: linear-gradient(160deg, var(--red-2), var(--red));
+  --leaf-fg: #fff8ec;
+  --leaf-border: var(--gold);
+  --plaque-bg: transparent;
+  --plaque-fg: var(--leaf-fg);
   position: relative;
   display: block;
   width: 100%;
@@ -206,85 +213,217 @@ body {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  perspective: 600px;
+  perspective: 520px;
   -webkit-tap-highlight-color: transparent;
 }
-.door.is-special { aspect-ratio: auto; min-height: 112px; }
+/* Wide doors need a deeper perspective, or the swinging leaf would fly at the viewer. */
+.door.is-special { aspect-ratio: auto; min-height: 120px; perspective: 2000px; }
 
 .door:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 3px; border-radius: var(--radius); }
 
-.door-flip {
+.door-inside, .door-leaf {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  transition: transform var(--flip-ms) cubic-bezier(.3, .7, .3, 1.15);
+  border-radius: var(--radius);
 }
-.door.is-opened .door-flip { transform: rotateY(180deg); }
 
-.door-face {
-  position: absolute;
-  inset: 0;
+/* Inside: a warm, lit recess with an icon for the content type. */
+.door-inside {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 4px;
-  border-radius: var(--radius);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  overflow: hidden;
-}
-
-.door-front {
-  background: linear-gradient(160deg, var(--red-2), var(--red));
-  border: 2px solid var(--gold);
-  color: var(--text);
-  box-shadow: 0 4px 10px #0006, inset 0 0 0 3px #0000001a;
-}
-.door-back {
-  transform: rotateY(180deg);
-  background: var(--paper);
+  padding-left: 26%;
+  background: radial-gradient(circle at 62% 45%, #fffaf0 0%, #f6e4b8 55%, #e2c27f 100%);
+  box-shadow: inset 0 3px 10px #5a3a0a88, inset 0 0 0 2px #c9a24d;
   color: var(--ink);
-  border: 2px solid var(--paper);
-  border-top: 6px solid var(--accent, var(--gold));
+}
+.door-type-icon { width: 46%; max-width: 36px; height: auto; }
+.door-inside-num { font-size: .95rem; font-weight: 800; line-height: 1; }
+
+.door-leaf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  overflow: hidden;
+  background: var(--leaf-bg);
+  border: 2px solid var(--leaf-border);
+  color: var(--leaf-fg);
+  box-shadow: 0 4px 10px #0007;
+  transform-origin: left center;
+  transition: transform var(--flip-ms) cubic-bezier(.3, .7, .3, 1.1), box-shadow var(--flip-ms);
+}
+/* Opened: the leaf stands ajar so the inside shows. */
+.door.is-opened .door-leaf {
+  transform: rotateY(-72deg);
+  box-shadow: 6px 4px 12px #0006;
 }
 
-.door-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.door-deco { width: 42%; max-width: 34px; height: auto; flex: none; filter: drop-shadow(0 1px 1px #0005); }
+.door-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--plaque-bg);
+  color: var(--plaque-fg);
+}
+.door-num { font-size: 1.45rem; font-weight: 800; line-height: 1; text-shadow: 0 1px 2px #0004; }
 .door-label {
   font-size: .7rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.15;
   text-align: center;
   max-width: 100%;
 }
-.door-icon { font-size: 1.2rem; line-height: 1; }
-.door-lock { display: none; position: absolute; top: 4px; right: 6px; font-size: .7rem; opacity: .85; }
-.door.is-locked .door-lock { display: block; }
+.door-knob {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6d0, #c9961f);
+  box-shadow: 0 1px 1px #0006;
+}
+.door-lock { display: none; position: absolute; top: 5px; right: 5px; width: 14px; height: 14px; color: #f3d48a; z-index: 3; }
 
-/* Locked: muted navy, still readable (AA). */
-.door.is-locked .door-front {
-  background: var(--locked);
-  border-color: var(--locked-border);
-  color: var(--text-muted);
+/* --- Themes --- */
+.door[data-theme="red"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #d63a44, #a3212b 70%);
+  --leaf-border: #e8c36a;
+}
+.door[data-theme="red"] .door-leaf { box-shadow: 0 4px 10px #0007, inset 0 0 0 3px #a3212b, inset 0 0 0 4px #e8c36a99; }
+.door[data-theme="green"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #2d7d4f, #17462f 75%);
+  --leaf-border: #3f9a63;
+}
+.door[data-theme="green"] .door-leaf { box-shadow: 0 4px 10px #0007, inset 0 0 0 3px #17462f, inset 0 0 0 4px #e8c36a88; }
+.door[data-theme="gingerbread"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #ae6b35, #87491d 80%);
+  --leaf-border: #87491d;
+}
+/* Wavy white icing just inside the edge. */
+.door[data-theme="gingerbread"] .door-leaf::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed #fffaf2;
+  border-radius: 9px;
+  opacity: .9;
+}
+.door[data-theme="candy"] {
+  --leaf-bg: repeating-linear-gradient(135deg, #d7263d 0 9px, #fff8f2 9px 18px);
+  --leaf-border: #b51a2e;
+  --plaque-bg: #fffaf4;
+  --plaque-fg: #a3121e;
+}
+.door[data-theme="gold"] {
+  --leaf-bg: radial-gradient(circle at 30% 20%, #fbe39a, #e2b64a 55%, #c4922c);
+  --leaf-border: #a97a1d;
+  --leaf-fg: #3b2606;
+}
+.door[data-theme="gold"] .door-num { text-shadow: 0 1px 0 #fff6; }
+.door[data-theme="plaid"] {
+  --leaf-bg:
+    repeating-linear-gradient(90deg, #0f3b26aa 0 6px, transparent 6px 22px, #f3d48a88 22px 23px, transparent 23px 28px),
+    repeating-linear-gradient(0deg, #0f3b26aa 0 6px, transparent 6px 22px, #f3d48a88 22px 23px, transparent 23px 28px),
+    #b3202c;
+  --leaf-border: #0f3b26;
+  --plaque-bg: #fffaf4;
+  --plaque-fg: #8e1520;
+}
+.door[data-theme="frost"] {
+  --leaf-bg:
+    radial-gradient(circle at 0 0, #fff 0 14%, transparent 34%),
+    radial-gradient(circle at 100% 100%, #fff 0 12%, transparent 32%),
+    linear-gradient(160deg, #f4f8fc, #cfdff0);
+  --leaf-border: #9fbcdc;
+  --leaf-fg: #17325c;
+}
+.door[data-theme="frost"] .door-num { text-shadow: 0 1px 0 #fff; }
+
+/* Christmas Eve: a red present with a gold ribbon and a bow. */
+.door.look-christmas {
+  --leaf-bg:
+    linear-gradient(90deg, transparent calc(50% - 7px), #e8c36a calc(50% - 7px) calc(50% + 7px), transparent 0),
+    linear-gradient(0deg, transparent calc(50% - 7px), #e8c36a calc(50% - 7px) calc(50% + 7px), transparent 0),
+    radial-gradient(circle at 30% 20%, #d63a44, #9a1b25 75%);
+  --leaf-border: #e8c36a;
+  --plaque-bg: #fffaf0;
+  --plaque-fg: #8e1520;
+}
+.door.look-christmas .door-text { border: 1px solid #a87a17; border-radius: 8px; box-shadow: 0 2px 4px #0005; }
+.door-bow {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 44%;
+  max-width: 40px;
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 2px #0006);
+}
+.door.look-christmas .door-leaf { padding-top: 22%; }
+.door.look-christmas .door-knob { display: none; }
+
+/* --- States --- */
+
+/* Locked: the leaf is dimmed with the night colour and carries a lock. Text stays light
+   on every theme (white on the dimmed leaf passes AA). */
+.door.is-locked .door-leaf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #0b1a33a6;
+}
+.door.is-locked .door-leaf { box-shadow: 0 2px 6px #0006; }
+.door.is-locked .door-text {
+  position: relative;
+  z-index: 2;
+  --plaque-bg: transparent;
+  color: #f6efe2;
+  border-color: transparent;
   box-shadow: none;
 }
+.door.is-locked .door-num { text-shadow: 0 1px 3px #000a; }
+.door.is-locked .door-lock { display: block; }
 
-/* Today: gold glow and a small badge. */
-.door.is-today .door-front,
-.door.is-today .door-back {
-  box-shadow: 0 0 0 3px var(--gold-strong), 0 0 18px 4px #e8c36a88;
+/* Today: a pulsing gold glow and a small badge. */
+.door.is-today::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--radius) + 3px);
+  box-shadow: 0 0 0 3px var(--gold-strong), 0 0 22px 6px #f3d48aaa;
+  animation: today-pulse 1.8s ease-in-out infinite alternate;
+  pointer-events: none;
 }
-.door.is-today:not(.is-opened) .door-front { animation: glow 2.4s ease-in-out infinite; }
-@keyframes glow {
-  50% { box-shadow: 0 0 0 3px var(--gold-strong), 0 0 26px 8px #e8c36aaa; }
+@keyframes today-pulse {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+.door.is-today:not(.is-opened) .door-leaf { animation: today-nudge 3.6s ease-in-out infinite; }
+@keyframes today-nudge {
+  0%, 82%, 100% { transform: rotateY(0); }
+  88% { transform: rotateY(-14deg); }
+  94% { transform: rotateY(-4deg); }
 }
 .door-badge {
   position: absolute;
-  top: -8px;
+  top: -9px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 4;
   padding: 0 8px;
   border-radius: 999px;
   background: var(--gold-strong);
@@ -294,14 +433,18 @@ body {
   line-height: 1.5;
   white-space: nowrap;
   pointer-events: none;
+  box-shadow: 0 2px 4px #0006;
 }
 
 /* Special doors (before December 1st): wide box above the grid. */
-.door.is-special .door-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.6rem; }
-.door.is-special .door-label { font-size: .9rem; font-weight: 500; }
-.door.is-special .door-icon { font-size: 1.6rem; }
+.door.is-special .door-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.7rem; }
+.door.is-special .door-label { font-size: .95rem; font-weight: 600; }
+.door.is-special .door-inside { flex-direction: row; gap: 12px; padding-left: 22%; }
+.door.is-special .door-type-icon { width: 44px; }
+.door.is-special .door-inside-num { font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; }
+.door.is-special.is-opened .door-leaf { transform: rotateY(-80deg); }
 
-/* Type accents. */
+/* Type accents (card stripe). */
 .type-ledtrad { --accent: var(--accent-ledtrad); }
 .type-litet { --accent: var(--accent-litet); }
 .type-uppdrag { --accent: var(--accent-uppdrag); }
@@ -369,7 +512,8 @@ body {
   font-weight: 600;
   color: #4a5776;
 }
-.card-icon { font-size: 1.3rem; }
+.card-icon { display: inline-flex; }
+.card-icon svg { width: 28px; height: 28px; }
 .card-title {
   margin: 6px 0 10px;
   font-family: Georgia, "Times New Roman", serif;

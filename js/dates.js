@@ -58,6 +58,11 @@ export function isBeforeDecember(dateKey) {
   return dateKey.slice(5) < '12-01';
 }
 
+// December 24th of any year: the door that looks like a Christmas present.
+export function isChristmasEve(dateKey) {
+  return dateKey.slice(5) === '12-24';
+}
+
 // Milliseconds from `now` until the next local midnight.
 export function msUntilNextMidnight(now = new Date()) {
   const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);

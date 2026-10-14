@@ -21,6 +21,8 @@ const SHELL_FILES = [
   'js/dev.js',
   'js/install.js',
   'js/scene.js',
+  'js/themes.js',
+  'js/icons.js',
   'icons/favicon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
