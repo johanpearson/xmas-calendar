@@ -62,6 +62,7 @@ const state = {
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
   tomte: null, // { content, ui } once content/tomte.json has loaded
+  tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
 };
 
 const prefersReducedMotion = () =>
@@ -328,7 +329,9 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   // Timers may have been throttled or frozen in the background.
   // Coming back on a new day counts as a new start for Tomten: phones keep apps alive for days.
-  if (refreshIfDayChanged()) checkTomte();
+  // Compared with Tomten's own day: the midnight timer may already have moved todayKey on.
+  refreshIfDayChanged();
+  if (currentToday() !== state.tomteDay) checkTomte();
   scheduleMidnight();
 });
 
@@ -405,6 +408,10 @@ async function whenIdle() {
 
 async function checkTomte() {
   if (!state.tomte) return;
+  state.tomteDay = currentToday();
+  await whenIdle();
+  // A conversation left open (e.g. overnight) finishes first, then today's check runs.
+  await state.tomte.ui.whenClosed();
   await whenIdle();
   state.tomte.ui.check(currentToday(), isStandalone());
 }

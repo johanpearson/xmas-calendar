@@ -192,3 +192,18 @@ test('Tomten works offline after the first visit', async ({ page, context }) => 
   await page.reload();
   await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
 });
+
+test('resuming on a new day shows that day\'s scene, after a conversation left open', async ({ page }) => {
+  await markSeen(page);
+  await page.clock.setFixedTime(at('2026-11-30'));
+  await gotoApp(page);
+  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+
+  // The app sat in the background for days with Tomten still open, then comes back.
+  await page.clock.setFixedTime(at('2026-12-03'));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForTimeout(300);
+  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click();
+  await expect(bubbleText(page)).toHaveText('Hej igen, Elin! Jag har en snabb koll inför julen.');
+});

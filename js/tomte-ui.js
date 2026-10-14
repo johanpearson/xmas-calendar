@@ -64,7 +64,7 @@ export async function loadTomte() {
 }
 
 /**
- * Creates Tomten for the given content. Returns { play, check, isOpen }.
+ * Creates Tomten for the given content. Returns { play, check, isOpen, whenClosed }.
  *  play(kind, scene?)  shows intro, welcome or a scene right away (dev: ignores dates and seen)
  *  check(todayKey, standalone)  shows whatever is due at this app start, if anything
  */
@@ -208,5 +208,10 @@ export function createTomte(tomte) {
     play(pick.kind, pick.scene);
   }
 
-  return { play, check, isOpen: () => Boolean(dialog?.open) };
+  // Resolves once no conversation is showing.
+  async function whenClosed() {
+    while (dialog?.open) await new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
+  }
+
+  return { play, check, whenClosed, isOpen: () => Boolean(dialog?.open) };
 }
