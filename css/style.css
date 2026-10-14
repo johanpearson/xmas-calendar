@@ -26,6 +26,7 @@
   --accent-litet: #e8c36a;
   --accent-uppdrag: #e86a6a;
   --accent-rim: #c9a0e8;
+  --accent-jakt: #6fcf97;
 
   --radius: 12px;
   --flip-ms: 700ms;
@@ -490,6 +491,7 @@ body {
 .type-litet { --accent: var(--accent-litet); }
 .type-uppdrag { --accent: var(--accent-uppdrag); }
 .type-rim { --accent: var(--accent-rim); }
+.type-jakt { --accent: var(--accent-jakt); }
 
 /* Locked door feedback. */
 .door.is-shaking { animation: shake 420ms ease-in-out; }
@@ -523,6 +525,8 @@ body {
   height: 100%;
 }
 
+.fx-note { width: 110px; height: 138px; margin: -69px 0 0 -55px; filter: drop-shadow(0 6px 10px #0008); }
+.fx-magnifier { width: 96px; height: 96px; margin: -39px 0 0 -39px; filter: drop-shadow(0 6px 8px #0009); }
 .fx-letter { width: 150px; height: 112px; margin: -56px 0 0 -75px; filter: drop-shadow(0 6px 10px #0008); }
 
 .fx-gift { width: 140px; height: 130px; margin: -50px 0 0 -70px; }
@@ -633,6 +637,45 @@ body {
   animation: card-letter 380ms cubic-bezier(.2, .8, .3, 1);
 }
 .card[open][data-reveal="letter"] .card-inner > * { animation: card-text 300ms 200ms ease-out both; }
+/* jakt: the card pops in, a shine sweeps over it and glitter twinkles as the text shows. */
+.card[open][data-reveal="glint"] { animation: card-pop 320ms cubic-bezier(.2, .9, .3, 1.25); }
+.card[open][data-reveal="glint"] .card-inner > * { animation: card-text 280ms 120ms ease-out both; }
+.card-inner { position: relative; }
+.card[data-reveal="glint"] .card-inner::before,
+.card[data-reveal="glint"] .card-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.card[open][data-reveal="glint"] .card-inner::after {
+  background: linear-gradient(105deg, transparent 35%, #fff6cc99 50%, transparent 65%) no-repeat;
+  background-size: 250% 100%;
+  animation: card-shine 900ms 200ms ease-out both;
+}
+.card[open][data-reveal="glint"] .card-inner::before {
+  background:
+    radial-gradient(circle at 12% 18%, #f3c94d 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 12%, #f3c94d 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 90% 46%, #f3c94d 0 2px, transparent 3px),
+    radial-gradient(circle at 30% 60%, #f3c94d 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 62% 78%, #f3c94d 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 8% 88%, #f3c94d 0 2px, transparent 3px),
+    radial-gradient(circle at 50% 34%, #f3c94d 0 1.5px, transparent 2.5px);
+  animation: card-twinkle 1100ms 150ms ease-out both;
+}
+@keyframes card-shine {
+  from { opacity: 1; background-position: 100% 0; }
+  to { opacity: 1; background-position: -60% 0; }
+}
+@keyframes card-twinkle {
+  0% { opacity: 0; transform: scale(.96); }
+  20% { opacity: 1; }
+  45% { opacity: .3; }
+  65% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.02); }
+}
 @keyframes card-fade { from { opacity: 0; } }
 @keyframes card-pop { from { opacity: 0; transform: scale(.6); } }
 @keyframes card-rise { from { opacity: 0; transform: translateY(48px) scale(.94); } }

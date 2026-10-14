@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { isValidDateKey } from '../js/dates.js';
 
-const TYPES = ['ledtrad', 'litet', 'uppdrag', 'rim'];
+const TYPES = ['ledtrad', 'litet', 'uppdrag', 'rim', 'jakt'];
 const raw = readFileSync(new URL('../content/days.json', import.meta.url), 'utf8');
 
 test('days.json is valid JSON with a days array', () => {
@@ -36,7 +36,7 @@ test('ids are unique', () => {
   assert.equal(new Set(ids).size, ids.length);
 });
 
-test('type is one of ledtrad, litet, uppdrag or rim', () => {
+test('type is one of ledtrad, litet, uppdrag, rim or jakt', () => {
   for (const d of days) {
     assert.ok(TYPES.includes(d.type), `${d.date} has an unknown type: ${JSON.stringify(d.type)}`);
   }

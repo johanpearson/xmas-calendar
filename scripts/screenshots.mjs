@@ -78,16 +78,11 @@ try {
   await shot(page, 'simulated-2026-12-24');
   await page.context().close();
 
-  // One opened door per type. No door has type "litet" yet, so borrow a placeholder day.
-  const perType = [
-    { type: 'ledtrad', date: '2026-12-01' },
-    { type: 'litet', date: '2026-12-02' },
-    { type: 'uppdrag', date: '2026-12-06' },
-    { type: 'rim', date: '2026-12-24' },
-  ];
-  const days = structuredClone(content);
-  const borrowed = days.days.find((d) => d.date === '2026-12-02');
-  Object.assign(borrowed, { type: 'litet', title: 'Ett litet paket', body: 'Exempeltext för skärmdumpen.' });
+  // One opened door per type: the first door of each type in days.json.
+  const days = content;
+  const perType = ['ledtrad', 'litet', 'uppdrag', 'rim', 'jakt']
+    .map((type) => ({ type, date: content.days.find((d) => d.type === type)?.date }))
+    .filter((t) => t.date);
   for (const { type, date } of perType) {
     page = await newPage('2026-12-24', { days });
     await page.locator(`.door[data-date="${date}"]`).click();

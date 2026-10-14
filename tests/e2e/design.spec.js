@@ -29,7 +29,8 @@ test('each type plays its animation, then the card shows and the overlay is gone
     '2026-12-02': { type: 'litet' },
     '2026-12-03': { type: 'uppdrag' },
     '2026-12-04': { type: 'rim' },
-    '2026-12-05': { type: 'rim', animation: 'snowburst' },
+    '2026-12-05': { type: 'jakt' },
+    '2026-11-29': { type: 'rim', animation: 'snowburst' },
   });
   await page.addInitScript(() => {
     window.__vibrations = 0;
@@ -40,7 +41,14 @@ test('each type plays its animation, then the card shows and the overlay is gone
   });
   await gotoApp(page);
   const card = page.locator('#card');
-  const expected = { '2026-12-01': 'letter', '2026-12-02': 'pop', '2026-12-03': 'rise', '2026-12-04': 'pop', '2026-12-05': 'pop' };
+  const expected = {
+    '2026-12-01': 'letter',
+    '2026-12-02': 'pop',
+    '2026-12-03': 'rise',
+    '2026-12-04': 'pop',
+    '2026-12-05': 'glint',
+    '2026-11-29': 'pop',
+  };
 
   for (const [date, reveal] of Object.entries(expected)) {
     await door(page, date).click();
@@ -51,7 +59,7 @@ test('each type plays its animation, then the card shows and the overlay is gone
     await card.getByRole('button', { name: 'Stäng' }).click();
     await expect(door(page, date)).toHaveClass(/is-opened/);
   }
-  expect(await page.evaluate(() => window.__vibrations)).toBe(5);
+  expect(await page.evaluate(() => window.__vibrations)).toBe(6);
 
   // Opening an already opened door shows the card at once, without an animation.
   await door(page, '2026-12-02').click();

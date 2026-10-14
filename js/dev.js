@@ -7,6 +7,7 @@ const ANIMATION_LABELS = {
   gift: 'Present och konfetti',
   bells: 'Dörr, ljus och klockor',
   ribbon: 'Rosett och hjärtan',
+  magnifier: 'Förstoringsglas och glitter',
   confetti: 'Konfetti',
   snowburst: 'Snöyra',
 };

@@ -84,13 +84,14 @@ export function doorLook(dateKey, theme) {
 
 // Opening animations and the default for each content type. A day's optional
 // "animation" field overrides the default; unknown values fall back to it.
-export const ANIMATIONS = ['sparkle', 'gift', 'bells', 'ribbon', 'confetti', 'snowburst'];
+export const ANIMATIONS = ['sparkle', 'gift', 'bells', 'ribbon', 'magnifier', 'confetti', 'snowburst'];
 
 export const TYPE_ANIMATIONS = {
   ledtrad: 'sparkle',
   litet: 'gift',
   uppdrag: 'bells',
   rim: 'ribbon',
+  jakt: 'magnifier',
 };
 
 export function animationFor(day) {

@@ -128,7 +128,8 @@ En lucka ser ut så här:
 
 - `id` måste vara unikt. Byt inte `id` på en lucka som redan öppnats, då glömmer
   appen att den är öppnad.
-- `type` är `ledtrad`, `litet`, `uppdrag` eller `rim` (styr ikon, färg och öppna-animation).
+- `type` är `ledtrad`, `litet`, `uppdrag`, `rim` eller `jakt` (styr ikon, färg och öppna-animation).
+  `jakt` är en skattjakt i huset: förstoringsglas som ikon och mintgrön accent.
 - `animation` är valfri och byter öppna-animationen för just den luckan:
 
   | Värde | Animation | Standard för |
@@ -137,6 +138,7 @@ En lucka ser ut så här:
   | `gift` | presentlocket lyfter, konfetti | `litet` |
   | `bells` | dörren svänger upp med ljus och strålar, klockor ploppar upp | `uppdrag` |
   | `ribbon` | rosetten knyts upp, paketet öppnas, glitter och hjärtan | `rim` |
+  | `magnifier` | ett förstoringsglas sveper över en lapp, kortet glittrar när texten visas | `jakt` |
   | `confetti` | konfetti från luckan | |
   | `snowburst` | snöyra från luckan | |
 
@@ -146,7 +148,7 @@ En lucka ser ut så här:
   (även i specialrutan). `\n` ger en ny rad. Ingen HTML, texten visas precis som den står.
   Plan B visar samma vers, om inte `alternative` har en egen `verse`.
 - `npm test` kontrollerar filen: giltig JSON, unika datum i stigande ordning, unika `id`
-  och att `type` är en av de fyra ovan. Kör det efter varje ändring.
+  och att `type` är en av de fem ovan. Kör det efter varje ändring.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
 
