@@ -7,183 +7,187 @@
       "date": "2026-11-29",
       "label": "1:a advent",
       "type": "uppdrag",
-      "title": "Skånska Juldagarna på Bosjökloster",
-      "body": "Första advent! Idag åker vi till Skånska Juldagarna på Bosjökloster, alldeles här i Höör.\nVi strosar mellan stånden, äter något gott och låter Saga titta på allt som glittrar.\nKlä dig varmt, det blir en dag ute i kylan."
+      "title": "När första ljuset brinner",
+      "verse": "står julens dörr på glänt\noch alla människor glädjas\natt fira första advent.",
+      "body": "Gamla murar, doft av glögg, hantverk och en tomte som tittar fram.\nVid sjön har julen redan börjat. Idag åker vi dit."
     },
     {
       "id": "d-2026-12-01",
       "date": "2026-12-01",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Tillstånd",
+      "body": "Nu är det dags att tänka gran.\nHärmed har du mitt tillstånd att vi fixar julgran så fort det bara går. Julen får vara länge i år.\nInget krav, bara grönt ljus."
     },
     {
       "id": "d-2026-12-02",
       "date": "2026-12-02",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Snart",
+      "body": "Snart händer något gyllene i köket.\nKolla kryddskåpet: finns den lilla påsen med de röda trådarna?"
     },
     {
       "id": "d-2026-12-03",
       "date": "2026-12-03",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "rim",
+      "title": "Rim",
+      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)"
     },
     {
       "id": "d-2026-12-04",
       "date": "2026-12-04",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Fotodags",
+      "body": "Tomteluva, ljusslinga och en pepparkaka att hålla i.\nTa några gulliga julbilder av Saga, helst vid ett fönster i dagsljus."
     },
     {
       "id": "d-2026-12-05",
       "date": "2026-12-05",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Sov gott",
+      "body": "Imorgon doftar det gult och gott i hela huset.\nSov gott."
     },
     {
       "id": "d-2026-12-06",
       "date": "2026-12-06",
       "label": "2:a advent",
       "type": "uppdrag",
-      "title": "Vi bakar lussekatter",
-      "body": "Andra advent, och snart doftar hela huset saffran.\nIdag bakar vi lussekatter tillsammans. Saga får hjälpa till med russinen (och smaka på dem).\nSedan blir det kaffe och nybakat i soffan."
+      "title": "När andra ljuset brinner",
+      "verse": "då är Lucia här\nhon bjuder oss på kaffe\noch bud om julen bär.",
+      "body": "Jag är gul som solen men föds i ugnen.\nJag ligger hoprullad som en katt, fast jag är ingen katt, och mina ögon är två russin.\nIdag formar ni mig, och Saga får hjälpa till att röra i degen.\nVem är jag?"
     },
     {
       "id": "d-2026-12-07",
       "date": "2026-12-07",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Brev till tomten",
+      "body": "Ta fram ett papper och några färgpennor. Saga klottrar sitt önskebrev till tomten och ni översätter.\nSpara det, om några år blir det guld värt."
     },
     {
       "id": "d-2026-12-08",
       "date": "2026-12-08",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Tomtens hälsning",
+      "body": "Tomten har sett att ni varit snälla i år. Han har ingen anledning att ändra sig.\nFortsätt så."
     },
     {
       "id": "d-2026-12-09",
       "date": "2026-12-09",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Hälsa på distans",
+      "body": "Ring eller videoprata med någon ni tycker om och låt Saga vinka och skicka pussar.\nEtt julkort i brevlådan fungerar också."
     },
     {
       "id": "d-2026-12-10",
       "date": "2026-12-10",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Gåta",
+      "body": "Jag är liten, brun och krispig. Jag har ett vitt leende som sitter fast av glasyr, och ingen vill göra mig ledsen.\nVem är jag?\nSvar: pepparkaksgubben."
     },
     {
       "id": "d-2026-12-11",
       "date": "2026-12-11",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Handavtryck",
+      "body": "Idag pysslar vi: handavtryck med färg som blir tomtar eller renar.\nAnvänd ofarlig färg som är gjord för små barn, ta gamla kläder och ha en fuktig trasa nära. Det blir en fin present till någon."
     },
     {
       "id": "d-2026-12-12",
       "date": "2026-12-12",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Ikväll",
+      "body": "Ikväll är det fest. Ta på något fint, ta en bild ihop och lämna vardagen hemma.\nSaga är i trygga händer. Ha en magisk kväll, bara ni två."
     },
     {
       "id": "d-2026-12-13",
       "date": "2026-12-13",
       "label": "3:e advent",
       "type": "uppdrag",
-      "title": "Vi lussar för Saga och mormor",
-      "body": "Glad Lucia!\nNär vi hämtar Saga hos mormor kommer vi in med ljus och sång och lussar för dem båda.\nGlöm inte lussekatterna."
+      "title": "När tredje ljuset brinner",
+      "verse": "vi juleklappar syr\noch alla bakar kakor\noch har ett väldigt styr.",
+      "body": "Idag vinner ljuset. Ta med batteriljus, något gult och gott och er bästa sångröst.\nNär ni ändå ska hämta något kärt väntar en överraskning för två som inte vet om det."
     },
     {
       "id": "d-2026-12-14",
       "date": "2026-12-14",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Fönsterpynt",
+      "body": "Pynta ett fönster med stora pappersstjärnor eller snöflingor som ni tejpar upp.\nSaga får välja plats, helst på barnhöjd."
     },
     {
       "id": "d-2026-12-15",
       "date": "2026-12-15",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Gåta",
+      "body": "Jag är smal och har ingen mun, men en liten flamma på toppen. Fyra av mig står i rad och jag tänds en i taget, söndag efter söndag.\nVem är jag?\nSvar: adventsljusen."
     },
     {
       "id": "d-2026-12-16",
       "date": "2026-12-16",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Ljusjakt",
+      "body": "Mössa på och ut på en kort kvällsrunda.\nHur många ljusstakar och ljusslingor hittar ni i fönstren?"
     },
     {
       "id": "d-2026-12-17",
       "date": "2026-12-17",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Tomtegröt",
+      "body": "Idag blir det risgrynsgröt med kanel och en klick sylt, till frukost eller som kvällsmat.\nSaga får smaka och smeta."
     },
     {
       "id": "d-2026-12-18",
       "date": "2026-12-18",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Fredagsmys",
+      "body": "Glögg och pepparkakor på soffan när Saga har somnat.\nVälj en julfilm ni båda gillar."
     },
     {
       "id": "d-2026-12-19",
       "date": "2026-12-19",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Packa i kväll",
+      "body": "Imorgon är det dags att gå ut. Ta fram termosen, fyll den med något varmt och kryddigt och tänk på mössor och filt till vagnen.\nTitta på vädret också. Blåser det för mycket finns en reservplan."
     },
     {
       "id": "d-2026-12-20",
       "date": "2026-12-20",
       "label": "4:e advent",
       "type": "uppdrag",
-      "title": "Glöggpromenad",
-      "body": "Fjärde advent. Vi fyller termosen med glögg och packar pepparkakor och en filt.\nSedan går vi en promenad vid Ringsjön, eller i skogen om det känns bättre.\nSaga åker i vagnen och vi njuter av mörkret och ljusen.",
+      "title": "När fjärde ljuset brinner",
+      "verse": "vi hämtar julegran\noch alla människor räknar:\ndan före dan före dopparedan.",
+      "body": "Det doftar kryddor ur en termos, och vi går där det är lugnt: vatten, stigar eller träd.\nNi bestämmer själva när det är dags att vända. Mössa på!",
       "alternative": {
-        "title": "Mys hemma",
-        "body": "För blött och blåsigt? Då tar vi glöggen hemma i stället.\nVi tänder alla ljus, väljer en julfilm och kryper upp i soffan."
+        "title": "Plan B",
+        "body": "Det blev inte väder för en promenad. Då blir det julfilm, ljus och glögg hemma på soffan i stället.\nTa fram filten och en skål med pepparkakor."
       }
     },
     {
       "id": "d-2026-12-21",
       "date": "2026-12-21",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "En klapp",
+      "body": "Idag får Saga hjälpa till att packa in en klapp.\nHon får tejpa, krama papperet och leka med rosetten. Resultatet blir charmigt skrynkligt."
     },
     {
       "id": "d-2026-12-22",
       "date": "2026-12-22",
       "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "title": "Två nätter kvar",
+      "body": "Två nätter kvar till julafton.\nIdag räcker det med att andas, ta det lugnt och låta julen komma ikapp."
     },
     {
       "id": "d-2026-12-23",
       "date": "2026-12-23",
-      "type": "ledtrad",
-      "title": "TODO",
-      "body": "TODO"
+      "type": "litet",
+      "title": "Lillejulafton",
+      "body": "Tänd ett ljus, sätt på julmusik och packa i ordning inför imorgon.\nNågot enkelt och gott till middag, bara ni tre."
     },
     {
       "id": "d-2026-12-24",
       "date": "2026-12-24",
       "type": "rim",
-      "title": "Julaftonsrimmet",
-      "body": "Rimmet skrivs av Johan"
+      "title": "Julafton",
+      "body": "God jul, Elin.\nRimmet skrivs av Johan. (Byt ut den här texten.)"
     }
   ]
 }

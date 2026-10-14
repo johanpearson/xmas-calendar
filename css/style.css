@@ -663,6 +663,13 @@ body {
   font-size: 1.5rem;
   line-height: 1.2;
 }
+.card-verse {
+  margin: 0 0 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  line-height: 1.4;
+}
+.card-verse p { margin: 0; }
 .card-body p { margin: 0 0 .8em; }
 .card-actions {
   display: flex;

@@ -44,6 +44,7 @@ const els = {
   cardIcon: $('card-icon'),
   cardDate: $('card-date'),
   cardTitle: $('card-title'),
+  cardVerse: $('card-verse'),
   cardBody: $('card-body'),
   cardAlt: $('card-alt'),
 };
@@ -248,15 +249,23 @@ async function playThenShow(day, btn, animation, { haptics = true } = {}) {
   }
 }
 
-function setCardContent(title, body) {
-  els.cardTitle.textContent = title ?? '';
-  // Body is plain text: one paragraph per line, never innerHTML.
-  const paragraphs = String(body ?? '')
+// Plain text to one element per line, never innerHTML.
+function lines(text, tag) {
+  return String(text ?? '')
     .split('\n')
     .map((s) => s.trim())
     .filter(Boolean)
-    .map((text) => el('p', null, text));
-  els.cardBody.replaceChildren(...paragraphs);
+    .map((line) => el(tag, null, line));
+}
+
+function setCardContent(title, verse, body) {
+  els.cardTitle.textContent = title ?? '';
+  // Verse: one line per line break, shown in italics between title and body.
+  const verseLines = lines(verse, 'p');
+  els.cardVerse.replaceChildren(...verseLines);
+  els.cardVerse.hidden = verseLines.length === 0;
+  // Body: one paragraph per line.
+  els.cardBody.replaceChildren(...lines(body, 'p'));
 }
 
 // reveal: how the card enters (see .card[data-reveal] in style.css), null for the default.
@@ -266,7 +275,7 @@ function showCard(day, reveal = null) {
   else delete els.card.dataset.reveal;
   els.cardIcon.replaceChildren(typeIcon(day.type));
   els.cardDate.textContent = day.label ? `${day.label} · ${formatDate(day.date)}` : formatDate(day.date);
-  setCardContent(day.title, day.body);
+  setCardContent(day.title, day.verse, day.body);
 
   const alt = day.alternative;
   if (alt && (alt.title || alt.body)) {
@@ -275,8 +284,8 @@ function showCard(day, reveal = null) {
     els.cardAlt.textContent = 'Dåligt väder? Visa plan B';
     els.cardAlt.onclick = () => {
       showingAlt = !showingAlt;
-      if (showingAlt) setCardContent(alt.title ?? day.title, alt.body);
-      else setCardContent(day.title, day.body);
+      if (showingAlt) setCardContent(alt.title ?? day.title, alt.verse ?? day.verse, alt.body);
+      else setCardContent(day.title, day.verse, day.body);
       els.cardAlt.textContent = showingAlt ? 'Tillbaka till ursprungsplanen' : 'Dåligt väder? Visa plan B';
     };
   } else {
