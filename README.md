@@ -51,6 +51,8 @@ node --test
 npm test
 ```
 
+`tests/content.test.js` validerar även `content/days.json` (se "Lägga till och ändra luckor").
+
 ### E2e (Playwright)
 
 Smoke-tester i `tests/e2e/` som kör appen i Chromium under `/xmas-calendar/`, med låst
@@ -117,7 +119,8 @@ En lucka ser ut så här:
   "date": "2026-12-06",
   "label": "2:a advent",
   "type": "uppdrag",
-  "title": "Baka lussekatter",
+  "title": "När andra ljuset brinner",
+  "verse": "då är Lucia här\nhon bjuder oss på kaffe",
   "body": "Första stycket.\nAndra stycket.",
   "alternative": { "title": "Plan B", "body": "Valfri reservplan" }
 }
@@ -139,6 +142,11 @@ En lucka ser ut så här:
 
   Ett okänt värde ger typens standard. Prova animationerna med "Spela upp animation" i dev-läget.
 - `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
+- `verse` är valfri: en vers som visas i kursiv stil direkt under titeln, före `body`
+  (även i specialrutan). `\n` ger en ny rad. Ingen HTML, texten visas precis som den står.
+  Plan B visar samma vers, om inte `alternative` har en egen `verse`.
+- `npm test` kontrollerar filen: giltig JSON, unika datum i stigande ordning, unika `id`
+  och att `type` är en av de fyra ovan. Kör det efter varje ändring.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
 

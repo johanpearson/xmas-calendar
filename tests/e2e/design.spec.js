@@ -151,7 +151,7 @@ test('dev: "Spela upp animation" previews without opening the door', async ({ pa
   await expect(page.locator('.fx')).toHaveCount(1);
   const card = page.locator('#card');
   await expect(card).toBeVisible();
-  await expect(card).toContainText('glögg', { ignoreCase: true });
+  await expect(card.locator('#card-title')).toHaveText(/\S/);
   await expect(page.locator('.fx')).toHaveCount(0);
   await card.getByRole('button', { name: 'Stäng' }).click();
   await expect(door(page, '2026-12-20')).toHaveClass(/is-locked/);
@@ -171,4 +171,33 @@ test('aria-labels describe advent doors and their state', async ({ page }) => {
   for (const [date, lit] of [['2026-11-29', 1], ['2026-12-06', 2], ['2026-12-13', 3], ['2026-12-20', 4]]) {
     await expect(door(page, date).locator('.candle-flame')).toHaveCount(lit * 2);
   }
+});
+
+test('verse shows in italics under the title, one line per line break, as plain text', async ({ page }) => {
+  await patchContent(page, {
+    '2026-11-29': { verse: 'Första raden\nAndra <b>raden</b>' },
+    '2026-12-01': { verse: undefined },
+  });
+  await gotoApp(page);
+  const card = page.locator('#card');
+  const verse = card.locator('#card-verse');
+
+  // The special door for 1st advent.
+  await door(page, '2026-11-29').click();
+  await expect(card).toBeVisible();
+  await expect(verse).toBeVisible();
+  await expect(verse.locator('p')).toHaveText(['Första raden', 'Andra <b>raden</b>']);
+  await expect(verse.locator('b')).toHaveCount(0);
+  expect(await verse.evaluate((el) => getComputedStyle(el).fontStyle)).toBe('italic');
+  // Between the title and the body.
+  expect(await verse.evaluate((el) => [el.previousElementSibling.id, el.nextElementSibling.id])).toEqual([
+    'card-title',
+    'card-body',
+  ]);
+  await card.getByRole('button', { name: 'Stäng' }).click();
+
+  // A day without a verse hides it.
+  await door(page, '2026-12-01').click();
+  await expect(card).toBeVisible();
+  await expect(verse).toBeHidden();
 });

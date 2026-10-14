@@ -41,6 +41,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
                    apple-touch-icon-180.png, favicon.svg
   tests/dates.test.js
+  tests/content.test.js  validering av content/days.json
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -58,7 +59,8 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
       "date": "2026-11-29",
       "label": "1:a advent",
       "type": "uppdrag",
-      "title": "Skånska Juldagarna på Bosjökloster",
+      "title": "När första ljuset brinner",
+      "verse": "står julens dörr på glänt\noch alla människor glädjas",
       "body": "Text, \n separerar stycken. Ingen HTML.",
       "alternative": { "title": "Plan B", "body": "Valfri reservplan vid dåligt väder" }
     }
@@ -71,6 +73,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
 - `label`: valfri text på luckan, annars dagens nummer i månaden.
 - `animation`: valfri. Överstyr typens öppna-animation: `sparkle` (standard för `ledtrad`), `gift` (`litet`), `bells` (`uppdrag`), `ribbon` (`rim`), `confetti` eller `snowburst`. Okänt värde ger typens standard.
 - `alternative`: valfri. Om den finns visas knappen "Dåligt väder? Visa plan B" som byter innehåll i kortet.
+- `verse`: valfri sträng, rader separerade med `\n`. Visas i kursiv stil direkt under titeln i kortet, före `body`, en rad per radbrytning. Gäller alla luckor, även specialrutan. Renderas med `textContent` (aldrig `innerHTML`). Plan B visar `alternative.verse` om den finns, annars luckans `verse`.
 - `body` renderas med `textContent` (aldrig `innerHTML`), stycken delas på `\n`.
 
 ### Seed-innehåll (fasta punkter)
@@ -137,6 +140,7 @@ Skapa dessa med riktigt innehåll:
 ## Tester
 
 - `tests/dates.test.js` med `node --test` mot `js/dates.js`: dagen före, samma dag och dagen efter datumet, 23:59 och 00:00 lokal tid, override.
+- `tests/content.test.js` validerar `content/days.json`: giltig JSON, giltiga datum som är unika och i stigande ordning, unika `id`, `type` är `ledtrad`, `litet`, `uppdrag` eller `rim`, och `verse` är en sträng om den finns.
 - Playwright smoke (valfritt) med `page.clock`: vid 2026-12-05 går luckor till och med den 5:e att öppna och den 6:e är låst, öppnad lucka finns kvar efter reload, appen laddar offline efter första besöket, manifestet är giltigt.
 - Manuellt: iOS Safari "Lägg till på hemskärmen", Android Chrome "Installera".
 

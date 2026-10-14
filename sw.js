@@ -3,7 +3,7 @@
 // Bump CACHE_VERSION whenever anything in the app shell changes (HTML, CSS, JS, icons,
 // manifest). Pure content changes in content/days.json need no bump: that file is
 // served stale-while-revalidate, so edits reach the phone on the next start.
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 
 const SHELL_CACHE = `advent-shell-${CACHE_VERSION}`;
 // Not versioned, so the last known content survives a shell update.
