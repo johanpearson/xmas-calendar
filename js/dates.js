@@ -58,6 +58,18 @@ export function isBeforeDecember(dateKey) {
   return dateKey.slice(5) < '12-01';
 }
 
+// Advent Sundays: the fourth is the last Sunday before Christmas Day (December 24th
+// itself when that is a Sunday), the others are one, two and three weeks earlier.
+// Returns 1-4 for an advent Sunday, otherwise 0. Works for any year.
+export function adventSunday(dateKey) {
+  const date = parseDateKey(dateKey);
+  if (!date) return 0;
+  const eve = new Date(date.getFullYear(), 11, 24);
+  const fourth = new Date(date.getFullYear(), 11, 24 - eve.getDay());
+  const weeks = Math.round((fourth - date) / (7 * 24 * 60 * 60 * 1000));
+  return date.getDay() === 0 && weeks >= 0 && weeks <= 3 ? 4 - weeks : 0;
+}
+
 // December 24th of any year: the door that looks like a Christmas present.
 export function isChristmasEve(dateKey) {
   return dateKey.slice(5) === '12-24';

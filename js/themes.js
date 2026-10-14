@@ -1,6 +1,6 @@
 // Pure logic for how doors look. No DOM: everything here is testable with `node --test`.
 
-import { isChristmasEve } from './dates.js';
+import { adventSunday, isChristmasEve } from './dates.js';
 
 // Door themes. Each one has its own small icon (see icons.js).
 export const THEMES = ['red', 'green', 'gingerbread', 'candy', 'gold', 'plaid', 'frost'];
@@ -72,10 +72,13 @@ export function assignThemes(dateKeys, columns = GRID_COLUMNS) {
 }
 
 /**
- * The look of a door: Christmas Eve is a present, every other door gets its assigned theme.
+ * The look of a door: Christmas Eve is a present, advent Sundays get advent candles
+ * (1-4 lit), every other door gets its assigned theme.
  */
 export function doorLook(dateKey, theme) {
   if (isChristmasEve(dateKey)) return { kind: 'christmas' };
+  const advent = adventSunday(dateKey);
+  if (advent) return { kind: 'advent', advent };
   return { kind: 'theme', theme, icon: THEME_ICONS[theme] };
 }
 

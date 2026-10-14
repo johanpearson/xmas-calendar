@@ -57,6 +57,15 @@ test('assignThemes handles short and empty lists', () => {
   assert.equal(assignThemes(['2026-12-01']).length, 1);
 });
 
+test('doorLook: advent Sundays get candles', () => {
+  assert.deepEqual(doorLook('2026-11-29', 'red'), { kind: 'advent', advent: 1 });
+  assert.deepEqual(doorLook('2026-12-06', 'red'), { kind: 'advent', advent: 2 });
+  assert.deepEqual(doorLook('2026-12-13', 'red'), { kind: 'advent', advent: 3 });
+  assert.deepEqual(doorLook('2026-12-20', 'red'), { kind: 'advent', advent: 4 });
+  // When Christmas Eve is the fourth advent, the present wins.
+  assert.deepEqual(doorLook('2023-12-24', 'red'), { kind: 'christmas' });
+});
+
 test('doorLook: Christmas Eve is a present, other days use their theme', () => {
   assert.deepEqual(doorLook('2026-12-24', 'red'), { kind: 'christmas' });
   assert.deepEqual(doorLook('2027-12-24', 'red'), { kind: 'christmas' });

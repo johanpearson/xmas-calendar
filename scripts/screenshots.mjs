@@ -1,6 +1,7 @@
 // Takes screenshots of the app at 360 px width for reviews and PR descriptions.
 // Run: npm run screenshots   (needs the dev dependency @playwright/test)
-// Output: docs/screenshots/*.png
+// Output: docs/screenshots/*.png (all locked, simulated dates, and for each content type a
+// frame in the middle of its opening animation and the opened end state).
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -13,6 +14,7 @@ const BASE = `http://localhost:${PORT}/xmas-calendar/`;
 
 // Opening animations take about a second; wait a little longer before the shot.
 const SETTLE_MS = 1600;
+const MID_ANIMATION_MS = 560;
 
 const server = spawn(process.execPath, ['tests/e2e/serve.mjs'], {
   cwd: ROOT,
@@ -89,6 +91,8 @@ try {
   for (const { type, date } of perType) {
     page = await newPage('2026-12-24', { days });
     await page.locator(`.door[data-date="${date}"]`).click();
+    await page.waitForTimeout(MID_ANIMATION_MS);
+    await shot(page, `animating-${type}`, false);
     await page.waitForTimeout(SETTLE_MS);
     await shot(page, `opened-${type}`, false);
     await page.context().close();

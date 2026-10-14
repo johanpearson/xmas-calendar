@@ -23,7 +23,7 @@ import { setupInstall } from './install.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
-import { icon, typeIcon } from './icons.js';
+import { icon, typeIcon, adventCandles } from './icons.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -140,7 +140,9 @@ function createDoor(day, theme) {
   const text = el('span', 'door-text');
   text.append(el('span', 'door-num', mainText));
   if (subText) text.append(el('span', 'door-label', subText));
-  leaf.append(text, icon('lock', 'door-lock'), el('span', 'door-knob'));
+  leaf.append(text);
+  if (look.kind === 'advent') leaf.append(adventCandles(look.advent, 'door-candles'));
+  leaf.append(icon('lock', 'door-lock'), el('span', 'door-knob'));
 
   btn.append(inside, leaf);
   btn.addEventListener('click', () => onDoorClick(day.id));

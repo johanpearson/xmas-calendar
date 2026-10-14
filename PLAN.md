@@ -92,7 +92,7 @@ Skapa dessa med riktigt innehåll:
 1. "Idag" är lokalt datum via `getFullYear/getMonth/getDate`. Använd aldrig `toISOString()` (UTC ger fel dag nära midnatt). Jämför strängar på formen `YYYY-MM-DD`.
 2. En lucka är upplåst om `today >= date`.
 3. Låst lucka: kort skak-animation och en toast, t.ex. "Den här luckan öppnas 6 december" (formatera med `sv-SE`).
-4. Upplåst men ej öppnad: öppna-animation (CSS 3D-flip), visa innehållet i ett kort, spara som öppnad i `localStorage`.
+4. Upplåst men ej öppnad: öppna-animation (efter typ, se milstolpe 7), visa innehållet i ett kort, spara som öppnad i `localStorage`.
 5. Öppnad lucka kan öppnas igen. Missade dagar går att öppna i efterhand.
 6. Dagens lucka markeras tydligt. Luckor visas i datumordning. Luckor med datum före 1 december (i år bara 2026-11-29) visas som en större specialruta ovanför rutnätet. Finns inga sådana luckor (som nästa år) renderas ingen specialruta.
 7. Omvärdera "idag" vid `visibilitychange` och med en timer till nästa midnatt, så en öppen app uppdateras utan omstart.

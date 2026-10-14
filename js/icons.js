@@ -96,3 +96,37 @@ const CONTENT_TYPES = new Set(['ledtrad', 'litet', 'uppdrag', 'rim']);
 export function typeIcon(type, className) {
   return icon(CONTENT_TYPES.has(type) ? type : 'unknown', className);
 }
+
+let candlesCount = 0;
+
+// Four advent candles in a holder, the first `lit` of them burning (lit from the left).
+export function adventCandles(lit, className = '') {
+  const glowId = `candle-glow-${++candlesCount}`;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 64 36');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  if (className) svg.setAttribute('class', className);
+  let markup = '';
+  [9, 25, 41, 57].forEach((x, i) => {
+    const on = i < lit;
+    if (on) {
+      markup += `
+        <circle class="candle-glow" cx="${x}" cy="9" r="7" fill="url(#${glowId})" style="--i:${i}"/>
+        <path class="candle-flame" style="--i:${i}" d="M${x} 2.5c2.6 3.4 3.4 5.4 3.4 7a3.4 3.4 0 0 1-6.8 0c0-1.6.8-3.6 3.4-7z" fill="#ffc94a"/>
+        <path class="candle-flame" style="--i:${i}" d="M${x} 6.5c1.2 1.6 1.6 2.6 1.6 3.4a1.6 1.6 0 0 1-3.2 0c0-.8.4-1.8 1.6-3.4z" fill="#fff6d6"/>`;
+    }
+    markup += `
+      <rect x="${x - 4}" y="14" width="8" height="15" rx="1.5" fill="#fbf5e9"/>
+      <rect x="${x - 4}" y="14" width="2.5" height="15" rx="1" fill="#fff" opacity=".7"/>
+      <path d="M${x} ${on ? 13.4 : 11.5}v2.6" stroke="#3b2a1a" stroke-width="1.2" stroke-linecap="round"/>`;
+  });
+  svg.innerHTML = `
+    <defs><radialGradient id="${glowId}"><stop offset="0" stop-color="#ffd76a" stop-opacity=".9"/><stop offset="1" stop-color="#ffd76a" stop-opacity="0"/></radialGradient></defs>
+    ${markup}
+    <rect x="1" y="28" width="62" height="6" rx="3" fill="#e8c36a"/>
+    <rect x="1" y="28" width="62" height="2" rx="1" fill="#fff3c4" opacity=".6"/>
+    <g fill="#2f8f55"><ellipse cx="17" cy="29" rx="4" ry="1.8" transform="rotate(-20 17 29)"/><ellipse cx="33" cy="29.5" rx="4" ry="1.8" transform="rotate(15 33 29.5)"/><ellipse cx="49" cy="29" rx="4" ry="1.8" transform="rotate(-15 49 29)"/></g>
+    <g fill="#d7263d"><circle cx="20" cy="30.5" r="1.3"/><circle cx="36" cy="31" r="1.3"/><circle cx="52" cy="30.5" r="1.3"/></g>`;
+  return svg;
+}

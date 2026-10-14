@@ -158,3 +158,17 @@ test('dev: "Spela upp animation" previews without opening the door', async ({ pa
   await expect(door(page, '2026-12-20')).not.toHaveClass(/is-opened/);
   expect(await page.evaluate(() => localStorage.getItem('advent.opened'))).toBeNull();
 });
+
+test('aria-labels describe advent doors and their state', async ({ page }) => {
+  await gotoApp(page);
+  await expect(door(page, '2026-12-13')).toHaveAttribute('aria-label', 'Lucka 13, 3:e advent, låst, öppnas 13 december');
+  await expect(door(page, '2026-12-13')).toHaveClass(/look-advent/);
+  await expect(door(page, '2026-12-06')).toHaveAttribute('aria-label', 'Lucka 6, 2:a advent, låst, öppnas 6 december');
+  await expect(door(page, '2026-11-29')).toHaveAttribute('aria-label', '1:a advent, redo att öppnas');
+  await expect(door(page, '2026-11-29')).toHaveClass(/look-advent/);
+  await expect(door(page, '2026-12-05')).toHaveAttribute('aria-label', 'Lucka 5, idag, redo att öppnas');
+  // Advent candles: 1 to 4 lit flames (each flame is two paths).
+  for (const [date, lit] of [['2026-11-29', 1], ['2026-12-06', 2], ['2026-12-13', 3], ['2026-12-20', 4]]) {
+    await expect(door(page, date).locator('.candle-flame')).toHaveCount(lit * 2);
+  }
+});
