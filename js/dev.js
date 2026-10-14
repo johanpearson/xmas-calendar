@@ -123,6 +123,7 @@ export function mountDevPanel(api) {
   const tomte = api.tomte ? tomteSection(api.tomte, () => setPanelOpen(false), api.toast) : null;
 
   panel.append(heading, realInfo, dateLabel, actions, preview);
+  if (api.audio) panel.append(audioSection(api.audio, api.toast));
   if (tomte) panel.append(tomte.node);
   // Toggle first so Tab moves from it into the open panel.
   document.body.append(toggle, panel);
@@ -160,6 +161,32 @@ export function mountDevPanel(api) {
   refresh();
   preselectDoor();
   return refresh;
+}
+
+const SOUND_LABELS = {
+  sleighbells: 'Bjällror',
+  chime: 'Pling och arpeggio',
+  pop: 'Pop och glitter',
+  search: 'Sökarsvep och ding',
+  locked: 'Tonk (låst)',
+  click: 'Klick (Nästa)',
+};
+
+// Sound: every effect in turn, and Tomten's jingle. The panel stays open.
+function audioSection(audio, toast) {
+  const node = el('fieldset', 'dev-preview dev-audio');
+  node.append(el('legend', null, 'Ljud'));
+  const whenOn = (fn) => () => {
+    if (!audio.isOn()) toast('Ljudet är avstängt');
+    else fn();
+  };
+  const actions = el('div', 'dev-actions');
+  actions.append(
+    button('Spela alla ljud', whenOn(() => audio.playAll((name) => toast(SOUND_LABELS[name] ?? name)))),
+    button('Testa jingle', whenOn(() => audio.playJingle())),
+  );
+  node.append(actions);
+  return node;
 }
 
 // Tomten: every conversation with a "Spela upp" button (ignores dates and seen state),

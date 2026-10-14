@@ -194,7 +194,7 @@ Skapa dessa med riktigt innehåll:
    - **Tomtens jingel:** 5-8 s speldosa när tomten dyker upp (intro, välkomst, scener). Melodin är en liten datastruktur (notnamn och längd i taktslag) och spelas med sinus/triangel och mjuk envelope. Public domain-melodi: refrängen ur "Jingle Bells" (James Lord Pierpont, 1857).
    - **Bakgrundsmusik:** valfri, av som standard, egen knapp "Musik" bredvid ljudknappen. Låg volym, loopar en lugnare speldosa-version av samma melodi med paus mellan varven. Pausas när fliken är dold.
    - **Robust:** inga fel om ljud inte kan spelas (saknat Web Audio, tyst läge, nekad uppspelning).
-   - **Dev-läge:** knapparna "Spela alla ljud" och "Testa jingel" i dev-panelen.
+   - **Dev-läge:** knapparna "Spela alla ljud" och "Testa jingle" i dev-panelen.
    - **Tester** (`tests/audio.test.js`, `node --test`): ren logik som noter till frekvenser, melodier till händelser och mute-hantering. Själva ljudet testas manuellt.
    - **PWA:** de nya filerna precachas och `CACHE_VERSION` bumpas.
 
