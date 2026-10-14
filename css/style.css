@@ -802,6 +802,14 @@ body {
 .dev-preview { display: grid; margin: 12px 0 0; padding: 8px 10px 10px; border: 2px solid #1a1300; border-radius: 10px; }
 .dev-preview legend { padding: 0 4px; font-size: .85rem; font-weight: 800; }
 .dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
+.dev-tomte { gap: 8px; }
+.dev-tomte-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.dev-tomte-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; }
+.dev-tomte-item.is-current { background: #ffd23f66; outline: 2px solid #1a1300; }
+.dev-tomte-text { display: grid; flex: 1; min-width: 0; font-size: .8rem; line-height: 1.3; }
+.dev-tomte-name { font-weight: 800; overflow-wrap: anywhere; }
+.dev-tomte-dates, .dev-tomte-status { color: #4d4426; }
+.dev-tomte-status:empty { display: none; }
 /* Keep the app's own top safe-area padding from doubling up under the banner. */
 .has-dev-banner .app { padding-top: 16px; }
 

@@ -120,7 +120,10 @@ export function mountDevPanel(api) {
     }),
   );
 
+  const tomte = api.tomte ? tomteSection(api.tomte, () => setPanelOpen(false), api.toast) : null;
+
   panel.append(heading, realInfo, dateLabel, actions, preview);
+  if (tomte) panel.append(tomte.node);
   // Toggle first so Tab moves from it into the open panel.
   document.body.append(toggle, panel);
 
@@ -144,6 +147,7 @@ export function mountDevPanel(api) {
     document.body.classList.toggle('has-dev-banner', Boolean(override));
     realInfo.textContent = `Riktigt datum: ${formatDate(api.realToday())}. Effektivt: ${formatDate(api.effectiveToday())}.`;
     dateInput.value = api.effectiveToday();
+    tomte?.refresh();
   }
 
   // Preselects today's door (or the last unlocked one) for the animation preview.
@@ -156,4 +160,49 @@ export function mountDevPanel(api) {
   refresh();
   preselectDoor();
   return refresh;
+}
+
+// Tomten: every conversation with a "Spela upp" button (ignores dates and seen state),
+// which one the effective date points at, and a reset.
+function tomteSection(tomte, closePanel, toast) {
+  const node = el('fieldset', 'dev-preview dev-tomte');
+  node.append(el('legend', null, 'Tomten'));
+  const list = el('ul', 'dev-tomte-list');
+  const rows = tomte.items.map((item) => {
+    const row = el('li', 'dev-tomte-item');
+    const name = el('span', 'dev-tomte-name', item.label);
+    const dates = item.scene ? el('span', 'dev-tomte-dates', `${item.scene.from} – ${item.scene.until}`) : null;
+    const status = el('span', 'dev-tomte-status');
+    const play = button('Spela upp', () => {
+      closePanel();
+      tomte.play(item);
+    });
+    play.setAttribute('aria-label', `Spela upp ${item.label}`);
+    const text = el('span', 'dev-tomte-text');
+    text.append(name);
+    if (dates) text.append(dates);
+    text.append(status);
+    row.append(text, play);
+    list.append(row);
+    return { item, row, status };
+  });
+  node.append(
+    list,
+    button('Nollställ tomtescener', () => {
+      tomte.reset();
+      refresh();
+      toast('Tomtescener nollställda');
+    }),
+  );
+
+  function refresh() {
+    const current = tomte.currentId();
+    for (const { item, row, status } of rows) {
+      const isCurrent = item.kind === 'scene' && item.id === current;
+      row.classList.toggle('is-current', isCurrent);
+      status.textContent = [isCurrent && 'aktuell', tomte.isSeen(item) && 'sedd'].filter(Boolean).join(', ');
+    }
+  }
+
+  return { node, refresh };
 }

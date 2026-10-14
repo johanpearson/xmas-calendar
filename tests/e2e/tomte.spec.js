@@ -147,3 +147,31 @@ test('reduced motion: Tomten shows without the ho ho ho animation', async ({ pag
   expect(await page.locator('.tomte-svg').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   await expect(page.locator('.tomte-hoho span').first()).toHaveCSS('opacity', '0');
 });
+
+test('dev: play any scene, the date override picks the current one, reset scenes', async ({ page }) => {
+  await markSeen(page);
+  await page.clock.setFixedTime(at('2026-10-14'));
+  await gotoApp(page, './?dev=on');
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  const panel = page.locator('#dev-panel');
+
+  // Plays a scene long before its dates.
+  await panel.getByRole('button', { name: 'Spela upp v4-avsked' }).click();
+  await expect(bubbleText(page)).toHaveText('God jul, Elin! Ho ho ho!');
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click();
+  expect(await page.evaluate(() => localStorage.getItem('advent.tomte.scenesSeen'))).toBeNull();
+
+  // The simulated date decides which scene is current, and it shows on the next start.
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  await panel.getByLabel('Simulerat datum').fill('2026-12-08');
+  await expect(panel.locator('.dev-tomte-item.is-current')).toContainText('v2-sten-ake');
+  await page.reload();
+  await expect(bubbleText(page)).toHaveText('God måndag, Elin!');
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click();
+
+  await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+  await expect(panel.locator('.dev-tomte-item.is-current')).toContainText('sedd');
+  await panel.getByRole('button', { name: 'Nollställ tomtescener' }).click();
+  await expect(panel.locator('.dev-tomte-item.is-current')).not.toContainText('sedd');
+  expect(await page.evaluate(() => localStorage.getItem('advent.tomte.scenesSeen'))).toBeNull();
+});

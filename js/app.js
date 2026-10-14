@@ -18,9 +18,12 @@ import {
   applyDevParam,
   getDateOverride,
   setDateOverride,
+  getTomteSeen,
+  clearTomte,
 } from './storage.js';
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
+import { currentScene } from './tomte.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
@@ -386,6 +389,7 @@ async function startDevMode() {
       setDevEnabled(false);
       location.reload();
     },
+    tomte: state.tomte && devTomte(state.tomte),
     toast: showToast,
   });
 }
@@ -416,6 +420,29 @@ async function startTomte() {
   }
   // Let the calendar settle on screen before Tomten pops up.
   setTimeout(checkTomte, prefersReducedMotion() ? 0 : 600);
+}
+
+// Tomten in the dev panel: play anything at once (ignoring dates and seen state) and reset.
+function devTomte({ content, ui }) {
+  return {
+    items: [
+      ...(content.intro ? [{ kind: 'intro', id: 'intro', label: 'Intro' }] : []),
+      ...(content.welcome ? [{ kind: 'welcome', id: 'welcome', label: 'Välkomst' }] : []),
+      ...content.scenes.map((scene) => ({ kind: 'scene', id: scene.id, label: scene.id, scene })),
+    ],
+    // The scene the effective date (simulated or real) points at, seen or not.
+    currentId: () => currentScene(content.scenes, state.todayKey)?.id ?? null,
+    isSeen(item) {
+      const seen = getTomteSeen();
+      return item.kind === 'scene' ? seen.scenes.includes(item.id) : seen[item.kind];
+    },
+    async play(item) {
+      if (els.card.open) els.card.close();
+      await whenIdle();
+      ui.play(item.kind, item.scene);
+    },
+    reset: clearTomte,
+  };
 }
 
 // Relative path and scope, so it works under /<repo>/ on GitHub Pages.
