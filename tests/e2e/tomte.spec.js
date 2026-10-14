@@ -152,6 +152,9 @@ test('dev: play any scene, the date override picks the current one, reset scenes
   await markSeen(page);
   await page.clock.setFixedTime(at('2026-10-14'));
   await gotoApp(page, './?dev=on');
+  // Let the start-up check (600 ms after load) run first, or it would pick up the date
+  // simulated below and show that scene before the reload.
+  await page.waitForTimeout(900);
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
   const panel = page.locator('#dev-panel');
 
