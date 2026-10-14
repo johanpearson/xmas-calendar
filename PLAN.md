@@ -41,6 +41,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/tomte-ui.js   tomten: SVG, pratbubbla, knappar
   js/audio.js      ljud: Web Audio-syntes, jingel, bakgrundsmusik (milstolpe 9)
   js/audio-ui.js   ljud- och musikknappar
+  js/weather.js    väder: prognoskälla (provider), klassning, cache (milstolpe 10)
   content/days.json
   content/tomte.json
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
@@ -49,6 +50,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/content.test.js  validering av content/days.json
   tests/tomte.test.js    js/tomte.js och validering av content/tomte.json
   tests/audio.test.js    ren logik i js/audio.js: noter, melodier, mute
+  tests/weather.test.js  js/weather.js: klassning, cache, timeout, fel
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -198,6 +200,16 @@ Skapa dessa med riktigt innehåll:
    - **Tester** (`tests/audio.test.js`, `node --test`): ren logik som noter till frekvenser, melodier till händelser och mute-hantering. Själva ljudet testas manuellt.
    - **PWA:** de nya filerna precachas och `CACHE_VERSION` bumpas.
 
+10. **Väder.** Tomtens väderscener (de med `weatherVariants`) väljer `good`, `bad` eller `unknown` utifrån en riktig prognos för Höör. Klar när: punkterna nedan fungerar på 360 px, `tests/weather.test.js` och e2e-testerna är gröna och `CACHE_VERSION` är bumpad med `js/weather.js` i precache.
+   - **Källa:** Open-Meteo Forecast API (`https://api.open-meteo.com/v1/forecast`), utan API-nyckel, direkt från webbläsaren (CORS). Plats: Höör, `latitude` 55.94, `longitude` 13.54, konstanter i `js/weather.js`. Daily-variablerna `precipitation_sum`, `wind_speed_10m_max` och `temperature_2m_max`, `wind_speed_unit=ms`, `timezone=Europe/Stockholm`, `start_date` och `end_date` satta till promenaddagen.
+   - **Provider:** källan ligger bakom ett litet gränssnitt i `js/weather.js` (`id`, `attribution`, `fetchDay(dateKey, { fetch, signal })`) så att den kan bytas mot t.ex. SMHI (snow1g version 1, pmp3g är avvecklat sedan 31 mars 2026).
+   - **Klassning** (konstanter överst i filen): det sista datumet i scenens `forecastFor` används. `bad` om `precipitation_sum` >= 2 mm eller `wind_speed_10m_max` >= 10 m/s, `good` om ingen av dem gäller, `unknown` om data saknas eller anropet misslyckas.
+   - **Robusthet:** hämtas först när en väderscen ska visas, inte vid appstart. Timeout 4 s (`AbortController`). Resultatet cachas per datum i `localStorage` med tidsstämpel: yngre än 3 timmar används direkt, vid nätverksfel duger cache upp till 24 timmar, annars `unknown`. Datum längre fram än källan tillåter (fel eller tomt svar) ger `unknown`, inga felmeddelanden i UI. Bara koordinaterna skickas (ingen referrer, inga cookies).
+   - **Service worker:** hanterar bara same-origin GET. Väderanropen går direkt till nätverket och cachas aldrig av service workern.
+   - **Attribution:** en liten text "Väderdata: Open-Meteo.com" längst ned i tomtens bubbla när en väderscen visas (CC BY 4.0).
+   - **Dev-läge:** väljaren "Prognos" (Riktig, Bra, Dålig, Okänd) överstyr `getWeatherVariant`, sparas och gäller även "Spela upp". Panelen visar senast hämtade värden (nederbörd, vind) och tidpunkt.
+   - **Tester:** `tests/weather.test.js` (`node --test`): klassningens gränsvärden, cacheregler (färsk, gammal men tillåten vid nätverksfel, för gammal), timeout och fel med mockad `fetch`, `unknown` vid saknad data. Playwright med mockad Open-Meteo: rätt variant vid simulerat datum 2026-12-14 och 2026-12-18.
+
 ## Datamodell: `content/tomte.json`
 
 ```json
@@ -245,7 +257,7 @@ Skapa dessa med riktigt innehåll:
 - `scenes[].id`: unikt och stabilt. Det sparas när scenen setts, så byt inte `id` på en scen som redan visats.
 - `scenes[].from`, `until`: `YYYY-MM-DD`, lokalt datum, båda inklusive. `from` <= `until`.
 - `scenes[].lines`: repliker i ordning. Visas först.
-- `scenes[].weatherVariants`: valfritt. `good`, `bad` och `unknown` är listor med repliker som visas efter `lines`. `forecastFor` säger vilka datum prognosen gäller (används när väder kopplas in).
+- `scenes[].weatherVariants`: valfritt. `good`, `bad` och `unknown` är listor med repliker som visas efter `lines`. `forecastFor` säger vilka datum prognosen gäller; det sista datumet (promenaddagen) avgör varianten (milstolpe 10).
 - `scenes[].questions`: valfritt. Visas efter replikerna, en i taget. `options[0]` räknas som det positiva svaret.
 - `scenes[].closing`: valfritt, `allPositive` och `someNegative`. Visas efter sista frågan.
 - All text renderas med `textContent`, aldrig `innerHTML`.
