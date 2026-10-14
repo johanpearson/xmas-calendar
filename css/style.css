@@ -400,3 +400,55 @@ body {
   }
   .snow { display: none; }
 }
+
+/* --- Install flow --- */
+.install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  min-height: 36px;
+  padding: 4px 14px;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--gold-strong);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.install-btn::before { content: "⬇"; font-size: .8em; }
+.install-btn:hover { background: #e8c36a1f; }
+.install-btn:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 2px; }
+
+.install-hint {
+  position: fixed;
+  z-index: 15;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px #0008;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.install-hint p { margin: 0; }
+.install-hint-title { font-weight: 700; }
+.install-hint-share {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.15em;
+  fill: none;
+  stroke: #1a5fc2;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.install-hint .btn { justify-self: end; }

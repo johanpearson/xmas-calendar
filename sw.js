@@ -1,0 +1,114 @@
+// Service worker: makes the app work offline after the first visit.
+//
+// Bump CACHE_VERSION whenever anything in the app shell changes (HTML, CSS, JS, icons,
+// manifest). Pure content changes in content/days.json need no bump: that file is
+// served stale-while-revalidate, so edits reach the phone on the next start.
+const CACHE_VERSION = 'v1';
+
+const SHELL_CACHE = `advent-shell-${CACHE_VERSION}`;
+// Not versioned, so the last known content survives a shell update.
+const CONTENT_CACHE = 'advent-content';
+
+// Paths relative to the service worker's scope (the site may live under /<repo>/).
+const SHELL_FILES = [
+  './',
+  'index.html',
+  'manifest.webmanifest',
+  'css/style.css',
+  'js/app.js',
+  'js/dates.js',
+  'js/storage.js',
+  'js/dev.js',
+  'js/install.js',
+  'icons/favicon.svg',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'icons/icon-maskable-512.png',
+  'icons/apple-touch-icon-180.png',
+];
+const CONTENT_FILE = 'content/days.json';
+
+const scoped = (path) => new URL(path, self.registration.scope).href;
+
+// cache: 'reload' skips the browser's HTTP cache so a new version never precaches stale files.
+async function precache(cacheName, paths) {
+  const cache = await caches.open(cacheName);
+  await cache.addAll(paths.map((p) => new Request(scoped(p), { cache: 'reload' })));
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    (async () => {
+      await precache(SHELL_CACHE, SHELL_FILES);
+      // The first page load fetches days.json before this worker controls the page,
+      // so cache it here too, otherwise the app would not start offline.
+      await precache(CONTENT_CACHE, [CONTENT_FILE]);
+      await self.skipWaiting();
+    })(),
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const keep = new Set([SHELL_CACHE, CONTENT_CACHE]);
+      const names = await caches.keys();
+      await Promise.all(
+        names.filter((n) => n.startsWith('advent-') && !keep.has(n)).map((n) => caches.delete(n)),
+      );
+      await self.clients.claim();
+    })(),
+  );
+});
+
+// Cache first: the shell only changes when CACHE_VERSION is bumped.
+async function cacheFirst(request) {
+  const cached = await caches.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
+const withoutQuery = (url) => url.origin + url.pathname;
+const isAppPage = (url) => [scoped('./'), scoped('index.html')].includes(withoutQuery(url));
+
+// Navigations to the app (including ?dev=on) get the cached index.html.
+async function navigate(request) {
+  const cached = await caches.match(scoped('index.html'));
+  return cached ?? fetch(request);
+}
+
+// Stale-while-revalidate: answer from the cache at once, refresh it in the background.
+async function staleWhileRevalidate(event) {
+  const cache = await caches.open(CONTENT_CACHE);
+  const key = scoped(CONTENT_FILE);
+  const cached = await cache.match(key);
+  const refresh = fetch(key, { cache: 'no-cache' }).then(async (response) => {
+    if (response.ok) await cache.put(key, response.clone());
+    return response;
+  });
+  if (cached) {
+    event.waitUntil(refresh.catch(() => {})); // offline: keep the cached copy
+    return cached;
+  }
+  return refresh;
+}
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) return;
+
+  if (withoutQuery(url) === scoped(CONTENT_FILE)) {
+    event.respondWith(staleWhileRevalidate(event));
+  } else if (request.mode === 'navigate' && isAppPage(url)) {
+    event.respondWith(navigate(request));
+  } else {
+    event.respondWith(cacheFirst(request));
+  }
+});
