@@ -31,7 +31,8 @@ test('dates are unique and in ascending order', () => {
 });
 
 test('ids are unique', () => {
-  const ids = days.map((d) => d.id);
+  // Same fallback as normalizeContent() in js/app.js: a missing id becomes d-<date>.
+  const ids = days.map((d) => (typeof d.id === 'string' && d.id ? d.id : `d-${d.date}`));
   assert.equal(new Set(ids).size, ids.length);
 });
 
@@ -44,5 +45,8 @@ test('type is one of ledtrad, litet, uppdrag or rim', () => {
 test('verse is a string when present', () => {
   for (const d of days) {
     if ('verse' in d) assert.equal(typeof d.verse, 'string', `${d.date}: verse must be a string`);
+    if (d.alternative && 'verse' in d.alternative) {
+      assert.equal(typeof d.alternative.verse, 'string', `${d.date}: alternative.verse must be a string`);
+    }
   }
 });

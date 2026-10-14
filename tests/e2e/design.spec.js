@@ -151,7 +151,7 @@ test('dev: "Spela upp animation" previews without opening the door', async ({ pa
   await expect(page.locator('.fx')).toHaveCount(1);
   const card = page.locator('#card');
   await expect(card).toBeVisible();
-  await expect(card.locator('#card-title')).toHaveText(/\S/);
+  await expect(card.locator('#card-date')).toContainText('20 december');
   await expect(page.locator('.fx')).toHaveCount(0);
   await card.getByRole('button', { name: 'Stäng' }).click();
   await expect(door(page, '2026-12-20')).toHaveClass(/is-locked/);
@@ -200,4 +200,28 @@ test('verse shows in italics under the title, one line per line break, as plain 
   await door(page, '2026-12-01').click();
   await expect(card).toBeVisible();
   await expect(verse).toBeHidden();
+});
+
+test('plan B shows its own verse, or falls back to the day\'s verse', async ({ page }) => {
+  await patchContent(page, {
+    '2026-12-01': { verse: 'Dagens vers', alternative: { title: 'Plan B', body: 'Reserv', verse: 'Reservvers' } },
+    '2026-12-02': { verse: 'Dagens vers', alternative: { title: 'Plan B', body: 'Reserv' } },
+  });
+  await gotoApp(page);
+  const card = page.locator('#card');
+  const verse = card.locator('#card-verse');
+  const toggle = card.getByRole('button', { name: 'Dåligt väder? Visa plan B' });
+
+  await door(page, '2026-12-01').click();
+  await expect(verse).toHaveText('Dagens vers');
+  await toggle.click();
+  await expect(verse).toHaveText('Reservvers');
+  await card.getByRole('button', { name: 'Tillbaka till ursprungsplanen' }).click();
+  await expect(verse).toHaveText('Dagens vers');
+  await card.getByRole('button', { name: 'Stäng' }).click();
+
+  await door(page, '2026-12-02').click();
+  await toggle.click();
+  await expect(card.locator('#card-body')).toHaveText('Reserv');
+  await expect(verse).toHaveText('Dagens vers');
 });
