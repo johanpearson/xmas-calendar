@@ -78,6 +78,16 @@ const ICONS = {
     <path d="M10.5 14v-3.5a5.5 5.5 0 0 1 11 0V14" fill="none" stroke="currentColor" stroke-width="3"/>
     <rect x="7" y="13.5" width="18" height="14" rx="3" fill="currentColor"/>
     <circle cx="16" cy="19.5" r="2" fill="#0b1a33"/><rect x="15" y="20" width="2" height="4" rx="1" fill="#0b1a33"/>`,
+  speaker: `
+    <path d="M4.5 12.5h5l7-6v19l-7-6h-5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M20.5 12a5.5 5.5 0 0 1 0 8M24 8.5a10.5 10.5 0 0 1 0 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>`,
+  speakerOff: `
+    <path d="M4.5 12.5h5l7-6v19l-7-6h-5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M20.5 12.5l7 7m0-7l-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>`,
+  note: `
+    <path d="M12 23V8.5l13-3V20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+    <ellipse cx="8.5" cy="23" rx="4" ry="3.2" fill="currentColor"/>
+    <ellipse cx="21.5" cy="20" rx="4" ry="3.2" fill="currentColor"/>`,
   bow: `
     <path d="M16 15c-4-7-13-9-13-3.5 0 4.5 7.5 4.5 13 3.5zm0 0c4-7 13-9 13-3.5 0 4.5-7.5 4.5-13 3.5z"
       fill="#f3d48a" stroke="#a87a17" stroke-width="1.4" stroke-linejoin="round"/>
