@@ -194,6 +194,19 @@ function audioSection(audio, toast) {
 function tomteSection(tomte, closePanel, toast) {
   const node = el('fieldset', 'dev-preview dev-tomte');
   node.append(el('legend', null, 'Tomten'));
+  // Weather scenes always say "unknown" until weather lookups exist; preview the others here.
+  const weatherSelect = el('select', 'dev-input');
+  weatherSelect.id = 'dev-weather';
+  for (const [value, label] of [['unknown', 'Okänt (som i appen nu)'], ['good', 'Fint väder'], ['bad', 'Dåligt väder']]) {
+    const option = el('option', null, label);
+    option.value = value;
+    weatherSelect.append(option);
+  }
+  const weatherField = el('div', 'dev-field');
+  const weatherLabel = el('label', null, 'Väder i scener');
+  weatherLabel.htmlFor = 'dev-weather';
+  weatherField.append(weatherLabel, weatherSelect);
+  node.append(weatherField);
   const list = el('ul', 'dev-tomte-list');
   const rows = tomte.items.map((item) => {
     const row = el('li', 'dev-tomte-item');
@@ -202,7 +215,7 @@ function tomteSection(tomte, closePanel, toast) {
     const status = el('span', 'dev-tomte-status');
     const play = button('Spela upp', () => {
       closePanel();
-      tomte.play(item);
+      tomte.play(item, { weather: weatherSelect.value });
     });
     play.setAttribute('aria-label', `Spela upp ${item.label}`);
     const text = el('span', 'dev-tomte-text');

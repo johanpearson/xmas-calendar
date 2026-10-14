@@ -462,10 +462,10 @@ function devTomte({ content, ui }) {
       const seen = getTomteSeen();
       return item.kind === 'scene' ? seen.scenes.includes(item.id) : seen[item.kind];
     },
-    async play(item) {
+    async play(item, options) {
       if (els.card.open) els.card.close();
       await whenIdle();
-      ui.play(item.kind, item.scene);
+      ui.play(item.kind, item.scene, options);
     },
     reset: clearTomte,
   };

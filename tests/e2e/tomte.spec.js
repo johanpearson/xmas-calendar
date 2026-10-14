@@ -207,3 +207,24 @@ test('resuming on a new day shows that day\'s scene, after a conversation left o
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
   await expect(bubbleText(page)).toHaveText('Hej igen, Elin! Jag har en snabb koll inför julen.');
 });
+
+test('dev: preview a weather scene with fine or bad weather', async ({ page }) => {
+  await markSeen(page);
+  await page.clock.setFixedTime(at('2026-10-14'));
+  await gotoApp(page, './?dev=on');
+  const panel = page.locator('#dev-panel');
+  const playWeather = async (weather) => {
+    await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
+    await panel.getByLabel('Väder i scener').selectOption(weather);
+    await panel.getByRole('button', { name: 'Spela upp v3-vaderrapport' }).click();
+    await tomte(page).getByRole('button', { name: 'Nästa' }).click();
+  };
+  await playWeather('good');
+  await expect(bubbleText(page)).toHaveText(/Det blir fint/);
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click();
+  await playWeather('bad');
+  await expect(bubbleText(page)).toHaveText(/Plan B gäller/);
+  await tomte(page).getByRole('button', { name: 'Stäng' }).click();
+  await playWeather('unknown');
+  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+});
