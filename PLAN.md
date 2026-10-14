@@ -39,6 +39,8 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/effects.js    öppna-animationer
   js/tomte.js      ren logik: vilken tomtescen som visas, frågesvar, väder
   js/tomte-ui.js   tomten: SVG, pratbubbla, knappar
+  js/audio.js      ljud: Web Audio-syntes, jingel, bakgrundsmusik (milstolpe 9)
+  js/audio-ui.js   ljud- och musikknappar
   content/days.json
   content/tomte.json
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
@@ -46,6 +48,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/dates.test.js
   tests/content.test.js  validering av content/days.json
   tests/tomte.test.js    js/tomte.js och validering av content/tomte.json
+  tests/audio.test.js    ren logik i js/audio.js: noter, melodier, mute
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -159,13 +162,13 @@ Skapa dessa med riktigt innehåll:
 7. **Jul-design och animationer.** Det ska kännas som en riktig julkalender, inte blå rutor. Natthimlen är kvar som bas, med rött, grönt och guld. Allt ritas med CSS och inline-SVG, inga bilder eller beroenden. Klar när: punkterna nedan fungerar på 360 px, testerna är gröna och `CACHE_VERSION` är bumpad med alla nya filer i precache.
    - **Tema och dekor.** Tomteluva på rubriken (svajande boll), fallande snö (canvas, pausas när fliken är dold, av vid `prefers-reduced-motion`), ljusslinga med glimmande lampor överst, stjärnhimmel, granar och snötäckt mark längst ner. Allt ligger bakom innehållet och tar inga tryck.
    - **Lucktema.** 7 teman (röd med guldkant, grön, pepparkaka, godisrandig, guld, rutig röd, vit med frost) med varsin SVG-ikon. Temat väljs deterministiskt per lucka (samma varje gång) och grannar i rutnätet (4 och 6 kolumner) får aldrig samma tema. Adventssöndagar får adventsljus med 1-4 tända lågor (räknas ut från datumet, ingen årsspecifik logik), lucka 24 ser ut som en julklapp med rosett. Tillstånd: låst (dämpad med lås), dagens (glöd och puls), öppnad (öppen dörr med ikon efter innehållstyp).
-   - **Öppna-animationer** efter `type`: `ledtrad` gnistor och stjärnor och kortet viks ut som ett brev, `litet` presentlocket lyfter med konfetti, `uppdrag` dörren svänger upp i 3D med ljus och strålar och klockor ploppar upp, `rim` rosetten knyts upp, paketet öppnas med glitter och hjärtan. Max cirka 1,2 s, tryck för att hoppa över, partiklarna tas bort ur DOM:en efteråt. `prefers-reduced-motion` ger bara en enkel fade. Kort vibration där det stöds, inget ljud. Dev-panelen får "Spela upp animation".
+   - **Öppna-animationer** efter `type`: `ledtrad` gnistor och stjärnor och kortet viks ut som ett brev, `litet` presentlocket lyfter med konfetti, `uppdrag` dörren svänger upp i 3D med ljus och strålar och klockor ploppar upp, `rim` rosetten knyts upp, paketet öppnas med glitter och hjärtan. Max cirka 1,2 s, tryck för att hoppa över, partiklarna tas bort ur DOM:en efteråt. `prefers-reduced-motion` ger bara en enkel fade. Kort vibration där det stöds, inget ljud (ljud kommer i milstolpe 9). Dev-panelen får "Spela upp animation".
    - **Fält `animation`** (valfritt) i `days.json` överstyr typens animation: `sparkle`, `gift`, `bells`, `ribbon`, `confetti` eller `snowburst`.
 
 8. **Tomten.** En tomte som pratar med Elin i en pratbubbla: en intro i webbläsaren, en välkomst när appen installerats och korta scener varje vecka. Plus lucktypen `jakt`. Klar när: punkterna nedan fungerar på 360 px, `tests/tomte.test.js` är grön och `CACHE_VERSION` är bumpad med de nya filerna i precache.
    - **Lucktyp `jakt`** (skattjakt i huset): eget tema (färgaccent), egen ikon (förstoringsglas med guldkant) och öppna-animationen `magnifier`: ett förstoringsglas sveper över ett papper och det glittrar när kortet och texten visas. `verse` renderas i kursiv under titeln för alla typer (redan på plats sedan milstolpe 7).
    - **Filer.** `js/tomte.js` (ren logik, testas med `node --test`), `js/tomte-ui.js` (DOM) och `content/tomte.json` (data, se nedan).
-   - **Utseende.** SVG-tomte med samma tomteluva som rubriken, pratbubbla, knappen "Nästa" mellan raderna och svarsknappar för frågor. En liten ho ho ho-animation när tomten dyker upp, inget ljud. `prefers-reduced-motion` stänger av rörelsen.
+   - **Utseende.** SVG-tomte med samma tomteluva som rubriken, pratbubbla, knappen "Nästa" mellan raderna och svarsknappar för frågor. En liten ho ho ho-animation när tomten dyker upp, inget ljud (ljud kommer i milstolpe 9). `prefers-reduced-motion` stänger av rörelsen.
    - **Intro** (`intro`): första gången appen öppnas i en vanlig webbläsarflik (inte standalone). Sista steget visar knappen `installButton` om `beforeinstallprompt` har avfyrats, annars texten `installHelp`, och knappen `doneButton`. Visas bara en gång (`localStorage`).
    - **Välkomst** (`welcome`): första gången appen startas installerad (`display-mode: standalone` eller `navigator.standalone`). Egen flagga, oberoende av intro.
    - **Scener** (`scenes`): en scen visas när lokalt datum ligger mellan `from` och `until` (inklusive) och den inte redan setts. Högst en tomte per appstart: intro och välkomst går först, scenen kommer då vid nästa start. Är flera scener möjliga visas den med senast `from` och de andra markeras som sedda. En scen visas aldrig före `from`.
@@ -174,6 +177,26 @@ Skapa dessa med riktigt innehåll:
    - **Dev-läge:** dev-panelen listar intro, välkomst och alla scener med knappen "Spela upp" (ignorerar `from`, `until` och setts-status) och har knappen "Nollställ tomtescener". Datum-override styr även vilken scen som är aktuell.
    - **Tester** (`tests/tomte.test.js`): fönsterlogik (före, första dagen, sista dagen, efter), en gång per scen, max en scen per start, intro kontra välkomst, tolkning av frågesvar och `closing`, samt validering av `content/tomte.json`.
    - **PWA:** `content/tomte.json` precachas och serveras stale-while-revalidate som `days.json`. `CACHE_VERSION` bumpas.
+
+9. **Ljud.** Små julljud, en tomtejingel och valfri bakgrundsmusik. Klar när: punkterna nedan fungerar på 360 px, `tests/audio.test.js` är grön och `CACHE_VERSION` är bumpad med de nya filerna i precache.
+   - **Inga ljudfiler.** Allt ljud genereras med Web Audio API i `js/audio.js` (oscillatorer, brus, filter och envelopes). Inga ljudfiler i repot (publikt repo, inget upphovsrättsskyddat) och inga beroenden.
+   - **Autoplay.** `AudioContext` skapas eller återupptas först efter ett användartryck. Tomtens intro, första "Nästa", är det trycket för en ny användare. Före första trycket: inget ljud och inga fel.
+   - **Ljudknapp** (högtalarikon) i huvudvyn och i tomtens bubbla: på/av, sparas i `localStorage`. Standard: på. Av betyder helt tyst (även musiken).
+   - **Volym:** låg som standard (master gain cirka 0,25).
+   - **Bakgrund:** `AudioContext` pausas (`suspend`) när fliken eller appen hamnar i bakgrunden (`visibilitychange`) och återupptas när den visas igen.
+   - **Effekter**, alla under 1,5 s, kopplade till samma händelser som animationerna och till fältet `animation` i `days.json`:
+     - bjällror: `bells` (lucktyp `uppdrag`) och tomtens entré
+     - pling och glittrande arpeggio: `sparkle` (`ledtrad`) och `ribbon` (`rim`)
+     - mjukt pop och glitter: `gift` (`litet`) och `confetti`
+     - sökarsvep och ding: `magnifier` (`jakt`)
+     - lågt "tonk" vid låst lucka
+     - litet klick vid "Nästa" i tomtens bubbla
+   - **Tomtens jingel:** 5-8 s speldosa när tomten dyker upp (intro, välkomst, scener). Melodin är en liten datastruktur (notnamn och längd i taktslag) och spelas med sinus/triangel och mjuk envelope. Public domain-melodi: refrängen ur "Jingle Bells" (James Lord Pierpont, 1857).
+   - **Bakgrundsmusik:** valfri, av som standard, egen knapp "Musik" bredvid ljudknappen. Låg volym, loopar en lugnare speldosa-version av samma melodi med paus mellan varven. Pausas när fliken är dold.
+   - **Robust:** inga fel om ljud inte kan spelas (saknat Web Audio, tyst läge, nekad uppspelning).
+   - **Dev-läge:** knapparna "Spela alla ljud" och "Testa jingel" i dev-panelen.
+   - **Tester** (`tests/audio.test.js`, `node --test`): ren logik som noter till frekvenser, melodier till händelser och mute-hantering. Själva ljudet testas manuellt.
+   - **PWA:** de nya filerna precachas och `CACHE_VERSION` bumpas.
 
 ## Datamodell: `content/tomte.json`
 
