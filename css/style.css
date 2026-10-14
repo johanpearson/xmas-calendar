@@ -14,6 +14,8 @@
   --gold-strong: #f3d48a;
   --red: #a3212b;
   --red-2: #c4313b;
+  --green: #17462f;
+  --green-2: #23673f;
   --locked: #1a2c52;
   --locked-border: #42557d;
   --paper: #fbf5e9;
@@ -35,6 +37,7 @@ html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; }
 
 body {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   background: radial-gradient(120% 80% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%) fixed, var(--bg);
@@ -44,37 +47,85 @@ body {
   overflow-x: hidden;
 }
 
-/* --- Snow: two drifting layers of dots, pure CSS --- */
-.snow, .snow::before {
+/* --- Scene: stars, garland, trees and snowy ground. Behind everything, never tappable --- */
+.scene {
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
-.snow {
-  background-image:
-    radial-gradient(2px 2px at 20px 30px, #fff9, transparent),
-    radial-gradient(2px 2px at 120px 80px, #fff8, transparent),
-    radial-gradient(1.5px 1.5px at 200px 150px, #fff7, transparent),
-    radial-gradient(2px 2px at 60px 200px, #fff6, transparent),
-    radial-gradient(1.5px 1.5px at 260px 240px, #fff8, transparent);
-  background-size: 300px 300px;
-  animation: snow 28s linear infinite;
-  opacity: .55;
+.sky, .sky::after {
+  position: absolute;
+  inset: 0;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420"%3E%3Ccircle cx="48" cy="356" r="0.6" fill="%23fff" opacity="0.53"/%3E%3Ccircle cx="178" cy="189" r="1.2" fill="%23fff" opacity="0.79"/%3E%3Ccircle cx="34" cy="12" r="1.2" fill="%23fff" opacity="0.62"/%3E%3Ccircle cx="274" cy="1" r="1.2" fill="%23fff" opacity="0.53"/%3E%3Ccircle cx="289" cy="248" r="0.6" fill="%23fff" opacity="0.85"/%3E%3Ccircle cx="11" cy="11" r="0.6" fill="%23fff" opacity="0.87"/%3E%3Ccircle cx="137" cy="91" r="1.2" fill="%23fff" opacity="0.76"/%3E%3Ccircle cx="190" cy="321" r="1.2" fill="%23fff" opacity="0.68"/%3E%3Ccircle cx="124" cy="284" r="1.2" fill="%23fff" opacity="0.88"/%3E%3Ccircle cx="334" cy="175" r="0.6" fill="%23fff" opacity="0.49"/%3E%3Ccircle cx="357" cy="361" r="0.6" fill="%23fff" opacity="0.77"/%3E%3Ccircle cx="322" cy="409" r="1.2" fill="%23fff" opacity="0.65"/%3E%3Ccircle cx="328" cy="80" r="1" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="318" cy="355" r="1.2" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="12" cy="102" r="1.2" fill="%23fff" opacity="0.61"/%3E%3Ccircle cx="62" cy="230" r="1" fill="%23fff" opacity="0.44"/%3E%3Ccircle cx="239" cy="45" r="0.8" fill="%23fff" opacity="0.66"/%3E%3Ccircle cx="142" cy="206" r="0.6" fill="%23fff" opacity="0.63"/%3E%3Ccircle cx="111" cy="356" r="1.2" fill="%23fff" opacity="0.72"/%3E%3Ccircle cx="61" cy="95" r="0.6" fill="%23fff" opacity="0.79"/%3E%3Ccircle cx="194" cy="361" r="0.8" fill="%23fff" opacity="0.60"/%3E%3Ccircle cx="124" cy="356" r="1" fill="%23fff" opacity="0.63"/%3E%3Ccircle cx="97" cy="230" r="0.6" fill="%23fff" opacity="0.59"/%3E%3Ccircle cx="309" cy="401" r="0.8" fill="%23fff" opacity="0.66"/%3E%3Ccircle cx="202" cy="179" r="0.6" fill="%23fff" opacity="0.64"/%3E%3Ccircle cx="131" cy="233" r="1.2" fill="%23fff" opacity="0.64"/%3E%3Ccircle cx="128" cy="145" r="1" fill="%23fff" opacity="0.63"/%3E%3Ccircle cx="10" cy="96" r="0.8" fill="%23fff" opacity="0.68"/%3E%3Cpath d="M71 42.5Q71 47 75.6 47Q71 47 71 50.7Q71 47 67.4 47Q71 47 71 42.5z" fill="%23fff3c4"/%3E%3Cpath d="M299 379.3Q299 382 302.5 382Q299 382 299 385.4Q299 382 296.4 382Q299 382 299 379.3z" fill="%23fff3c4"/%3E%3C/svg%3E');
+  background-size: 360px 420px;
+  /* Fade the stars out towards the horizon. */
+  -webkit-mask-image: linear-gradient(#000 0 45%, transparent 85%);
+  mask-image: linear-gradient(#000 0 45%, transparent 85%);
 }
-.snow::before {
+.sky::after {
   content: "";
-  background-image:
-    radial-gradient(1px 1px at 40px 60px, #fff8, transparent),
-    radial-gradient(1px 1px at 160px 20px, #fff7, transparent),
-    radial-gradient(1.5px 1.5px at 90px 130px, #fff6, transparent),
-    radial-gradient(1px 1px at 180px 180px, #fff8, transparent);
-  background-size: 200px 200px;
-  animation: snow 40s linear infinite;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 330" width="250" height="330"%3E%3Ccircle cx="81" cy="50" r="0.6" fill="%23fff" opacity="0.44"/%3E%3Ccircle cx="134" cy="121" r="0.6" fill="%23fff" opacity="0.85"/%3E%3Ccircle cx="54" cy="28" r="1.2" fill="%23fff" opacity="0.43"/%3E%3Ccircle cx="23" cy="140" r="0.6" fill="%23fff" opacity="0.87"/%3E%3Ccircle cx="158" cy="192" r="0.6" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="99" cy="322" r="0.6" fill="%23fff" opacity="0.68"/%3E%3Ccircle cx="33" cy="138" r="0.6" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="140" cy="225" r="0.6" fill="%23fff" opacity="0.69"/%3E%3Ccircle cx="160" cy="123" r="0.6" fill="%23fff" opacity="0.68"/%3E%3Ccircle cx="155" cy="164" r="1.2" fill="%23fff" opacity="0.79"/%3E%3Ccircle cx="116" cy="305" r="1" fill="%23fff" opacity="0.55"/%3E%3Ccircle cx="199" cy="231" r="0.8" fill="%23fff" opacity="0.44"/%3E%3Ccircle cx="75" cy="163" r="1" fill="%23fff" opacity="0.76"/%3E%3Ccircle cx="72" cy="323" r="0.6" fill="%23fff" opacity="0.66"/%3E%3Ccircle cx="41" cy="113" r="1.2" fill="%23fff" opacity="0.61"/%3E%3Ccircle cx="241" cy="26" r="1" fill="%23fff" opacity="0.57"/%3E%3Cpath d="M91 159.4Q91 164 95.1 164Q91 164 91 168.6Q91 164 85.9 164Q91 164 91 159.4z" fill="%23fff3c4"/%3E%3Cpath d="M26 35.5Q26 39 29.4 39Q26 39 26 42.6Q26 39 22.3 39Q26 39 26 35.5z" fill="%23fff3c4"/%3E%3C/svg%3E');
+  background-size: 250px 330px;
+  background-position: 70px 40px;
+  animation: twinkle 3.6s ease-in-out infinite alternate;
 }
-@keyframes snow {
-  from { background-position: 0 0; }
-  to { background-position: 60px 600px; }
+@keyframes twinkle {
+  from { opacity: .25; }
+  to { opacity: 1; }
+}
+
+/* Trees and snowy ground at the very bottom of the page. */
+.horizon {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(118px + env(safe-area-inset-bottom));
+  background:
+    url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 44" width="300" height="44"%3E%3Cpath d="M0 18C40 8 80 6 120 14s90 14 130 6 40-6 50-4V44H0z" fill="%23e4ecf7"/%3E%3Cpath d="M0 28c50-8 100-6 150 2s110 6 150-2V44H0z" fill="%23f6f9fd"/%3E%3C/svg%3E') repeat-x 0 100% / 300px 44px,
+    url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 110" width="260" height="110"%3E%3Cpolygon points="40.0,14.0 56.8,52.4 48.4,54.3 64.0,81.2 53.2,83.1 70.0,106.2 44.8,106.2 44.8,110.0 35.2,110.0 35.2,106.2 10.0,106.2 26.8,83.1 16.0,81.2 31.6,54.3 23.2,52.4" fill="%230c2a22"/%3E%3Cpolygon points="40.0,14.0 47.8,33.2 42.4,35.1 37.0,31.3 32.2,33.2" fill="%23c9d6e6"/%3E%3Cpolygon points="48.4,54.3 55.6,62.0 46.0,60.1 36.4,63.0 24.4,62.0 31.6,54.3" fill="%23c9d6e6"/%3E%3Cpolygon points="53.2,83.1 60.4,90.8 46.0,88.9 32.8,91.8 19.6,89.8 26.8,83.1" fill="%23c9d6e6"/%3E%3Cpolygon points="150.0,40.0 162.9,68.0 156.4,69.4 168.4,89.0 160.1,90.4 173.0,107.2 153.7,107.2 153.7,110.0 146.3,110.0 146.3,107.2 127.0,107.2 139.9,90.4 131.6,89.0 143.6,69.4 137.1,68.0" fill="%230c2a22"/%3E%3Cpolygon points="150.0,40.0 156.0,54.0 151.8,55.4 147.7,52.6 144.0,54.0" fill="%23c9d6e6"/%3E%3Cpolygon points="156.4,69.4 162.0,75.0 154.6,73.6 147.2,75.7 138.0,75.0 143.6,69.4" fill="%23c9d6e6"/%3E%3Cpolygon points="160.1,90.4 165.6,96.0 154.6,94.6 144.5,96.7 134.4,95.3 139.9,90.4" fill="%23c9d6e6"/%3E%3Cpolygon points="215.0,6.0 232.9,47.6 224.0,49.7 240.6,78.8 229.1,80.9 247.0,105.8 220.1,105.8 220.1,110.0 209.9,110.0 209.9,105.8 183.0,105.8 200.9,80.9 189.4,78.8 206.0,49.7 197.1,47.6" fill="%230c2a22"/%3E%3Cpolygon points="215.0,6.0 223.3,26.8 217.6,28.9 211.8,24.7 206.7,26.8" fill="%23c9d6e6"/%3E%3Cpolygon points="224.0,49.7 231.6,58.0 221.4,55.9 211.2,59.0 198.4,58.0 206.0,49.7" fill="%23c9d6e6"/%3E%3Cpolygon points="229.1,80.9 236.8,89.2 221.4,87.1 207.3,90.2 193.2,88.2 200.9,80.9" fill="%23c9d6e6"/%3E%3C/svg%3E') repeat-x 30px calc(100% - 14px) / 260px 110px,
+    url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 90" width="170" height="90"%3E%3Cpolygon points="30.0,28.0 41.2,52.8 35.6,54.0 46.0,71.4 38.8,72.6 50.0,87.5 33.2,87.5 33.2,90.0 26.8,90.0 26.8,87.5 10.0,87.5 21.2,72.6 14.0,71.4 24.4,54.0 18.8,52.8" fill="%2314324a"/%3E%3Cpolygon points="30.0,28.0 35.2,40.4 31.6,41.6 28.0,39.2 24.8,40.4" fill="%233d5a78"/%3E%3Cpolygon points="35.6,54.0 40.4,59.0 34.0,57.8 27.6,59.6 19.6,59.0 24.4,54.0" fill="%233d5a78"/%3E%3Cpolygon points="38.8,72.6 43.6,77.6 34.0,76.4 25.2,78.2 16.4,77.0 21.2,72.6" fill="%233d5a78"/%3E%3Cpolygon points="95.0,10.0 109.0,42.0 102.0,43.6 115.0,66.0 106.0,67.6 120.0,86.8 99.0,86.8 99.0,90.0 91.0,90.0 91.0,86.8 70.0,86.8 84.0,67.6 75.0,66.0 88.0,43.6 81.0,42.0" fill="%2314324a"/%3E%3Cpolygon points="95.0,10.0 101.5,26.0 97.0,27.6 92.5,24.4 88.5,26.0" fill="%233d5a78"/%3E%3Cpolygon points="102.0,43.6 108.0,50.0 100.0,48.4 92.0,50.8 82.0,50.0 88.0,43.6" fill="%233d5a78"/%3E%3Cpolygon points="106.0,67.6 112.0,74.0 100.0,72.4 89.0,74.8 78.0,73.2 84.0,67.6" fill="%233d5a78"/%3E%3Cpolygon points="148.0,36.0 157.5,57.6 152.8,58.7 161.6,73.8 155.5,74.9 165.0,87.8 150.7,87.8 150.7,90.0 145.3,90.0 145.3,87.8 131.0,87.8 140.5,74.9 134.4,73.8 143.2,58.7 138.5,57.6" fill="%2314324a"/%3E%3Cpolygon points="148.0,36.0 152.4,46.8 149.4,47.9 146.3,45.7 143.6,46.8" fill="%233d5a78"/%3E%3Cpolygon points="152.8,58.7 156.8,63.0 151.4,61.9 146.0,63.5 139.2,63.0 143.2,58.7" fill="%233d5a78"/%3E%3Cpolygon points="155.5,74.9 159.6,79.2 151.4,78.1 143.9,79.7 136.4,78.7 140.5,74.9" fill="%233d5a78"/%3E%3C/svg%3E') repeat-x 0 calc(100% - 26px) / 170px 90px;
+}
+/* Bottom safe area: the snow continues below the trees. */
+.horizon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: env(safe-area-inset-bottom);
+  background: #f6f9fd;
+}
+
+.snow-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The garland hangs across the top of the page and scrolls with it. */
+.garland {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+  height: 48px;
+  overflow: hidden;
+}
+.garland svg { display: block; }
+.garland-wire { fill: none; stroke: #1c3a2c; stroke-width: 2; }
+.bulb-cap { fill: #6b6f63; }
+.bulb { animation: bulb 2.6s ease-in-out var(--d, 0s) infinite alternate; }
+@keyframes bulb {
+  from { opacity: 1; }
+  to { opacity: .45; }
 }
 
 /* --- Layout --- */
@@ -86,17 +137,40 @@ body {
   padding:
     max(16px, env(safe-area-inset-top))
     max(16px, env(safe-area-inset-right))
-    max(24px, env(safe-area-inset-bottom))
+    calc(96px + env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
 }
 
-.app-header { text-align: center; margin: 8px 0 20px; }
+.app-header { text-align: center; margin: 50px 0 20px; }
+.title-wrap { position: relative; display: inline-block; }
+.santa-hat {
+  position: absolute;
+  left: -27px;
+  top: -23px;
+  width: 50px;
+  height: 40px;
+  transform: rotate(-18deg);
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px #0007);
+}
+.hat-body { fill: #c4252f; }
+.hat-shade { fill: #9c1823; }
+.hat-fur, .hat-ball { fill: #f7f4ee; }
+.hat-ball {
+  transform-origin: 66px 21px;
+  animation: hat-sway 3.2s ease-in-out infinite alternate;
+}
+@keyframes hat-sway {
+  from { transform: rotate(-14deg); }
+  to { transform: rotate(16deg); }
+}
 .app-title {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(1.6rem, 7vw, 2.4rem);
   color: var(--gold);
   letter-spacing: .01em;
+  text-shadow: 0 2px 10px #0009;
 }
 .app-subtitle { margin: 4px 0 0; color: var(--text-muted); }
 
@@ -398,7 +472,6 @@ body {
     animation: none !important;
     transition: none !important;
   }
-  .snow { display: none; }
 }
 
 /* --- Install flow --- */

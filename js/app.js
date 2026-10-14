@@ -20,6 +20,7 @@ import {
   setDateOverride,
 } from './storage.js';
 import { setupInstall } from './install.js';
+import { mountScene } from './scene.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -364,6 +365,7 @@ function registerServiceWorker() {
 async function init() {
   handleDevParam();
   registerServiceWorker();
+  mountScene();
   setupInstall({ container: els.header });
 
   let content;
