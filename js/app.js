@@ -19,7 +19,8 @@ import {
   getDateOverride,
   setDateOverride,
 } from './storage.js';
-import { setupInstall } from './install.js';
+import { setupInstall, isStandalone } from './install.js';
+import { loadTomte, createTomte } from './tomte-ui.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
@@ -57,6 +58,7 @@ const state = {
   midnightTimer: null,
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
+  tomte: null, // { content, ui } once content/tomte.json has loaded
 };
 
 const prefersReducedMotion = () =>
@@ -305,7 +307,9 @@ els.card.addEventListener('click', (e) => {
 // --- Keeping "today" fresh while the app stays open ---
 
 function refreshIfDayChanged() {
-  if (currentToday() !== state.todayKey) updateDoors();
+  if (currentToday() === state.todayKey) return false;
+  updateDoors();
+  return true;
 }
 
 function scheduleMidnight() {
@@ -320,7 +324,8 @@ function scheduleMidnight() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   // Timers may have been throttled or frozen in the background.
-  refreshIfDayChanged();
+  // Coming back on a new day counts as a new start for Tomten: phones keep apps alive for days.
+  if (refreshIfDayChanged()) checkTomte();
   scheduleMidnight();
 });
 
@@ -385,6 +390,34 @@ async function startDevMode() {
   });
 }
 
+// --- Tomten ---
+
+// Resolves when no door is opening and the card is closed, so Tomten never talks over it.
+async function whenIdle() {
+  while (state.busy || els.card.open) {
+    await new Promise((resolve) => els.card.addEventListener('close', resolve, { once: true }));
+  }
+}
+
+async function checkTomte() {
+  if (!state.tomte) return;
+  await whenIdle();
+  state.tomte.ui.check(currentToday(), isStandalone());
+}
+
+// Tomten is a bonus: if tomte.json is missing or broken, the calendar works as before.
+async function startTomte() {
+  try {
+    const content = await loadTomte();
+    state.tomte = { content, ui: createTomte(content) };
+  } catch (err) {
+    console.warn('Tomten could not start', err);
+    return;
+  }
+  // Let the calendar settle on screen before Tomten pops up.
+  setTimeout(checkTomte, prefersReducedMotion() ? 0 : 600);
+}
+
 // Relative path and scope, so it works under /<repo>/ on GitHub Pages.
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
@@ -417,8 +450,10 @@ async function init() {
   els.loading.hidden = true;
   els.app.setAttribute('aria-busy', 'false');
   scheduleMidnight();
+  const tomteLoaded = startTomte();
 
   if (isDevEnabled()) {
+    await tomteLoaded; // the dev panel lists Tomten's scenes
     try {
       await startDevMode();
     } catch (err) {

@@ -6,6 +6,10 @@ import { isValidDateKey } from './dates.js';
 const KEY_OPENED = 'advent.opened';
 const KEY_DEV = 'advent.dev';
 const KEY_DATE_OVERRIDE = 'advent.dateOverride';
+const KEY_TOMTE_INTRO = 'advent.tomte.introSeen';
+const KEY_TOMTE_WELCOME = 'advent.tomte.welcomeSeen';
+const KEY_TOMTE_SCENES = 'advent.tomte.scenesSeen';
+const KEY_TOMTE_ANSWERS = 'advent.tomte.answers';
 
 function read(key) {
   try {
@@ -26,13 +30,19 @@ function write(key, value) {
 
 // Set of door ids that have been opened at least once.
 export function getOpened() {
+  return new Set(readJson(KEY_OPENED, Array.isArray, []));
+}
+
+function readJson(key, isValid, fallback) {
   try {
-    const list = JSON.parse(read(KEY_OPENED) ?? '[]');
-    return new Set(Array.isArray(list) ? list : []);
+    const value = JSON.parse(read(key));
+    return isValid(value) ? value : fallback;
   } catch {
-    return new Set();
+    return fallback;
   }
 }
+
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export function markOpened(id) {
   markAllOpened([id]);
@@ -75,4 +85,39 @@ export function getDateOverride() {
 
 export function setDateOverride(dateKey) {
   write(KEY_DATE_OVERRIDE, isValidDateKey(dateKey) ? dateKey : null);
+}
+
+// --- Tomten ---
+
+// What Tomten has already shown: intro and welcome have separate flags, scenes are a list of ids.
+export function getTomteSeen() {
+  return {
+    intro: read(KEY_TOMTE_INTRO) === '1',
+    welcome: read(KEY_TOMTE_WELCOME) === '1',
+    scenes: readJson(KEY_TOMTE_SCENES, Array.isArray, []),
+  };
+}
+
+export function setTomteSeen({ intro, welcome, scenes }) {
+  write(KEY_TOMTE_INTRO, intro ? '1' : null);
+  write(KEY_TOMTE_WELCOME, welcome ? '1' : null);
+  write(KEY_TOMTE_SCENES, scenes.length ? JSON.stringify(scenes) : null);
+}
+
+// Answers to Tomten's questions, { sceneId: { questionId: optionIndex } }. Only ever read
+// back for Tomten's own lines, never sent anywhere.
+export function getTomteAnswers(sceneId) {
+  const all = readJson(KEY_TOMTE_ANSWERS, isPlainObject, {});
+  return isPlainObject(all[sceneId]) ? all[sceneId] : {};
+}
+
+export function saveTomteAnswer(sceneId, questionId, optionIndex) {
+  const all = readJson(KEY_TOMTE_ANSWERS, isPlainObject, {});
+  all[sceneId] = { ...(isPlainObject(all[sceneId]) ? all[sceneId] : {}), [questionId]: optionIndex };
+  write(KEY_TOMTE_ANSWERS, JSON.stringify(all));
+}
+
+// Forgets everything Tomten has shown and been told (dev mode).
+export function clearTomte() {
+  for (const key of [KEY_TOMTE_INTRO, KEY_TOMTE_WELCOME, KEY_TOMTE_SCENES, KEY_TOMTE_ANSWERS]) write(key, null);
 }

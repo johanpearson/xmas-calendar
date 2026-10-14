@@ -1,5 +1,6 @@
 // Christmas design and opening animations (milestone 7).
 import { test, expect } from '@playwright/test';
+import { skipTomte } from './helpers.js';
 
 const NOW = new Date('2026-12-05T10:00:00+01:00');
 
@@ -21,6 +22,7 @@ async function gotoApp(page, path = './') {
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(NOW);
+  await skipTomte(page);
 });
 
 test('each type plays its animation, then the card shows and the overlay is gone', async ({ page }) => {
