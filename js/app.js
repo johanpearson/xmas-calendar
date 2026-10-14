@@ -7,6 +7,7 @@ import {
   dayOfMonth,
   isBeforeDecember,
   msUntilNextMidnight,
+  toDateKey,
 } from './dates.js';
 import {
   getOpened,
@@ -30,7 +31,7 @@ import {
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
-import { lastFetch } from './weather.js';
+import { lastFetch, testFetch } from './weather.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
@@ -472,7 +473,18 @@ function devTomte({ content, ui }) {
     },
     reset: clearTomte,
     // "Prognos": null (the real forecast), "good", "bad" or "unknown".
-    forecast: { get: getForecastOverride, set: setForecastOverride, last: () => lastFetch() },
+    forecast: {
+      get: getForecastOverride,
+      set: setForecastOverride,
+      last: () => lastFetch(),
+      // A real fetch for tomorrow by the real date (the simulated one is often out of the
+      // source's range), to check that the source answers. Scenes are not affected.
+      async testTomorrow() {
+        const now = new Date();
+        const date = toDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+        return { date, ...(await testFetch(date)) };
+      },
+    },
   };
 }
 

@@ -170,6 +170,8 @@ const FORECAST_CHOICES = [
   ['unknown', 'Okänd'],
 ];
 
+const VARIANT_LABELS = { good: 'bra', bad: 'dålig', unknown: 'okänd (data saknas)' };
+
 const decimal = (value, unit) =>
   typeof value === 'number' ? `${value.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} ${unit}` : 'saknas';
 
@@ -235,7 +237,22 @@ function tomteSection(tomte, closePanel, toast) {
   weatherLabel.htmlFor = 'dev-forecast';
   weatherField.append(weatherLabel, weatherSelect);
   const lastInfo = el('p', 'dev-info dev-forecast-last');
-  node.append(weatherField, lastInfo);
+  const testButton = button('Testa hämtning (imorgon)', async () => {
+    testButton.disabled = true;
+    toast('Hämtar prognos …');
+    try {
+      const result = await tomte.forecast.testTomorrow();
+      toast(
+        result.ok
+          ? `Prognos för ${formatDate(result.date)}: ${VARIANT_LABELS[result.variant]}`
+          : `Hämtningen misslyckades: ${result.error}`,
+      );
+    } finally {
+      testButton.disabled = false;
+      refresh();
+    }
+  });
+  node.append(weatherField, lastInfo, testButton);
   const list = el('ul', 'dev-tomte-list');
   const rows = tomte.items.map((item) => {
     const row = el('li', 'dev-tomte-item');

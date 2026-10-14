@@ -20,6 +20,7 @@ import {
   fetchDayWithTimeout,
   getForecast,
   getWeatherVariant,
+  testFetch,
 } from '../js/weather.js';
 
 const DAY = '2026-12-20';
@@ -301,4 +302,29 @@ test('getWeatherVariant: the dev override wins, "real" asks the source', async (
   assert.equal(fetch.calls.length, 0);
   assert.equal(await getWeatherVariant([DAY], { ...opts, override: 'real' }), 'good');
   assert.equal(await getWeatherVariant([], { ...opts, override: null }), 'unknown');
+});
+
+// --- testFetch (dev) ---
+
+test('testFetch asks the source even with a fresh cache, and caches a usable answer', async () => {
+  const storage = memoryStorage();
+  writeCache(storage, DAY, { precipitation: 0, wind: 3, temperature: 2 }, NOW);
+  const fetch = fakeFetch(openMeteoBody({ precipitation: 4, wind: 3 }));
+  const result = await testFetch(DAY, { fetch, storage, now: () => NOW + 1000 });
+  assert.equal(fetch.calls.length, 1);
+  assert.deepEqual(result, { ok: true, variant: 'bad', values: { precipitation: 4, wind: 3, temperature: 1.5 } });
+  assert.equal(readCache(storage, DAY).fetchedAt, NOW + 1000);
+  assert.equal(lastFetch(storage).precipitation, 4);
+});
+
+test('testFetch reports why a fetch failed, without throwing', async () => {
+  const storage = memoryStorage();
+  const outOfRange = fakeFetch({ error: true, reason: 'out of range' }, { status: 400 });
+  assert.deepEqual(await testFetch(DAY, { fetch: outOfRange, storage }), { ok: false, error: 'Open-Meteo: HTTP 400' });
+  const result = await testFetch(DAY, { fetch: failingFetch, storage });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Failed to fetch/);
+  const empty = await testFetch(DAY, { fetch: fakeFetch(openMeteoBody({ precipitation: null, wind: null })), storage });
+  assert.equal(empty.variant, 'unknown');
+  assert.equal(lastFetch(storage), null, 'nothing usable, nothing cached');
 });
