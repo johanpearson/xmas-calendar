@@ -20,6 +20,8 @@ import {
   setDateOverride,
   getTomteSeen,
   clearTomte,
+  getForecastOverride,
+  setForecastOverride,
   getSoundOn,
   setSoundOn,
   getMusicOn,
@@ -28,6 +30,7 @@ import {
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
+import { lastFetch } from './weather.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
@@ -462,12 +465,14 @@ function devTomte({ content, ui }) {
       const seen = getTomteSeen();
       return item.kind === 'scene' ? seen.scenes.includes(item.id) : seen[item.kind];
     },
-    async play(item, options) {
+    async play(item) {
       if (els.card.open) els.card.close();
       await whenIdle();
-      ui.play(item.kind, item.scene, options);
+      await ui.play(item.kind, item.scene);
     },
     reset: clearTomte,
+    // "Prognos": null (the real forecast), "good", "bad" or "unknown".
+    forecast: { get: getForecastOverride, set: setForecastOverride, last: () => lastFetch() },
   };
 }
 
