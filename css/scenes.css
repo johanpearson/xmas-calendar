@@ -88,6 +88,142 @@
   100% { opacity: 0; transform: translate(var(--dx, 0px), -28px); }
 }
 
+/* --- Per-scene animations --- */
+
+/* camera: the flash, then the polaroid drops in and develops. */
+.sc-flash { opacity: 0; animation: sc-flash .55s .15s ease-out; }
+@keyframes sc-flash { 15% { opacity: .95; } }
+.sc-drop-in { animation: sc-drop-in .7s var(--in, 0s) cubic-bezier(.2, .8, .3, 1.2) both; }
+@keyframes sc-drop-in { from { opacity: 0; transform: translateY(-40px) rotate(8deg); } }
+.sc-develop { opacity: 0; animation: sc-develop 2s .9s ease-in-out backwards; }
+@keyframes sc-develop { from { opacity: 1; } }
+.sc-sway { animation: sc-sway var(--dur, 5s) ease-in-out infinite alternate; }
+@keyframes sc-sway {
+  from { transform: rotate(-1.5deg); }
+  to { transform: rotate(1.5deg); }
+}
+
+/* letter: the seal cracks, the flap opens, the letter rises. */
+.sc-crack-l, .sc-crack-r { opacity: .9; animation: 1.4s .3s ease-in backwards; }
+.sc-crack-l { transform: translate(-10px, 20px) rotate(-28deg); animation-name: sc-crack; }
+.sc-crack-r { transform: translate(10px, 20px) rotate(28deg); animation-name: sc-crack; }
+@keyframes sc-crack { from, 55% { opacity: 1; transform: none; } }
+.sc-flap { transform-origin: 50% 0%; transform: scaleY(-1); animation: sc-flap .6s 1.5s ease-in-out backwards; }
+@keyframes sc-flap { from { transform: scaleY(1); } }
+.sc-letter { animation: sc-letter .8s var(--in, 0s) cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes sc-letter { from { opacity: 0; transform: translateY(40px); } }
+.sc-float { animation: sc-float 4s 3s ease-in-out infinite alternate; }
+@keyframes sc-float { to { transform: translateY(-3px); } }
+
+/* paint: splats, then the reindeer. */
+.sc-splat { animation: sc-splat .4s var(--in, 0s) ease-out both; }
+@keyframes sc-splat {
+  from { opacity: 0; transform: scale(0); }
+  60% { opacity: 1; transform: scale(1.25); }
+}
+.sc-paint-in { animation: sc-paint-in 1.1s var(--in, 0s) ease-out both; }
+@keyframes sc-paint-in { from { opacity: 0; transform: scale(.85); } }
+
+/* party: the confetti bursts out from the middle. */
+.sc-burst { animation: sc-burst .9s var(--in, 0s) cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes sc-burst { from { opacity: 0; transform: scale(.2); } }
+
+/* gold: dust drifting and glinting. */
+.sc-drift {
+  animation:
+    sc-drift var(--dur, 6s) var(--ph, 0s) ease-in-out infinite alternate,
+    sc-twinkle var(--tw, 2s) var(--ph, 0s) ease-in-out infinite alternate;
+}
+@keyframes sc-drift { to { transform: translate(var(--dx, 0px), var(--dy, 0px)); } }
+
+/* stars: a shooting star every nine seconds. */
+.sc-shoot { opacity: 0; animation: sc-shoot 9s 1.2s linear infinite; }
+@keyframes sc-shoot {
+  0% { opacity: 0; transform: translateX(0); }
+  2% { opacity: 1; }
+  8% { opacity: 0; transform: translateX(130px); }
+  100% { opacity: 0; transform: translateX(130px); }
+}
+
+/* lanterns: one lantern is let go from the middle and stays hovering. */
+.sc-release { transform: translateY(66px); animation: sc-release 2.8s .2s cubic-bezier(.3, .6, .4, 1) both; }
+@keyframes sc-release { from { opacity: 0; transform: translateY(170px); } }
+
+/* flashlight: switched on with a flicker, then it searches. */
+.sc-switch-on { animation: sc-switch-on .8s var(--in, 0s) linear both; }
+@keyframes sc-switch-on {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  30% { opacity: .2; }
+  45% { opacity: 1; }
+  55% { opacity: .5; }
+}
+.sc-search { transform-origin: 50% 100%; animation: sc-search 9s 1s ease-in-out infinite; }
+@keyframes sc-search {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-34deg); }
+  50% { transform: rotate(8deg); }
+  75% { transform: rotate(30deg); }
+}
+
+/* mystery: question marks bobbing. */
+.sc-bob { animation: sc-bob var(--dur, 4s) var(--ph, 0s) ease-in-out infinite alternate; }
+@keyframes sc-bob {
+  from { transform: translateY(-5px) rotate(-8deg); }
+  to { transform: translateY(5px) rotate(8deg); }
+}
+
+/* movie: the projector starts, the film runs and flickers. */
+.sc-projector { animation: sc-projector 1.2s var(--in, 0s) linear both; }
+@keyframes sc-projector {
+  0% { opacity: 0; }
+  15% { opacity: .8; }
+  25% { opacity: .2; }
+  40% { opacity: 1; }
+}
+.sc-film { animation: sc-film 2s linear infinite; }
+@keyframes sc-film { to { transform: translateX(-18px); } }
+.sc-flicker-o { opacity: 0; animation: sc-flicker-o .9s steps(1) infinite; }
+@keyframes sc-flicker-o {
+  20% { opacity: .06; }
+  40% { opacity: .02; }
+  60% { opacity: .08; }
+  80% { opacity: .03; }
+}
+.sc-scratch { opacity: 0; animation: sc-scratch 3.4s linear infinite; }
+@keyframes sc-scratch {
+  10% { opacity: .35; transform: translateX(0); }
+  12%, 50% { opacity: 0; }
+  52% { opacity: .3; transform: translateX(40px); }
+  54% { opacity: 0; }
+}
+
+/* glogg: steam rising from the mug. */
+.sc-steam { opacity: 0; animation: sc-steam 3.3s var(--ph, 0s) ease-out infinite; }
+.sc.is-still .sc-steam { opacity: .35; }
+@keyframes sc-steam {
+  0% { opacity: 0; transform: translateY(6px); }
+  30% { opacity: .5; }
+  100% { opacity: 0; transform: translateY(-18px); }
+}
+
+/* solstice: the sun goes down and the night comes. */
+.sc-sunset { animation: sc-sunset 2.6s ease-in both; }
+@keyframes sc-sunset { from { transform: translateY(-62px); } }
+.sc-dusk { opacity: .92; animation: sc-dusk 2.6s ease-in both; }
+@keyframes sc-dusk { from { opacity: 0; } }
+
+/* countdown: two stars blinking in turn. */
+.sc-blink-star { animation: sc-blink-star 2.4s var(--ph, 0s) ease-in-out infinite; }
+@keyframes sc-blink-star { 50% { opacity: .4; transform: scale(.86); } }
+
+/* bingo: balls bouncing. */
+.sc-bounce { animation: sc-bounce var(--dur, 1.5s) var(--ph, 0s) infinite; }
+@keyframes sc-bounce {
+  0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(.3, .6, .5, 1); }
+  50% { transform: translateY(calc(var(--h, 16px) * -1)); animation-timing-function: cubic-bezier(.5, 0, .7, .4); }
+}
+
 /* --- Where scenes are shown --- */
 
 /* In the card: across the top, fading into the paper above the text, so the text always
