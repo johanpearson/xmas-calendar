@@ -50,7 +50,7 @@ import {
   fanfareFor,
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
-import { SCENES, isScene, homeSceneFor } from './scenes.js';
+import { SCENES, SCENE_KEYS, isScene, homeSceneFor } from './scenes.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -90,6 +90,7 @@ const state = {
   tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
   cardScene: null, // cleanup for the scene in the open card
   home: { key: null, date: null, cleanup: null }, // the small scene on the main screen
+  homePreview: null, // dev: show the main-screen scene of this date instead of today's
 };
 
 const prefersReducedMotion = () =>
@@ -242,7 +243,7 @@ function updateDoors() {
 // --- Day scenes (js/scenes.js) ---
 
 // The small scene on the main screen: only on the date of a door whose scene has one.
-function updateHomeScene(dateKey = state.todayKey) {
+function updateHomeScene(dateKey = state.homePreview ?? state.todayKey) {
   const key = homeSceneFor(state.days, dateKey);
   const { home } = state;
   if (key === home.key && dateKey === home.date) return key;
@@ -445,6 +446,7 @@ async function startDevMode() {
     getOverride: getDateOverride,
     setOverride(dateKey) {
       setDateOverride(dateKey);
+      state.homePreview = null; // the main screen follows the new date again
       updateDoors();
     },
     openAll() {
@@ -475,6 +477,7 @@ async function startDevMode() {
       location.reload();
     },
     tomte: state.tomte && devTomte(state.tomte),
+    scenes: devScenes(),
     audio: {
       isOn: isSoundOn,
       playAll: (onEach) => playAllEffects(onEach),
@@ -501,6 +504,35 @@ function soundUsage() {
     if (day.music) add(melodies, day.music, { door, own: true });
   }
   return { effects, melodies };
+}
+
+// Day scenes in the dev panel: every scene with the doors that use it, a preview in the
+// card (nothing is marked opened or reset) and the main-screen scene for any date.
+function devScenes() {
+  return {
+    items: SCENE_KEYS.map((key) => ({
+      key,
+      label: SCENES[key].label,
+      home: SCENES[key].home,
+      doors: state.days.filter((d) => d.scene === key).map(doorName),
+    })),
+    play(key) {
+      if (state.busy) return;
+      const door = state.days.find((d) => d.scene === key);
+      const day = door
+        ? { ...door, scene: key }
+        : { id: `scene-${key}`, date: state.todayKey, type: 'ledtrad', title: SCENES[key].label, body: 'Förhandsvisning av scenen.', scene: key };
+      showCard(day, 'fade');
+      playForDoor(day, animationFor(day)); // together with the entrance, as when a door opens
+    },
+    // Shows the main-screen scene of dateKey (until the simulated date changes). Returns its key or null.
+    showHome(dateKey) {
+      state.homePreview = dateKey;
+      const key = updateHomeScene();
+      if (key) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+      return key;
+    },
+  };
 }
 
 // --- Tomten ---
