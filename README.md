@@ -356,9 +356,9 @@ ljudfiler och inga beroenden.
     till nästa låt i listan, med Blandat till en annan slumpad låt.
 - **Temalåt:** en lucka med `music` spelar den melodin en gång (högst 20 s) när den
   öppnas, även om musikmenyn står på Av.
-- **Paus:** bakgrundsmusiken pausas medan en temalåt spelar och medan tomten dyker upp
-  (släde och jingel). Låten som spelade tonas ut, och 1,5 s efter att
-  temalåten eller jingeln är klar börjar musiken igen: nästa låt i Blandat, eller den
+- **Paus:** bakgrundsmusiken pausas medan en temalåt spelar och så länge tomten syns
+  (från släden tills hans bubbla stängs). Låten som spelade tonas ut, och 1,5 s efter att
+  temalåten är klar eller tomten har stängts börjar musiken igen: nästa låt i Blandat, eller den
   valda låten från början. Under tiden står "Musiken är pausad en stund" i menyn.
 - Inget ljud spelas före första trycket i appen (webbläsarnas autoplay-regler). För en ny
   användare är det tomtens första "Nästa", och då börjar hans jingel.
@@ -547,6 +547,9 @@ och bumpa sedan `CACHE_VERSION`.
     syntetisk röst och ett syntetiskt knarr eller tecknade versioner (horn, träklonk)
     lät rätt, och inspelade CC0-ljud gick inte att hämta (Freesound blockerar servern).
     Tomten får släden och jingeln, och en redan öppnad lucka får `chime`.
+  - Bakgrundsmusiken pausas så länge tomten syns, inte bara under hans jingel
+    (`CACHE_VERSION` `v11`). Förut kom den tillbaka cirka 9 s efter att han dykt upp,
+    mitt i hans repliker.
   - Bakgrundsmusiken är 2,5 gånger så stark som förut (`MUSIC_GAIN` 0,8 i stället för
     0,32), så att den hörs utan full volym på telefonen. Effekter och temalåter är
     oförändrade.

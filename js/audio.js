@@ -1089,9 +1089,13 @@ export function stopThemeSong() {
   safely(() => stopTheme());
 }
 
-/** Tomten pops up: his sleigh and his jingle. Before the first tap the jingle waits for it. */
+/**
+ * Tomten pops up: his sleigh and his jingle. Before the first tap the jingle waits for
+ * it. The background music pauses for as long as he is on screen, not just the jingle.
+ */
 export function tomteArrives() {
   safely(() => {
+    pauseMusic('tomte', Infinity);
     if (ready()) {
       playEffect('sleigh');
       playJingle(JINGLE_DELAY);
@@ -1099,11 +1103,12 @@ export function tomteArrives() {
   });
 }
 
-/** Tomten leaves: the jingle fades out. */
+/** Tomten leaves: the jingle fades out and the background music comes back. */
 export function tomteLeaves() {
   safely(() => {
     engine.pendingJingle = false;
     stopJingle();
+    resumeMusic('tomte');
   });
 }
 
