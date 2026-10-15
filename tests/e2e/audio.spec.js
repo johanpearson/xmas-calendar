@@ -292,7 +292,7 @@ test('dev panel: every melody and effect with "Spela", who uses it, all effects 
   await panel.getByText(/^Effekter \(\d+\)$/).click();
   await expect(panel.locator('.dev-sound-item', { hasText: 'Katt som jamar' })).toContainText('Används av: Lucka 4');
   await expect(panel.locator('.dev-sound-item', { hasText: 'Fanfar' })).toContainText('Lucka 5 (standard)');
-  await expect(panel.locator('.dev-sound-item', { hasText: 'Lucka som öppnas igen' })).toContainText('Används inte av någon lucka');
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Korkpopp med bubblor' })).toContainText('Används av: Lucka 12');
   before = (await audio(page)).oscillators;
   await panel.getByRole('button', { name: 'Spela Mjukt ding' }).click();
   await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before);

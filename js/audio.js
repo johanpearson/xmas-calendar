@@ -86,17 +86,15 @@ export const EFFECT_LABELS = {
   sparkle: 'Pling och arpeggio',
   gift: 'Pop och glitter',
   search: 'Sökarsvep och ding',
-  ho: 'Ho ho ho (horn)',
   sleigh: 'Släde som sveper förbi',
   knock: 'Knack (låst lucka)',
   fanfare: 'Fanfar (jakt)',
-  door: 'Lucka som öppnas igen',
   click: 'Klick (Nästa)',
 };
 
 export const DOOR_EFFECTS = ['bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
 export const TYPE_EFFECTS = ['sparkle', 'gift', 'search'];
-export const GLOBAL_EFFECTS = ['ho', 'sleigh', 'knock', 'fanfare', 'door', 'click'];
+export const GLOBAL_EFFECTS = ['sleigh', 'knock', 'fanfare', 'click'];
 export const EFFECTS = [...DOOR_EFFECTS, ...TYPE_EFFECTS, ...GLOBAL_EFFECTS];
 
 export const isEffect = (name) => EFFECTS.includes(name);
@@ -178,8 +176,7 @@ export function mixFor({ soundOn, musicOn, unlocked, visible }) {
 // entry point swallows errors: sound is a bonus and must never break the calendar.
 
 const MUSIC_GAP = 6; // seconds of silence before one chosen song plays again (the mix: MIX_GAP)
-const HO_DELAY = 1.1; // Tomten's entrance: the sleigh passes by, he says "ho ho ho" ...
-const JINGLE_DELAY = 2.3; // ... and his jingle starts
+const JINGLE_DELAY = 1.4; // Tomten's entrance: the sleigh passes by, then his jingle starts
 // Events that count as user activation (pointerup covers touch, click comes after a mouse press).
 const GESTURES = ['pointerup', 'touchend', 'click', 'keydown'];
 
@@ -754,17 +751,7 @@ const SOUNDS = {
     noise(runners, { t, dur: 1.5, peak: 0.035, attack: 0.6, freq: 2200, q: 0.6 });
   },
 
-  // Tomten's "ho ho ho", played rather than spoken: three jolly notes on a warm, low
-  // horn (G, E, C, short short long), each scooping up into its pitch, with a little
-  // sparkle after. A synthesised voice sounded too artificial.
-  ho(dest, t) {
-    [['G3', 0, 0.2, 1], ['E3', 0.26, 0.2, 0.9], ['C3', 0.52, 0.5, 0.85]].forEach(([note, offset, dur, level]) => {
-      const freq = noteToFrequency(note);
-      brass(dest, t + offset, freq, dur, 0.11 * level);
-      tone(dest, { t: t + offset, freq: freq / 2, dur: dur + 0.1, peak: 0.08 * level, attack: 0.02 });
-    });
-    glitter(dest, t + 0.75, { count: 5, over: 0.4, peak: 0.025 });
-  },
+
 
 
 
@@ -788,15 +775,7 @@ const SOUNDS = {
     glitter(dest, t + 0.4, { count: 6, over: 0.5, peak: 0.03 });
   },
 
-  // A door already opened, opened again: a soft wooden knock of the little door, a short
-  // swoosh as it swings and a small two-note plink. (A synthesised creak sounded odd.)
-  door(dest, t) {
-    tone(dest, { t, freq: 130, freqTo: 85, dur: 0.12, peak: 0.4, attack: 0.002 });
-    noise(dest, { t, dur: 0.03, peak: 0.08, filter: 'lowpass', freq: 900 });
-    noise(dest, { t: t + 0.04, dur: 0.38, peak: 0.06, attack: 0.12, q: 1.2, freq: 500, sweep: [[0.35, 1500]] });
-    bell(dest, t + 0.3, noteToFrequency('G6'), { peak: 0.1, dur: 0.6 });
-    bell(dest, t + 0.42, noteToFrequency('C7'), { peak: 0.09, dur: 0.7 });
-  },
+
 
 
 
@@ -1110,12 +1089,11 @@ export function stopThemeSong() {
   safely(() => stopTheme());
 }
 
-/** Tomten pops up: his sleigh, "ho ho ho" and his jingle. Before the first tap the jingle waits for it. */
+/** Tomten pops up: his sleigh and his jingle. Before the first tap the jingle waits for it. */
 export function tomteArrives() {
   safely(() => {
     if (ready()) {
       playEffect('sleigh');
-      playEffect('ho', HO_DELAY);
       playJingle(JINGLE_DELAY);
     } else if (engine.soundOn) engine.pendingJingle = true;
   });

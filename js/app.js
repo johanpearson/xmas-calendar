@@ -266,9 +266,9 @@ function onDoorClick(id) {
 
   if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
   else {
-    // Reduced motion skips the animation but not its sound. An opened door just creaks.
+    // Reduced motion skips the animation but not its sound. An opened door gets a soft ding.
     if (firstTime) playForDoor(day, animationFor(day));
-    else playEffect('door');
+    else playEffect('chime');
     showCard(day, firstTime ? 'fade' : null);
   }
 }

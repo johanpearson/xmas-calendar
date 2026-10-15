@@ -118,7 +118,7 @@ test('a treasure hunt gets a fanfare after its own sound', () => {
 });
 
 test('the effects: every one asked for exists and has a Swedish label', () => {
-  const asked = ['ho', 'sleigh', 'knock', 'fanfare', 'door', 'bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
+  const asked = ['sleigh', 'knock', 'fanfare', 'bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
   for (const name of asked) assert.ok(isEffect(name), name);
   assert.equal(new Set(EFFECTS).size, EFFECTS.length);
   for (const name of EFFECTS) assert.equal(typeof EFFECT_LABELS[name], 'string', name);
@@ -126,6 +126,8 @@ test('the effects: every one asked for exists and has a Swedish label', () => {
   assert.deepEqual(sfx.names, EFFECTS);
   assert.equal(typeof sfx.play, 'function');
   assert.equal(isEffect('locked'), false); // the old "tonk" is now "knock"
+  assert.equal(isEffect('ho'), false); // removed: neither a synthetic voice nor a horn sounded right
+  assert.equal(isEffect('door'), false);
 });
 
 test('stored toggles: "on"/"off", anything else is the default', () => {
