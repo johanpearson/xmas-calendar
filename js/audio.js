@@ -4,7 +4,7 @@
 // The top of this file is pure logic (notes, melodies, the mixer rules) so node --test
 // can import it; nothing here touches window or AudioContext at import time.
 
-import { TOMTE_JINGLE, MELODIES, toSong } from './melodies.js';
+import { TOMTE_JINGLE, MELODIES, toSong, themeSong } from './melodies.js';
 
 // --- Notes and melodies ---
 
@@ -129,6 +129,18 @@ export const fanfareFor = (day) => day?.type === 'jakt';
 
 export const MASTER_GAIN = 0.25;
 export const MUSIC_GAIN = 0.32; // relative to the master: the music sits well below the effects
+export const DUCK_LEVEL = 0.15; // the music under a theme song or Tomten's jingle
+
+/**
+ * Ducking: `ducks` maps what is ducking the music (a theme song, the jingle) to when it
+ * ends, on the AudioContext's clock. Returns the music's level now and, while ducked,
+ * when to bring it back: { level, until }.
+ */
+export function duckFor(ducks, now) {
+  const ends = [...ducks.values()].filter((end) => end > now);
+  if (ends.length === 0) return { level: MUSIC_GAIN, until: null };
+  return { level: MUSIC_GAIN * DUCK_LEVEL, until: Math.max(...ends) };
+}
 
 /** A stored on/off value ("on" | "off") to a boolean, `fallback` for anything else. */
 export function parseToggle(value, fallback) {
@@ -183,7 +195,9 @@ const engine = {
   unlocked: false,
   visible: true,
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
-  jingle: null, // { gain, end }
+  jingle: null, // { gain }
+  theme: null, // { key, gain, end, timer }
+  ducks: new Map(), // what ducks the music -> when it ends (see duckFor)
   music: { bus: null, until: 0, timer: null },
   listeners: new Set(),
 };
@@ -322,6 +336,7 @@ export const isMusicOn = () => engine.musicOn;
 function silence() {
   engine.pendingJingle = false;
   stopJingle(0.05);
+  stopTheme(0.05);
   stopMusic(0.05);
   if (engine.ctx) {
     engine.fx.disconnect();
@@ -940,13 +955,41 @@ export function playForDoor(day, animation) {
 
 // --- Tomten's jingle ---
 
+// --- Ducking: the music steps aside for a theme song or Tomten's jingle ---
+
+function applyDuck() {
+  const { ctx } = engine;
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const { level, until } = duckFor(engine.ducks, now);
+  const gain = engine.musicBus.gain;
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(gain.value, now);
+  gain.setTargetAtTime(level, now, until ? 0.1 : 0.25);
+  if (until) gain.setTargetAtTime(MUSIC_GAIN, until, 0.4);
+}
+
+function duck(name, end) {
+  engine.ducks.set(name, end);
+  applyDuck();
+}
+
+function unduck(name) {
+  if (engine.ducks.delete(name)) applyDuck();
+}
+
+// Fades out a song's own gain and lets it go.
+function release(node, fade) {
+  setGain(node, 0, fade);
+  setTimeout(() => safely(() => node.disconnect()), (fade + 0.1) * 1000);
+}
+
 function stopJingle(fade = 0.25) {
   const { jingle } = engine;
   if (!jingle) return;
   engine.jingle = null;
-  setGain(jingle.gain, 0, fade);
-  setTimeout(() => safely(() => jingle.gain.disconnect()), (fade + 0.1) * 1000);
-  setGain(engine.musicBus, MUSIC_GAIN, 0.6);
+  release(jingle.gain, fade);
+  unduck('jingle');
 }
 
 /** Plays Tomten's jingle (Jingle Bells on a music box, about 7 s). Ducks the music meanwhile. */
@@ -958,12 +1001,58 @@ export function playJingle(delay = 0) {
     const gain = bus(1, engine.master);
     const length = playSong(gain, t, JINGLE);
     engine.jingle = { gain };
-    // Duck the background music under the jingle, then bring it back.
-    const music = engine.musicBus.gain;
-    music.cancelScheduledValues(engine.ctx.currentTime);
-    music.setTargetAtTime(MUSIC_GAIN * 0.15, engine.ctx.currentTime, 0.1);
-    music.setTargetAtTime(MUSIC_GAIN, t + length + 0.5, 0.4);
+    duck('jingle', t + length + 0.5);
   });
+}
+
+// --- A door's theme song ---
+
+const THEME_DELAY = 1; // after the door's own sound has had its moment
+
+function stopTheme(fade = 0.4) {
+  const { theme } = engine;
+  if (!theme) return;
+  engine.theme = null;
+  clearTimeout(theme.timer);
+  release(theme.gain, fade);
+  unduck('theme');
+}
+
+/**
+ * Plays a melody from melodies.js once: its theme excerpt, cut at THEME_MAX_SECONDS
+ * with a fade, or with { full: true } (dev mode) all of it. The background music ducks
+ * meanwhile. Unknown keys, and the same song while it is still playing, do nothing.
+ */
+export function playTheme(key, { full = false, delay = THEME_DELAY } = {}) {
+  safely(() => {
+    const melody = MELODIES[key];
+    if (!ready() || !melody) return;
+    const now = engine.ctx.currentTime;
+    if (engine.theme?.key === key && engine.theme.full === full && engine.theme.end > now) return;
+    stopTheme(0.1);
+    const t = now + 0.03 + delay;
+    const gain = bus(1, engine.master);
+    const length = playSong(gain, t, full ? toSong(melody) : themeSong(melody));
+    let end = t + length;
+    if (!full && length > THEME_MAX_SECONDS) {
+      end = t + THEME_MAX_SECONDS;
+      gain.gain.setValueAtTime(1, end - 1.5);
+      gain.gain.linearRampToValueAtTime(0, end);
+    }
+    const timer = setTimeout(() => safely(() => engine.theme?.gain === gain && stopTheme(0.1)), (end - now + 1.6) * 1000);
+    engine.theme = { key, full, gain, end, timer };
+    duck('theme', end + 0.6);
+  });
+}
+
+/** The door's "music", if it has one. */
+export function playThemeFor(day) {
+  if (day?.music) playTheme(day.music);
+}
+
+/** Stops a theme song (dev mode). */
+export function stopThemeSong() {
+  safely(() => stopTheme());
 }
 
 /** Tomten pops up: his sleigh, "ho ho ho" and his jingle. Before the first tap the jingle waits for it. */

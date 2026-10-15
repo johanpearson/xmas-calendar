@@ -36,7 +36,7 @@ import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
 import { icon, typeIcon, adventCandles } from './icons.js';
-import { initAudio, playEffect, playForDoor, playAllEffects, playJingle, isSoundOn } from './audio.js';
+import { initAudio, playEffect, playForDoor, playThemeFor, playAllEffects, playJingle, isSoundOn } from './audio.js';
 import { audioControls } from './audio-ui.js';
 
 const CONTENT_URL = './content/days.json';
@@ -250,6 +250,7 @@ function onDoorClick(id) {
   const firstTime = !btn.classList.contains('is-opened');
   markOpened(day.id);
   updateDoors();
+  playThemeFor(day); // the door's own song, opened before or not
 
   if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
   else {
@@ -400,6 +401,7 @@ async function startDevMode() {
     async playAnimation(id, animation) {
       const entry = state.doors.get(id);
       if (!entry || state.busy) return;
+      playThemeFor(entry.day);
       if (els.card.open) els.card.close();
       entry.btn.scrollIntoView({ block: 'center' });
       if (prefersReducedMotion()) {

@@ -9,42 +9,54 @@
       "type": "uppdrag",
       "title": "När första ljuset brinner",
       "verse": "står julens dörr på glänt\noch alla människor glädjas\natt fira första advent.",
-      "body": "Gamla murar, doft av glögg, hantverk och en tomte som tittar fram.\nVid sjön har julen redan börjat. Idag åker vi dit."
+      "body": "Gamla murar, doft av glögg, hantverk och en tomte som tittar fram.\nVid sjön har julen redan börjat. Idag åker vi dit.",
+      "scene": "advent1",
+      "sound": "bells",
+      "music": "tusen-juleljus"
     },
     {
       "id": "d-2026-12-01",
       "date": "2026-12-01",
       "type": "ledtrad",
       "title": "Tillstånd",
-      "body": "Nu är det dags att tänka gran.\nHärmed har du mitt tillstånd att vi fixar julgran så fort det bara går. Julen får vara länge i år.\nInget krav, bara grönt ljus."
+      "body": "Nu är det dags att tänka gran.\nHärmed har du mitt tillstånd att vi fixar julgran så fort det bara går. Julen får vara länge i år.\nInget krav, bara grönt ljus.",
+      "scene": "tree",
+      "sound": "twinkle"
     },
     {
       "id": "d-2026-12-02",
       "date": "2026-12-02",
       "type": "ledtrad",
       "title": "Snart",
-      "body": "Snart händer något gyllene i köket.\nHåll ögonen öppna efter något litet och dyrbart."
+      "body": "Snart händer något gyllene i köket.\nHåll ögonen öppna efter något litet och dyrbart.",
+      "scene": "gold",
+      "sound": "twinkle"
     },
     {
       "id": "d-2026-12-03",
       "date": "2026-12-03",
       "type": "rim",
       "title": "Rim",
-      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)"
+      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)",
+      "scene": "snow"
     },
     {
       "id": "d-2026-12-04",
       "date": "2026-12-04",
       "type": "litet",
       "title": "Hiro firas",
-      "body": "Idag har Hiro varit hos oss i tre år.\nVi firar med något gott till katterna. Johan har fixat det, och ni delar ut det tillsammans."
+      "body": "Idag har Hiro varit hos oss i tre år.\nVi firar med något gott till katterna. Johan har fixat det, och ni delar ut det tillsammans.",
+      "scene": "cat",
+      "sound": "cat"
     },
     {
       "id": "d-2026-12-05",
       "date": "2026-12-05",
       "type": "jakt",
       "title": "Saffranjakten",
-      "body": "Något litet och dyrbart är gömt någonstans i huset. Små röda trådar som gör bullarna gula.\nLeta tills du hittar det. Johan får bara svara varmt eller kallt.\nImorgon behövs de."
+      "body": "Något litet och dyrbart är gömt någonstans i huset. Små röda trådar som gör bullarna gula.\nLeta tills du hittar det. Johan får bara svara varmt eller kallt.\nImorgon behövs de.",
+      "scene": "flashlight",
+      "sound": "sneak"
     },
     {
       "id": "d-2026-12-06",
@@ -53,49 +65,65 @@
       "type": "uppdrag",
       "title": "När andra ljuset brinner",
       "verse": "då är Lucia här\nhon bjuder oss på kaffe\noch bud om julen bär.",
-      "body": "Jag är gul som solen men föds i ugnen.\nJag ligger hoprullad som en katt, fast jag är ingen katt, och mina ögon är två russin.\nIdag formar ni mig, och Saga får hjälpa till att röra i degen.\nVem är jag?"
+      "body": "Jag är gul som solen men föds i ugnen.\nJag ligger hoprullad som en katt, fast jag är ingen katt, och mina ögon är två russin.\nIdag formar ni mig, och Saga får hjälpa till att röra i degen.\nVem är jag?",
+      "scene": "advent2",
+      "sound": "bells",
+      "music": "hej-tomtegubbar"
     },
     {
       "id": "d-2026-12-07",
       "date": "2026-12-07",
       "type": "litet",
       "title": "Fotodags",
-      "body": "Idag är det fotodag. Tomteluva, ljusslinga i bakgrunden och en pepparkaka att hålla i.\nTa några gulliga bilder av Saga, helst vid ett fönster i dagsljus. Kanske blir det ett julkort."
+      "body": "Idag är det fotodag. Tomteluva, ljusslinga i bakgrunden och en pepparkaka att hålla i.\nTa några gulliga bilder av Saga, helst vid ett fönster i dagsljus. Kanske blir det ett julkort.",
+      "scene": "camera",
+      "sound": "camera"
     },
     {
       "id": "d-2026-12-08",
       "date": "2026-12-08",
       "type": "ledtrad",
       "title": "Brev från tomten",
-      "body": "Kära Elin.\nJag har gått igenom min lista två gånger. Det fanns några frågetecken, men jag har bestämt mig: du har varit snäll i år ändå.\nHälsningar, Tomten\nPS. Johan är kvar på listan, men det är en annan historia."
+      "body": "Kära Elin.\nJag har gått igenom min lista två gånger. Det fanns några frågetecken, men jag har bestämt mig: du har varit snäll i år ändå.\nHälsningar, Tomten\nPS. Johan är kvar på listan, men det är en annan historia.",
+      "scene": "letter",
+      "sound": "paper"
     },
     {
       "id": "d-2026-12-09",
       "date": "2026-12-09",
       "type": "jakt",
       "title": "Godisjakt",
-      "body": "Någon har gömt något sött åt dig i huset.\nLeta tills du hittar det. Johan får bara svara varmt eller kallt."
+      "body": "Någon har gömt något sött åt dig i huset.\nLeta tills du hittar det. Johan får bara svara varmt eller kallt.",
+      "scene": "candy",
+      "sound": "candy"
     },
     {
       "id": "d-2026-12-10",
       "date": "2026-12-10",
       "type": "rim",
       "title": "Mys",
-      "body": "Ute är det mörkt och grått,\nhär inne är det varmt och gott.\nIdag finns inget som måste fixas. Bara ljus, en filt och varandra."
+      "body": "Ute är det mörkt och grått,\nhär inne är det varmt och gott.\nIdag finns inget som måste fixas. Bara ljus, en filt och varandra.",
+      "scene": "cozy",
+      "sound": "chime"
     },
     {
       "id": "d-2026-12-11",
       "date": "2026-12-11",
       "type": "litet",
       "title": "Handavtryck",
-      "body": "Idag blir Sagas hand en ren.\nBrun barnfärg på handen, tryck mot papper med fingrarna uppåt som horn. Rita ögon och en röd nos när det torkat.\nTorka händerna direkt."
+      "body": "Idag blir Sagas hand en ren.\nBrun barnfärg på handen, tryck mot papper med fingrarna uppåt som horn. Rita ögon och en röd nos när det torkat.\nTorka händerna direkt.",
+      "scene": "paint",
+      "sound": "splat"
     },
     {
       "id": "d-2026-12-12",
       "date": "2026-12-12",
       "type": "ledtrad",
       "title": "Ikväll",
-      "body": "Ikväll är det fest. Ta på något fint, ta en bild ihop och lämna vardagen hemma.\nSaga är i trygga händer. Ha en magisk kväll, bara ni två."
+      "body": "Ikväll är det fest. Ta på något fint, ta en bild ihop och lämna vardagen hemma.\nSaga är i trygga händer. Ha en magisk kväll, bara ni två.",
+      "scene": "party",
+      "sound": "pop",
+      "music": "deck-the-halls"
     },
     {
       "id": "d-2026-12-13",
@@ -104,49 +132,61 @@
       "type": "uppdrag",
       "title": "När tredje ljuset brinner",
       "verse": "vi juleklappar syr\noch alla bakar kakor\noch har ett väldigt styr.",
-      "body": "Idag vinner ljuset. Ta med batteriljus, något gult och gott och er bästa sångröst.\nNär ni ändå ska hämta något kärt väntar en överraskning för två som inte vet om det."
+      "body": "Idag vinner ljuset. Ta med batteriljus, något gult och gott och er bästa sångröst.\nNär ni ändå ska hämta något kärt väntar en överraskning för två som inte vet om det.",
+      "scene": "lucia",
+      "music": "santa-lucia"
     },
     {
       "id": "d-2026-12-14",
       "date": "2026-12-14",
       "type": "rim",
       "title": "Rim",
-      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)"
+      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)",
+      "scene": "stars"
     },
     {
       "id": "d-2026-12-15",
       "date": "2026-12-15",
       "type": "ledtrad",
       "title": "Gåta",
-      "body": "Jag doftar kanel och apelsin, och jag är som bäst när det är kallt ute.\nJag är röd men ingen jordgubbe, och jag dricks varm.\nI helgen väntar jag på er.\nVem är jag?\nSvaret får du på lördag."
+      "body": "Jag doftar kanel och apelsin, och jag är som bäst när det är kallt ute.\nJag är röd men ingen jordgubbe, och jag dricks varm.\nI helgen väntar jag på er.\nVem är jag?\nSvaret får du på lördag.",
+      "scene": "mystery",
+      "sound": "mystery"
     },
     {
       "id": "d-2026-12-16",
       "date": "2026-12-16",
       "type": "litet",
       "title": "Julfilmsmys",
-      "body": "Ikväll är det bara ni två, när Saga har somnat.\nJulmust, pepparkakor och en julfilm ni väljer tillsammans."
+      "body": "Ikväll är det bara ni två, när Saga har somnat.\nJulmust, pepparkakor och en julfilm ni väljer tillsammans.",
+      "scene": "movie",
+      "sound": "popcorn"
     },
     {
       "id": "d-2026-12-17",
       "date": "2026-12-17",
       "type": "jakt",
       "title": "Termosjakten",
-      "body": "Något som håller värmen är gömt någonstans i huset.\nLeta tills du hittar det. Inga förklaringar än. Johan får bara svara varmt eller kallt."
+      "body": "Något som håller värmen är gömt någonstans i huset.\nLeta tills du hittar det. Inga förklaringar än. Johan får bara svara varmt eller kallt.",
+      "scene": "flashlight",
+      "sound": "sneak"
     },
     {
       "id": "d-2026-12-18",
       "date": "2026-12-18",
       "type": "rim",
       "title": "Rim",
-      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)"
+      "body": "Här kommer ett rim från Johan.\n(Byt ut den här texten.)",
+      "scene": "lanterns"
     },
     {
       "id": "d-2026-12-19",
       "date": "2026-12-19",
       "type": "jakt",
       "title": "Glöggjakten",
-      "body": "Du hittade något som håller värmen. Nu behövs något att fylla det med.\nRött, kryddigt och gömt i huset. Johan får bara svara varmt eller kallt."
+      "body": "Du hittade något som håller värmen. Nu behövs något att fylla det med.\nRött, kryddigt och gömt i huset. Johan får bara svara varmt eller kallt.",
+      "scene": "glogg",
+      "sound": "glogg"
     },
     {
       "id": "d-2026-12-20",
@@ -159,35 +199,47 @@
       "alternative": {
         "title": "Plan B",
         "body": "Det blev inte väder för en promenad. Då blir det julfilm, ljus och glögg hemma på soffan i stället.\nTa fram filten och en skål med pepparkakor."
-      }
+      },
+      "scene": "advent4",
+      "sound": "bells",
+      "music": "we-wish-you"
     },
     {
       "id": "d-2026-12-21",
       "date": "2026-12-21",
       "type": "litet",
       "title": "Årets mörkaste dag",
-      "body": "Idag är det vintersolstånd, årets mörkaste dag.\nTänd extra många ljus hemma ikväll, släck lamporna och sitt en stund i skenet. Efter idag blir det ljusare igen."
+      "body": "Idag är det vintersolstånd, årets mörkaste dag.\nTänd extra många ljus hemma ikväll, släck lamporna och sitt en stund i skenet. Efter idag blir det ljusare igen.",
+      "scene": "solstice",
+      "sound": "chime"
     },
     {
       "id": "d-2026-12-22",
       "date": "2026-12-22",
       "type": "ledtrad",
       "title": "Två nätter kvar",
-      "body": "Två nätter kvar till julafton.\nIdag räcker det med att andas, ta det lugnt och låta julen komma ikapp."
+      "body": "Två nätter kvar till julafton.\nIdag räcker det med att andas, ta det lugnt och låta julen komma ikapp.",
+      "scene": "countdown",
+      "sound": "twinkle"
     },
     {
       "id": "d-2026-12-23",
       "date": "2026-12-23",
       "type": "litet",
       "title": "Uppesittarkväll",
-      "body": "Idag är det uppesittarkväll med din familj.\nBingolotto, godis och trevligt sällskap. Vila gärna lite under dagen."
+      "body": "Idag är det uppesittarkväll med din familj.\nBingolotto, godis och trevligt sällskap. Vila gärna lite under dagen.",
+      "scene": "bingo",
+      "sound": "bingo"
     },
     {
       "id": "d-2026-12-24",
       "date": "2026-12-24",
       "type": "rim",
       "title": "Julafton",
-      "body": "God jul, Elin.\nRimmet skrivs av Johan. (Byt ut den här texten.)\nOch sen finns det en klapp."
+      "body": "God jul, Elin.\nRimmet skrivs av Johan. (Byt ut den här texten.)\nOch sen finns det en klapp.",
+      "scene": "christmas",
+      "sound": "unwrap",
+      "music": "stilla-natt"
     }
   ]
 }

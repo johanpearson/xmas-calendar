@@ -127,6 +127,30 @@ test('opening a door plays its sound', async ({ page }) => {
   await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before + 2);
 });
 
+test('a door with "music" plays its theme song, one without does not', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  await page.locator('body').click({ position: { x: 5, y: 5 } }); // unlocks audio, silently
+  await expect.poll(async () => (await audio(page)).state).toBe('running');
+
+  // 3 December has no music: only its sound.
+  let before = (await audio(page)).oscillators;
+  await page.locator('.door[data-date="2026-12-03"]').click();
+  await page.waitForTimeout(1500);
+  const effectOnly = (await audio(page)).oscillators - before;
+  expect(effectOnly).toBeGreaterThan(2);
+  expect(effectOnly).toBeLessThan(30);
+  await page.keyboard.press('Escape');
+
+  // 1:a advent has "tusen-juleljus": its sound and a whole song.
+  before = (await audio(page)).oscillators;
+  await page.locator('.door[data-date="2026-11-29"]').click();
+  // The first eight bars on the celesta with their bass: about 60 oscillators.
+  await expect.poll(async () => (await audio(page)).oscillators - before).toBeGreaterThan(45);
+});
+
 test('music: off by default, the button starts it, a hidden page suspends it', async ({ page }) => {
   await skipTomte(page);
   await spyOnAudio(page);
