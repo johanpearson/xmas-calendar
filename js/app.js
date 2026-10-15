@@ -50,6 +50,7 @@ import {
   fanfareFor,
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
+import { SCENES, SCENE_KEYS, isScene, homeSceneFor } from './scenes.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -72,7 +73,9 @@ const els = {
   cardTitle: $('card-title'),
   cardVerse: $('card-verse'),
   cardBody: $('card-body'),
+  cardInner: document.querySelector('#card .card-inner'),
   cardAlt: $('card-alt'),
+  homeScene: $('home-scene'),
 };
 
 const state = {
@@ -85,6 +88,9 @@ const state = {
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
   tomte: null, // { content, ui } once content/tomte.json has loaded
   tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
+  cardScene: null, // cleanup for the scene in the open card
+  home: { key: null, date: null, cleanup: null }, // the small scene on the main screen
+  homePreview: null, // dev: show the main-screen scene of this date instead of today's
 };
 
 const prefersReducedMotion = () =>
@@ -230,7 +236,45 @@ function updateDoors() {
     else status = isToday ? 'idag, redo att öppnas' : 'redo att öppnas';
     btn.setAttribute('aria-label', `${doorName(day)}, ${status}`);
   }
+  updateHomeScene();
   state.onDoorsUpdated?.();
+}
+
+// --- Day scenes (js/scenes.js) ---
+
+// The small scene on the main screen: only on the date of a door whose scene has one.
+function updateHomeScene(dateKey = state.homePreview ?? state.todayKey) {
+  const key = homeSceneFor(state.days, dateKey);
+  const { home } = state;
+  if (key === home.key && dateKey === home.date) return key;
+  home.cleanup?.();
+  home.cleanup = key
+    ? SCENES[key].render(els.homeScene, { date: dateKey, reducedMotion: prefersReducedMotion(), small: true })
+    : null;
+  home.key = key;
+  home.date = dateKey;
+  return key;
+}
+
+// The door's scene behind the text in the card. Replaces any scene already there.
+function showCardScene(day) {
+  clearCardScene();
+  if (!isScene(day.scene)) return;
+  const layer = el('div', 'card-scene');
+  layer.setAttribute('aria-hidden', 'true');
+  els.cardInner.prepend(layer);
+  const cleanup = SCENES[day.scene].render(layer, { date: day.date, reducedMotion: prefersReducedMotion() });
+  els.card.classList.add('has-scene');
+  state.cardScene = () => {
+    cleanup();
+    layer.remove();
+  };
+}
+
+function clearCardScene() {
+  state.cardScene?.();
+  state.cardScene = null;
+  els.card.classList.remove('has-scene');
 }
 
 // --- Interaction ---
@@ -274,12 +318,16 @@ function onDoorClick(id) {
 }
 
 // Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
+// The door's sound starts with the opening animation, or, for a door with a scene, together
+// with the scene's entrance when the card appears.
 async function playThenShow(day, btn, animation, { haptics = true } = {}) {
   state.busy = true;
-  playForDoor(day, animation);
+  const withScene = isScene(day.scene);
+  if (!withScene) playForDoor(day, animation);
   try {
     const { skipped } = await playOpening(btn, animation, { haptics });
     showCard(day, skipped ? 'fade' : revealFor(animation));
+    if (withScene) playForDoor(day, animation);
   } finally {
     state.busy = false;
   }
@@ -331,12 +379,14 @@ function showCard(day, reveal = null) {
 
   if (!els.card.open) els.card.showModal();
   els.card.scrollTop = 0;
+  showCardScene(day); // starts its entrance now, as the card appears
 }
 
 // Close the card when tapping the backdrop.
 els.card.addEventListener('click', (e) => {
   if (e.target === els.card) els.card.close();
 });
+els.card.addEventListener('close', clearCardScene);
 
 // --- Keeping "today" fresh while the app stays open ---
 
@@ -396,6 +446,7 @@ async function startDevMode() {
     getOverride: getDateOverride,
     setOverride(dateKey) {
       setDateOverride(dateKey);
+      state.homePreview = null; // the main screen follows the new date again
       updateDoors();
     },
     openAll() {
@@ -426,6 +477,7 @@ async function startDevMode() {
       location.reload();
     },
     tomte: state.tomte && devTomte(state.tomte),
+    scenes: devScenes(),
     audio: {
       isOn: isSoundOn,
       playAll: (onEach) => playAllEffects(onEach),
@@ -452,6 +504,35 @@ function soundUsage() {
     if (day.music) add(melodies, day.music, { door, own: true });
   }
   return { effects, melodies };
+}
+
+// Day scenes in the dev panel: every scene with the doors that use it, a preview in the
+// card (nothing is marked opened or reset) and the main-screen scene for any date.
+function devScenes() {
+  return {
+    items: SCENE_KEYS.map((key) => ({
+      key,
+      label: SCENES[key].label,
+      home: SCENES[key].home,
+      doors: state.days.filter((d) => d.scene === key).map(doorName),
+    })),
+    play(key) {
+      if (state.busy) return;
+      const door = state.days.find((d) => d.scene === key);
+      const day = door
+        ? { ...door, scene: key }
+        : { id: `scene-${key}`, date: state.todayKey, type: 'ledtrad', title: SCENES[key].label, body: 'Förhandsvisning av scenen.', scene: key };
+      showCard(day, 'fade');
+      playForDoor(day, animationFor(day)); // together with the entrance, as when a door opens
+    },
+    // Shows the main-screen scene of dateKey (until the simulated date changes). Returns its key or null.
+    showHome(dateKey) {
+      state.homePreview = dateKey;
+      const key = updateHomeScene();
+      if (key) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+      return key;
+    },
+  };
 }
 
 // --- Tomten ---

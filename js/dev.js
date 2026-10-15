@@ -123,8 +123,10 @@ export function mountDevPanel(api) {
   );
 
   const tomte = api.tomte ? tomteSection(api.tomte, () => setPanelOpen(false), api.toast) : null;
+  const scenes = api.scenes ? scenesSection(api.scenes, () => setPanelOpen(false), api.toast, api.effectiveToday) : null;
 
   panel.append(heading, realInfo, dateLabel, actions, preview);
+  if (scenes) panel.append(scenes.node);
   if (api.audio) panel.append(audioSection(api.audio, api.toast));
   if (tomte) panel.append(tomte.node);
   // Toggle first so Tab moves from it into the open panel.
@@ -150,6 +152,7 @@ export function mountDevPanel(api) {
     document.body.classList.toggle('has-dev-banner', Boolean(override));
     realInfo.textContent = `Riktigt datum: ${formatDate(api.realToday())}. Effektivt: ${formatDate(api.effectiveToday())}.`;
     dateInput.value = api.effectiveToday();
+    scenes?.refresh();
     tomte?.refresh();
   }
 
@@ -248,6 +251,58 @@ function audioSection(audio, toast) {
 
   node.append(actions, melodies, effects);
   return node;
+}
+
+// Day scenes: every scene with "Spela upp" (a preview in the card, nothing is marked opened
+// or reset) and the main screen's scene for any date.
+function scenesSection(scenes, closePanel, toast, effectiveToday) {
+  const node = el('fieldset', 'dev-preview dev-scenes');
+  node.append(el('legend', null, 'Dagsscener'));
+
+  const homeField = el('div', 'dev-field');
+  const homeLabel = el('label', null, 'Datum för huvudskärmen');
+  const homeDate = el('input', 'dev-input');
+  homeDate.type = 'date';
+  homeDate.id = 'dev-home-date';
+  homeLabel.htmlFor = homeDate.id;
+  homeField.append(homeLabel, homeDate);
+  const showHome = button('Visa dagens huvudskärmsdekor', () => {
+    if (!isValidDateKey(homeDate.value)) return;
+    const key = scenes.showHome(homeDate.value);
+    const label = scenes.items.find((item) => item.key === key)?.label;
+    toast(key ? `Huvudskärmen ${formatDate(homeDate.value)}: ${label}` : `Ingen huvudskärmsdekor ${formatDate(homeDate.value)}`);
+    if (key) closePanel();
+  });
+
+  const list = el('details', 'dev-sounds');
+  list.append(el('summary', null, `Scener (${scenes.items.length})`));
+  const ul = el('ul', 'dev-tomte-list');
+  for (const item of scenes.items) {
+    const used = item.doors.length ? `Används av: ${item.doors.join(', ')}` : 'Används inte av någon lucka';
+    const row = el('li', 'dev-sound-item');
+    const text = el('span', 'dev-tomte-text');
+    text.append(
+      el('span', 'dev-tomte-name', item.label),
+      el('span', 'dev-tomte-dates', item.home ? `${item.key} · även på huvudskärmen` : item.key),
+      el('span', 'dev-tomte-status', used),
+    );
+    const play = button('Spela upp', () => {
+      closePanel();
+      scenes.play(item.key);
+    });
+    play.setAttribute('aria-label', `Spela upp scenen ${item.label}`);
+    row.append(text, play);
+    ul.append(row);
+  }
+  list.append(ul);
+  node.append(homeField, showHome, list);
+
+  return {
+    node,
+    refresh() {
+      homeDate.value = effectiveToday();
+    },
+  };
 }
 
 // Tomten: every conversation with a "Spela upp" button (ignores dates and seen state),

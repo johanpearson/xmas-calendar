@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { isValidDateKey } from '../js/dates.js';
 import { isEffect } from '../js/audio.js';
 import { MELODIES } from '../js/melodies.js';
+import { isScene } from '../js/scenes.js';
 
 const TYPES = ['ledtrad', 'litet', 'uppdrag', 'rim', 'jakt'];
 const raw = readFileSync(new URL('../content/days.json', import.meta.url), 'utf8');
@@ -60,9 +61,9 @@ test('sound is a known effect and music a known melody, when present', () => {
   }
 });
 
-test('scene is a non-empty string when present (used by a later milestone)', () => {
+test('scene is a known day scene, when present', () => {
   for (const d of days) {
-    if ('scene' in d) assert.ok(typeof d.scene === 'string' && d.scene.length > 0, `${d.date}: scene must be a string`);
+    if ('scene' in d) assert.ok(isScene(d.scene), `${d.date}: unknown scene ${JSON.stringify(d.scene)} (see SCENES in js/scenes.js)`);
   }
 });
 

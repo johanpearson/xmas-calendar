@@ -58,6 +58,8 @@ längd och mute-reglerna (se "Ljud").
 `tests/weather.test.js` testar vädret med mockad `fetch`, falsk `localStorage` och falsk
 klocka: klassningens gränsvärden (precis under och på gränsen), cachereglerna (färsk,
 gammal men tillåten vid nätverksfel, för gammal), timeout, felsvar och saknad data (se "Väder").
+`tests/scenes.test.js` kontrollerar att varje `scene` i `content/days.json` finns i
+scenregistret och vilka scener som visas på huvudskärmen (se "Dagsscener").
 
 ### E2e (Playwright)
 
@@ -82,6 +84,11 @@ väderanropen, samt dev-panelens senaste värden.
 `tests/e2e/audio.spec.js` testar ljudets koppling (inte hur det låter): ingen `AudioContext`
 före första trycket, jingeln startar på introts första "Nästa", knapparna, tyst läge,
 musiken och att den pausas när sidan är dold, samt att appen fungerar utan Web Audio.
+`tests/e2e/scenes.spec.js` testar dagsscenerna: alla ritas, cleanup lämnar inga noder,
+timers eller lyssnare, scenen ligger bakom texten i kortet, loopen pausas när fliken är
+dold, reducerad rörelse ger en stilla bild, huvudskärmens scen tar inga tryck och ändrar
+inte layouten, och dev-panelens förhandsvisning. Den tar också skärmdumpar vid 360 px
+(se "Dagsscener").
 De andra e2e-testerna markerar alla tomtescener som sedda (`tests/e2e/helpers.js`), så att
 tomten inte står i vägen.
 
@@ -125,6 +132,11 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     stoppar en melodi. Under **Melodier** och **Effekter** har varje melodi och effekt
     en **Spela**-knapp och en rad om vilka luckor som använder den. Ljudknappen måste vara på.
     Musikmenyns Blandat följer det simulerade datumet (Santa Lucia från 13 december).
+  - **Dagsscener**: **Visa dagens huvudskärmsdekor** visar huvudskärmens scen för valt
+    datum (tills det simulerade datumet ändras). Under **Scener** finns alla dagsscener med
+    vilka luckor som använder dem och knappen **Spela upp**, som visar scenen i kortet med
+    den första luckan som använder den, och dess ljud, utan att markera eller nollställa
+    några luckor.
   - **Tomten**: intro, välkomst och alla scener med knappen **Spela upp**, som visar dem
     direkt oavsett datum och om de redan setts (och utan att markera dem som sedda).
     Scenen som det simulerade datumet pekar på är markerad "aktuell", och "sedd" visar vad
@@ -185,13 +197,14 @@ En lucka ser ut så här:
   Se listan under "Ljud" nedan, t.ex. `"sound": "cat"`.
 - `music` är valfri: en melodi som spelas en gång när luckan öppnas (temalåt), t.ex.
   `"music": "stilla-natt"`. Se "Melodier" nedan.
-- `scene` är valfri och används av nästa milstolpe (ignoreras än så länge).
+- `scene` är valfri: en liten animerad scen bakom texten i kortet, t.ex. `"scene": "snow"`.
+  Se "Dagsscener" nedan.
 - `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
 - `verse` är valfri: en vers som visas i kursiv stil direkt under titeln, före `body`
   (även i specialrutan). `\n` ger en ny rad. Ingen HTML, texten visas precis som den står.
   Plan B visar samma vers, om inte `alternative` har en egen `verse`.
 - `npm test` kontrollerar filen: giltig JSON, unika datum i stigande ordning, unika `id`,
-  att `type` är en av de fem ovan, att `sound` och `music` är kända namn och att luckan
+  att `type` är en av de fem ovan, att `sound`, `music` och `scene` är kända namn och att luckan
   inte har några okända fält (fångar stavfel som `"sonud"`). Kör det efter varje ändring.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
@@ -453,6 +466,63 @@ Tomtens jingel är refrängen ur Jingle Bells i snabbare tempo (`TOMTE_JINGLE`).
   `musicBoxNote`, `bassNote` och `playSong` i `js/audio.js`, effekterna i `SOUNDS`.
 - Bumpa `CACHE_VERSION` efter en ändring i `js/`.
 
+## Dagsscener
+
+Varje lucka kan ha en scen (`"scene"` i `content/days.json`): en liten bild ritad med
+inline-SVG i `js/scenes.js` och animerad med CSS i `css/scenes.css`. Inga bilder och inga
+beroenden.
+
+- När luckan öppnas visas scenen överst i kortet, bakom texten. Den tonar ut i papperet
+  innan texten börjar, så texten står alltid på rent papper. Entrén tar högst cirka 3 s,
+  sedan följer en lugn loop som pausas när fliken är dold och försvinner när kortet stängs.
+- Luckans ljudeffekt (`sound`, annars typens) startar samtidigt som scenens entré, alltså
+  när kortet visas. Temalåten (`music`) spelas som förut.
+- `advent1`, `advent2`, `lucia`, `advent4`, `cat` och `christmas` visas också i en liten
+  version på huvudskärmen just på luckans datum, på snön längst ner bakom luckorna.
+- Med reducerad rörelse (`prefers-reduced-motion`) visas en stilla bild av slutläget.
+
+| Nyckel | Scen |
+|---|---|
+| `advent1`, `advent2`, `advent4` | Adventsljusstake i fönstret med 1, 2 och 4 tända ljus. `advent4` med snöig skog och snöfall utanför |
+| `lucia` | Lucia och tre tärnor glider in, skenet tonar upp och Lucias tre ljus tänds, stjärnor |
+| `tree` | Granen växer fram, ljusen tänds ett i taget och sist stjärnan |
+| `christmas` | Gran med stjärna, paket och glöd |
+| `cat` | Hiro, en röd katt, tittar upp i nederkant, blinkar och viftar på svansen |
+| `camera` | Kamerablixt, en polaroid som framkallas |
+| `letter` | Vaxsigillet bryts, fliken öppnas och brevet stiger upp |
+| `candy` | Fallande godis: polkagrisar, karameller och klubbor |
+| `paint` | Färgklickar som blir en ren med röd mule |
+| `party` | Konfetti och bubblor |
+| `cozy` | Tre flimrande ljus och svävande hjärtan |
+| `gold` | Svävande guldstoft |
+| `snow`, `stars`, `lanterns` | Snöfall över en röd stuga, stjärnhimmel med stjärnfall, svävande lyktor |
+| `flashlight` | Ficklampskägla som letar i mörkret |
+| `mystery` | Flytande frågetecken |
+| `movie` | Filmremsa, filmflimmer och stjärnor |
+| `glogg` | Rykande glöggmugg |
+| `solstice` | Solen går ner, stjärnor och ljus i fönstren tänds |
+| `countdown` | Två stjärnor som blinkar |
+| `bingo` | Studsande numrerade bingokulor |
+
+### Lägga till en scen
+
+Lägg till en funktion som ritar scenen i `js/scenes.js` och en rad i `DEFINITIONS`
+(`label`, `draw`, och för huvudskärmen `home: true` och `view`, den del av bilden som visas).
+Bilden ritas i en ruta på 320 × 150. Animera bara `transform` och `opacity`, och låt
+elementens egna värden vara slutläget: entréer animerar *från* ett dolt läge, så att en
+stilla bild blir rätt. Använd `enter(...)` för entréer och klasserna i `css/scenes.css`.
+`npm test` fallerar om en lucka använder en scen som inte finns.
+
+### Skärmdumpar
+
+```sh
+SCENE_SCREENSHOTS=1 npx playwright test tests/e2e/scenes.spec.js
+```
+
+skriver kortet med varje scen efter entrén och huvudskärmen 2026-12-13, 2026-12-04 och
+2026-12-24 vid 360 px till `docs/screenshots/scenes/`. Utan variabeln hamnar de bara i
+`test-results/`.
+
 ## Deploy och CACHE_VERSION
 
 Sajten deployas direkt från `main` med GitHub Pages
@@ -486,6 +556,32 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Dagsscener (milstolpe 12)
+
+- Scenen visas som en bild överst i kortet som tonar ut i papperet, inte som en helbild
+  under all text. Då behåller texten exakt samma kontrast som utan scen (testas i
+  `tests/e2e/scenes.spec.js`), och kortet blir 150 px högre.
+- Ljudet och entrén startar samtidigt när kortet visas. För luckor med scen betyder det att
+  öppna-animationen (cirka 1,2 s) nu är tyst och ljudet kommer när kortet dyker upp. Luckor
+  utan scen låter som förut. En redan öppnad lucka visar scenen igen med sitt mjuka ding.
+- Huvudskärmens scen ligger på snön längst ner på sidan, bakom sista luckraden och
+  granarna. Den syns när man scrollar ner (på 360 px ligger den under första skärmen).
+  Den följer simulerat datum i dev-läget.
+- "Hiro-silhuett": Hiro är en röd katt, så han är ritad som en orange, randig katt med
+  ljus mule och gröna ögon, inte som en svart siluett.
+- Adventsljusen står i en ljusstake i fönstret. Det första ljuset är kortast eftersom det
+  har brunnit flest söndagar. Lucias krona har tre ljus (som tänds), tärnorna har
+  glitterkrona och ett tänt ljus i händerna.
+- `countdown` har inga siffror, bara två stjärnor. Bingokulornas nummer slumpas fast per
+  datum (1-75). Allt slumpmässigt i scenerna (stjärnor, partiklar) är fröat med scen och
+  datum, så samma lucka ser likadan ut varje gång.
+- Scenerna pausas med `animation-play-state` när fliken är dold. De använder inga timers
+  alls, bara CSS-animationer, så cleanup tar bort noderna och en `visibilitychange`-lyssnare.
+- Okända scennycklar som ändå når appen ignoreras (ingen scen), `npm test` underkänner dem.
+- Dev-panelens **Spela upp** för en scen spelar luckans ljud men inte temalåten.
+- Skärmdumparna i `docs/screenshots/scenes/` tas i Chromium med 2x upplösning.
+- `js/scenes.js` och `css/scenes.css` ligger i precache och `CACHE_VERSION` är `v12`.
 
 ### Mer musik och roligare ljud (milstolpe 11)
 

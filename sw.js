@@ -4,7 +4,7 @@
 // manifest). Pure content changes in content/days.json or content/tomte.json need no
 // bump: those files are served stale-while-revalidate, so edits reach the phone on the
 // next start.
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 
 const SHELL_CACHE = `advent-shell-${CACHE_VERSION}`;
 // Not versioned, so the last known content survives a shell update.
@@ -16,6 +16,7 @@ const SHELL_FILES = [
   'index.html',
   'manifest.webmanifest',
   'css/style.css',
+  'css/scenes.css',
   'js/app.js',
   'js/dates.js',
   'js/storage.js',
@@ -32,6 +33,7 @@ const SHELL_FILES = [
   'js/voice.js',
   'js/audio-ui.js',
   'js/weather.js',
+  'js/scenes.js',
   'icons/favicon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
