@@ -294,7 +294,7 @@ test('dev panel: every melody and effect with "Spela", who uses it, all effects 
   await expect(panel.locator('.dev-sound-item', { hasText: 'Fanfar' })).toContainText('Lucka 5 (standard)');
   await expect(panel.locator('.dev-sound-item', { hasText: 'Knarrande dörr' })).toContainText('Används inte av någon lucka');
   before = (await audio(page)).oscillators;
-  await panel.getByRole('button', { name: 'Spela Katt som jamar' }).click();
+  await panel.getByRole('button', { name: 'Spela Mjukt ding' }).click();
   await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before);
 
   await panel.getByRole('button', { name: 'Spela alla effekter i följd' }).click();

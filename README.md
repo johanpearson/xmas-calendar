@@ -489,17 +489,20 @@ och bumpa sedan `CACHE_VERSION`.
 
 ### Mer musik och roligare ljud (milstolpe 11)
 
-- **Noterna är skrivna ur minnet** (miljön där det byggdes kom inte åt noter på nätet).
-  Jingle Bells, Deck the Halls, We Wish You a Merry Christmas och Stilla natt bör stämma.
-  **Nu tändas tusen juleljus, Hej tomtegubbar och Santa Lucia är ungefärliga** och
-  behöver rättas efter gehör. Ackorden i basen är enkla gissningar, en ton per takt.
-- Alla melodier ligger i C-dur (eller nära), så att de låter bra ihop i Blandat och på
-  speldosan. Stilla natt skrivs i 6/8 med åttondelar som taktslag.
+- Jingle Bells, Deck the Halls, We Wish You a Merry Christmas och Stilla natt är skrivna
+  ur minnet. Nu tändas tusen juleljus, Hej tomtegubbar och Santa Lucia är avskrivna från
+  noter som Johan skickade (Nu tändas i F-dur och 4/4, Hej tomtegubbar i 3/4 med
+  punkterad rytm, Santa Lucia med repristecknet utskrivet och notbladets egen bas).
+  Melodierna spelas en oktav högre än noterna, som en celesta. Basen i de andra är
+  enkla ackordgrundtoner, en ton per takt.
+- Melodierna ligger i C-dur, utom Nu tändas tusen juleljus (F-dur, som noterna).
+  Stilla natt skrivs i 6/8 med åttondelar som taktslag.
 - Temalåten är ett utdrag (`theme`) när hela melodin är längre än cirka 20 s: Jingle Bells
-  andra halvan av refrängen, Deck the Halls och Santa Lucia första halvan, Nu tändas
-  tusen juleljus de första fraserna och Stilla natt de sista raderna ("sov i himmelsk ro").
-  We Wish You och Hej tomtegubbar spelas hela. Blir en temalåt ändå längre än 20 s tonas
-  den ut.
+  andra halvan av refrängen, Deck the Halls och Hej tomtegubbar första halvan, Nu tändas
+  tusen juleljus första versen, Santa Lucia refrängen ("Sankta Lucia") och Stilla natt de
+  sista raderna ("sov i himmelsk ro"). We Wish You spelas hel. Slutar ett utdrag mitt i
+  låten utelämnas en upptakt in i nästa fras ("va-ra! En" blir "va-ra!"). Blir en temalåt
+  ändå längre än 20 s tonas den ut.
 - Temalåten spelas varje gång luckan öppnas, även en redan öppnad lucka, men startar inte
   om om samma låt redan spelar. Den startar 1 s efter luckans ljud. En ny temalåt avbryter
   den förra, och ljudknappen av tystar den direkt.
@@ -534,15 +537,16 @@ och bumpa sedan `CACHE_VERSION`.
   - Bakgrundsmusiken **pausas** nu i stället för att sänkas när en temalåt eller tomten
     spelar, och fortsätter med en ny låt (eller samma låt från början) efteråt. Att
     fortsätta mitt i en låt går inte, eftersom hela låten schemaläggs när den startar.
-  - `cat` är omgjord: en ljus sågtandsröst (inte en ren sinus, som lät som en vissling)
-    med tonhöjd som stiger från cirka 560 till 790 Hz och faller till 500 Hz, genom
-    formantfilter som går från ett stängt "m" via "iaa" till "ow".
-  - `ho` är omgjord: mjukare röst (lågpassfiltrerad sågtand) med bredare formanter för
-    ett "o", ett tydligare andat "h" före varje stavelse och fallande tonhöjd 128 till
-    100 Hz.
-  - `door` är omgjord: i stället för en surrande ton är knarret ett tåg av små klick (som
-    när trä fastnar och släpper) som klingar i träets resonanser, först långsamt, sedan
-    snabbare och långsamt igen.
+  - `cat`, `ho` och `door` är omgjorda från grunden, eftersom oscillatorer med raka
+    ramper lät mekaniska. De renderas nu sampel för sampel i `js/voice.js`. `cat` och
+    `ho` kommer från en liten röstsyntes: glottispulser vars tonhöjd och styrka vinglar
+    lite från period till period, andningsbrus och resonatorer för munhålan (formanter)
+    som glider mjukt mellan vokalerna. `h` i "ho" är andning genom samma vokalform, som
+    ett riktigt h. `door` är ett tåg av ojämna små klick som var och ett klingar lite
+    olika i träets resonanser. Varje uppspelning blir lite olika. Ljuden renderas i förväg
+    (några tiotals millisekunder) så att de inte fördröjs.
+  - Katten följer inte längre önskemålet om en ren sinusvåg genom bandpassfilter, och
+    ho ho ho använder inte längre en sågtandsvåg: båda lät för konstgjorda.
   - Effekterna är kontrollerade genom att rendera dem till WAV och mäta tonhöjdskurvan,
     men inte avlyssnade.
 

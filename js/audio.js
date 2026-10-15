@@ -4,6 +4,7 @@
 // The top of this file is pure logic (notes, melodies, the mixer rules) so node --test
 // can import it; nothing here touches window or AudioContext at import time.
 
+import { renderVoice, hoSpec, catSpec, renderCreak } from './voice.js';
 import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
 
 // --- Notes and melodies ---
@@ -196,6 +197,7 @@ const engine = {
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
   jingle: null, // { gain }
   theme: null, // { key, gain, end, timer }
+  rendered: {}, // sounds rendered ahead of time (see prerendered)
   pauses: new Map(), // what pauses the music -> when it ends (see pausedUntil)
   music: { bus: null, until: 0, timer: null, current: null, previous: null, paused: false },
   listeners: new Set(),
@@ -259,6 +261,7 @@ function ensureContext() {
   blip.connect(ctx.destination);
   blip.start(0);
   setTimeout(() => safely(bellBank), 50); // ready before Tomten's first sleigh bells
+  setTimeout(() => safely(warmUp), 120); // and his "ho ho ho"
   ctx.addEventListener?.('statechange', () => {
     if (ctx.state === 'running') flushPending();
   });
@@ -673,65 +676,39 @@ function brass(dest, t, freq, dur, peak) {
   }
 }
 
-// A voice: an oscillator (sawtooth by default) with a pitch path and a vibrato, softened
-// by a low-pass filter and sent through formant band-pass filters ([freq, q, level,
-// sweep?]), plus a little of the softened source itself (`body`) for warmth.
-function vowel(dest, { t, dur, peak, attack, release, path, vibrato, formants, soften = 1800, body = 0, type = 'sawtooth' }) {
-  const { ctx } = engine;
-  const out = sustained(t, dur, peak, attack, release);
-  out.connect(dest);
-  const lowpass = filter('lowpass', soften, 0.7, t);
-  for (const [freq, q, level, sweep] of formants) {
-    const bp = filter('bandpass', freq, q, t, sweep ?? []);
-    const g = ctx.createGain();
-    g.gain.value = level;
-    lowpass.connect(bp).connect(g).connect(out);
-  }
-  if (body) {
-    const g = ctx.createGain();
-    g.gain.value = body;
-    lowpass.connect(g).connect(out);
-  }
-  voice(lowpass, { t, dur, type, path, vibrato });
+// The sounds rendered in JavaScript (voice.js). Rendering takes a few tens of
+// milliseconds, so one is kept ready, and a new one (every take a little different, like
+// a real voice) is made after each play when the page is idle.
+const RENDERERS = {
+  ho: (rate) => renderVoice(hoSpec(), { rate }),
+  cat: (rate) => renderVoice(catSpec(), { rate }),
+  door: (rate) => renderCreak({ rate }),
+};
+
+function prerendered(name) {
+  const rate = engine.ctx.sampleRate;
+  const ready = engine.rendered[name] ?? RENDERERS[name](rate);
+  engine.rendered[name] = null;
+  setTimeout(() => safely(() => (engine.rendered[name] ??= RENDERERS[name](rate))), 400);
+  return ready;
 }
 
-// The door's creak, rendered once: a train of clicks whose rate follows a curve (slow,
-// fast, slow), each click ringing two damped resonances like a wooden board.
-function creakBuffer() {
-  if (engine.creak) return engine.creak;
+function warmUp() {
+  for (const name of Object.keys(RENDERERS)) engine.rendered[name] ??= RENDERERS[name](engine.ctx.sampleRate);
+}
+
+// Plays samples rendered in JavaScript (voice.js) at time t and level `level`.
+function playRendered(dest, t, samples, level) {
   const { ctx } = engine;
-  const rate = ctx.sampleRate;
-  const seconds = 1.05;
-  const data = new Float32Array(Math.floor(rate * seconds));
-  // Clicks per second over time: [time, rate].
-  const curve = [[0, 18], [0.25, 60], [0.55, 210], [0.8, 150], [1, 45]];
-  const rateAt = (time) => {
-    for (let i = 1; i < curve.length; i++) {
-      const [t1, r1] = curve[i];
-      const [t0, r0] = curve[i - 1];
-      if (time <= t1) return r0 + ((r1 - r0) * (time - t0)) / (t1 - t0);
-    }
-    return curve.at(-1)[1];
-  };
-  const kernelLength = Math.floor(rate * 0.012);
-  const ring = (freq, tau) => (i) => Math.sin((2 * Math.PI * freq * i) / rate) * Math.exp(-i / (tau * rate));
-  const parts = [ring(rand(850, 950), 0.003), ring(rand(1700, 1900), 0.002), ring(rand(3100, 3400), 0.001)];
-  const levels = [1, 0.6, 0.25];
-  const kernel = Float32Array.from({ length: kernelLength }, (_, i) => parts.reduce((sum, part, k) => sum + levels[k] * part(i), 0));
-  let time = 0.01;
-  while (time < seconds - 0.02) {
-    const start = Math.floor(time * rate);
-    const swell = Math.sin(Math.PI * Math.min(1, time / seconds)) ** 0.6;
-    const amp = swell * rand(0.6, 1);
-    for (let i = 0; i < kernelLength && start + i < data.length; i++) data[start + i] += amp * kernel[i];
-    time += (1 / rateAt(time)) * rand(0.85, 1.15);
-  }
-  let peak = 0;
-  for (const v of data) peak = Math.max(peak, Math.abs(v));
-  const buffer = ctx.createBuffer(1, data.length, rate);
-  buffer.getChannelData(0).set(data.map((v) => v / (peak || 1)));
-  engine.creak = buffer;
-  return buffer;
+  const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+  buffer.getChannelData(0).set(samples);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.value = level;
+  src.connect(gain).connect(dest);
+  src.start(t);
+  src.onended = () => gain.disconnect();
 }
 
 // --- The effects. Each takes the destination and a start time; all end within 2 s. ---
@@ -779,26 +756,11 @@ const SOUNDS = {
     noise(runners, { t, dur: 1.5, peak: 0.035, attack: 0.6, freq: 2200, q: 0.6 });
   },
 
-  // Tomten's "ho ho ho": three voiced syllables, each starting with a breathy "h". The
-  // voice is a deep sawtooth with a little vibrato, softened and shaped by the formants of
-  // an "o" (about 500, 900 and 2500 Hz), falling in pitch through each syllable.
+  // Tomten's "ho ho ho", rendered by the voice synthesiser in voice.js.
   ho(dest, t) {
-    [[0, 128, 0.24, 1], [0.3, 118, 0.24, 0.85], [0.6, 106, 0.42, 0.75]].forEach(([offset, f0, dur, level]) => {
-      const at = t + offset;
-      noise(dest, { t: at, dur: 0.09, peak: 0.05 * level, attack: 0.012, freq: 1100, q: 1.2 });
-      vowel(dest, {
-        t: at + 0.05,
-        dur,
-        peak: 0.42 * level,
-        attack: 0.03,
-        release: dur * 0.7,
-        path: [[0, f0 * 1.04], [0.05, f0], [dur, f0 * 0.86]],
-        vibrato: { rate: 5, depth: f0 * 0.02 },
-        formants: [[520, 3, 1], [880, 4, 0.5], [2500, 6, 0.08]],
-        body: 0.3,
-      });
-    });
+    playRendered(dest, t, prerendered('ho'), 0.3);
   },
+
 
 
   // Two dull knocks: the door is locked.
@@ -820,19 +782,11 @@ const SOUNDS = {
     glitter(dest, t + 0.4, { count: 6, over: 0.5, peak: 0.03 });
   },
 
-  // A creaking door: stick and slip. Each slip is a tiny click that rings the wood's
-  // resonances; the clicks come slowly, then faster and faster (a rising "krrr-iiik"),
-  // then slow down again as the door stops.
+  // A creaking door, rendered click by click in voice.js.
   door(dest, t) {
-    const { ctx } = engine;
-    const src = ctx.createBufferSource();
-    src.buffer = creakBuffer();
-    const gain = ctx.createGain();
-    gain.gain.value = 0.16;
-    src.connect(gain).connect(dest);
-    src.start(t);
-    src.onended = () => gain.disconnect();
+    playRendered(dest, t, prerendered('door'), 0.17);
   },
+
 
 
   // A pling, then a glittering arpeggio upwards (ledtrad, rim).
@@ -870,26 +824,11 @@ const SOUNDS = {
     glitter(dest, t + 0.6, { count: 6, over: 0.6, peak: 0.03 });
   },
 
-  // A meow: a bright voice whose pitch rises and falls ("m-iaa-ow") while its formants
-  // move from a closed "m" to an open "iaa" and round off into "ow".
+  // A cat's "mjau", rendered by the voice synthesiser in voice.js.
   cat(dest, t) {
-    const dur = 0.85;
-    vowel(dest, {
-      t,
-      dur,
-      peak: 0.2,
-      attack: 0.09,
-      release: 0.35,
-      path: [[0, 560], [0.18, 790], [0.4, 740], [dur, 500]],
-      vibrato: { rate: 7, depth: 8 },
-      soften: 5000,
-      formants: [
-        [500, 3, 1, [[0.2, 1150], [0.45, 900], [0.8, 600]]],
-        [1500, 5, 0.6, [[0.2, 2400], [0.5, 1600], [0.8, 1000]]],
-        [3500, 6, 0.15],
-      ],
-    });
+    playRendered(dest, t, prerendered('cat'), 0.16);
   },
+
 
 
   // Tiptoeing: quiet staccato plucks in a minor key, each with a soft footstep.

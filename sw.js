@@ -29,6 +29,7 @@ const SHELL_FILES = [
   'js/tomte-ui.js',
   'js/audio.js',
   'js/melodies.js',
+  'js/voice.js',
   'js/audio-ui.js',
   'js/weather.js',
   'icons/favicon.svg',
