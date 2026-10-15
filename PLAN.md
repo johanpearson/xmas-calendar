@@ -42,6 +42,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/audio.js      ljud: Web Audio-syntes, jingel, bakgrundsmusik (milstolpe 9)
   js/audio-ui.js   ljud- och musikknappar
   js/weather.js    väder: prognoskälla (provider), klassning, cache (milstolpe 10)
+  js/melodies.js   melodier som data och logik för Blandat (milstolpe 11)
   content/days.json
   content/tomte.json
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
@@ -51,6 +52,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/tomte.test.js    js/tomte.js och validering av content/tomte.json
   tests/audio.test.js    ren logik i js/audio.js: noter, melodier, mute
   tests/weather.test.js  js/weather.js: klassning, cache, timeout, fel
+  tests/melodies.test.js js/melodies.js: notdata och blandningslogik
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -84,6 +86,9 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
 - `alternative`: valfri. Om den finns visas knappen "Dåligt väder? Visa plan B" som byter innehåll i kortet.
 - `verse`: valfri sträng, rader separerade med `\n`. Visas i kursiv stil direkt under titeln i kortet, före `body`, en rad per radbrytning. Gäller alla luckor, även specialrutan. Renderas med `textContent` (aldrig `innerHTML`). Plan B visar `alternative.verse` om den finns, annars luckans `verse`.
 - `body` renderas med `textContent` (aldrig `innerHTML`), stycken delas på `\n`.
+- `sound`: valfri. Namnet på en ljudeffekt som spelas när luckan öppnas i stället för typens standardljud (milstolpe 11). Måste vara en känd effekt i `js/audio.js`.
+- `music`: valfri. Namnet på en melodi i `js/melodies.js` som spelas en gång när luckan öppnas (milstolpe 11).
+- `scene`: valfri. Bakgrundsscen för luckan (nästa milstolpe, ignoreras tills vidare).
 
 ### Seed-innehåll (fasta punkter)
 
@@ -209,6 +214,19 @@ Skapa dessa med riktigt innehåll:
    - **Attribution:** en liten text "Väderdata: Open-Meteo.com" längst ned i tomtens bubbla när en väderscen visas (CC BY 4.0).
    - **Dev-läge:** väljaren "Prognos" (Riktig, Bra, Dålig, Okänd) överstyr `getWeatherVariant`, sparas och gäller även "Spela upp". Panelen visar senast hämtade värden (nederbörd, vind) och tidpunkt.
    - **Tester:** `tests/weather.test.js` (`node --test`): klassningens gränsvärden, cacheregler (färsk, gammal men tillåten vid nätverksfel, för gammal), timeout och fel med mockad `fetch`, `unknown` vid saknad data. Playwright med mockad Open-Meteo: rätt variant vid simulerat datum 2026-12-14 och 2026-12-18.
+
+11. **Mer musik och roligare ljud.** Fler julmelodier, en musikmeny, en temalåt per lucka och många nya syntetiska ljudeffekter. Klar när: punkterna nedan fungerar på 360 px, `tests/melodies.test.js`, `tests/audio.test.js` och `tests/content.test.js` är gröna och `CACHE_VERSION` är bumpad med `js/melodies.js` i precache.
+   - **Inga ljudfiler.** Som i milstolpe 9: allt genereras med Web Audio i `js/audio.js`, melodierna är data i `js/melodies.js`. Inga beroenden.
+   - **Melodier** (`js/melodies.js`): notnamn och längd i taktslag per takt, tempo, taktart, en basnot per takt och valfritt ett utdrag (`theme`) för temalåten. `jingle-bells`, `tusen-juleljus` (Nu tändas tusen juleljus), `hej-tomtegubbar`, `deck-the-halls`, `we-wish-you` (We Wish You a Merry Christmas), `stilla-natt` och `santa-lucia`. Bara traditionella melodier eller melodier vars upphovsrätt gått ut, ingen text visas. README listar varje melodi med källa och varför den är fri. Noterna ska vara lätta att rätta efter gehör.
+   - **Klang:** speldosa eller celesta (triangel och sinus med klocklik avklingning), en diskret basnot per takt och ett svagt lager bjällror. Låg volym.
+   - **Musikmeny:** musikknappen öppnar en liten meny med Av, Blandat, en lista med låtarna och "Nästa låt", samt "Nu spelas: <låt>". Valet sparas, standard Av. Blandat spelar låtarna i slumpad ordning utan samma låt två gånger i rad, med en kort paus mellan låtarna. `santa-lucia` ingår i Blandat först från och med 13 december (inställning i `js/melodies.js`, dev-datum respekteras).
+   - **Duckning:** bakgrundsmusiken sänks medan en temalåt eller tomtens jingel spelar och återställs efteråt.
+   - **Temalåt:** har en lucka `music` spelas den melodin en gång (högst cirka 20 s) när luckan öppnas, om ljudet är på, oberoende av musikmenyn.
+   - **Ljudeffekter** (`sfx.play(namn)`), alla under 2 s: globala `ho`, `sleigh` (tomtens entré, stereosvep), `knock` (låst lucka, ersätter "tonk"), `fanfare` (jakt-lucka öppnas) och `door` (knarrande dörr). Per lucka via `sound`: `bells`, `twinkle`, `cat`, `sneak`, `camera`, `paper`, `candy`, `chime`, `splat`, `pop`, `mystery`, `popcorn`, `glogg`, `bingo` och `unwrap`. Luckor utan `sound` får typens standardljud. Alla effekter följer ljudknappen och master gain och får inte klippa.
+   - **Validering:** `sound` och `music` i `days.json` måste vara kända nycklar, `scene` tillåts.
+   - **Dev-läge:** alla melodier och effekter med knappen "Spela", "Spela alla effekter i följd" och vilka luckor som använder vilken effekt eller melodi.
+   - **Tester** (`node --test`): notdata (giltiga noter, positiva längder, rimlig längd), att alla `sound` och `music` i `days.json` finns i koden och blandningslogiken (ingen upprepning i rad, `santa-lucia` låst före 13 december).
+   - **PWA:** `js/melodies.js` precachas och `CACHE_VERSION` bumpas.
 
 ## Datamodell: `content/tomte.json`
 
