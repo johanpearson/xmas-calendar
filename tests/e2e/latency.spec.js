@@ -207,6 +207,33 @@ test('a tap that becomes a scroll (pointercancel) does not open the door', async
   expect(await page.evaluate(() => localStorage.getItem('advent.opened'))).toBeNull();
 });
 
+// The door opens on pointerdown, so a finger lifted after the overlay is drawn sends the
+// tap's click to the overlay. That click must not skip the animation; a new tap does.
+test('the click of the opening tap does not skip the animation, a second tap does', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 360, height: 780 } });
+  const page = await context.newPage();
+  await mockAudio(page);
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await start(page, '2026-12-05');
+  const door = page.locator('.door[data-date="2026-12-05"]');
+  await door.scrollIntoViewIfNeeded();
+  const box = await door.boundingBox();
+  const cdp = await context.newCDPSession(page);
+  const tap = async (holdMs) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+    await page.waitForTimeout(holdMs);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  await tap(150); // a normal tap, long enough for the overlay to be under the finger
+  await page.waitForTimeout(200);
+  await expect(page.locator('.fx')).toHaveCount(1);
+  await expect(page.locator('#card')).toBeHidden();
+  await tap(50);
+  await expect(page.locator('.fx')).toHaveCount(0);
+  await expect(page.locator('#card')).toBeVisible();
+  await context.close();
+});
+
 test('dev panel: "Ljudlatens" lists each press, and every effect can be tested with its offset', async ({ page }) => {
   await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
   await page.addInitScript(() => localStorage.setItem('advent.dev', 'on'));

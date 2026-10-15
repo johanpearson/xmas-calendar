@@ -740,6 +740,10 @@ och bumpa sedan `CACHE_VERSION`.
   öppnar den direkt. Blir trycket en scroll (`pointercancel`) avbryts öppnandet: ljudet
   tonas ut på 40 ms, animationen tas bort och luckan markeras inte som öppnad. Luckan
   markeras därför som öppnad först när kortet visas. En låst lucka hinner knacka lite.
+- **Hoppa över animationen:** eftersom luckan öppnas redan när fingret sätts ned ligger
+  animationen ofta under fingret när det lyfts, och då hamnar tryckets klick på den. Bara
+  ett nytt tryck som börjar på animationen hoppar över den, annars skulle ett vanligt
+  tryck hoppa över animationen direkt och kortet visas utan den (rättat i v15).
 - **Animationens första bildruta** antas komma cirka 16 ms efter trycket
   (`ANIMATION_FRAME_MS`), eftersom ljudet startas i händelsen och ritandet i nästa
   `requestAnimationFrame`.
