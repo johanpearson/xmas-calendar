@@ -50,6 +50,7 @@ import {
   fanfareFor,
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
+import { SCENES, isScene, homeSceneFor } from './scenes.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -72,7 +73,9 @@ const els = {
   cardTitle: $('card-title'),
   cardVerse: $('card-verse'),
   cardBody: $('card-body'),
+  cardInner: document.querySelector('#card .card-inner'),
   cardAlt: $('card-alt'),
+  homeScene: $('home-scene'),
 };
 
 const state = {
@@ -85,6 +88,8 @@ const state = {
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
   tomte: null, // { content, ui } once content/tomte.json has loaded
   tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
+  cardScene: null, // cleanup for the scene in the open card
+  home: { key: null, date: null, cleanup: null }, // the small scene on the main screen
 };
 
 const prefersReducedMotion = () =>
@@ -230,7 +235,45 @@ function updateDoors() {
     else status = isToday ? 'idag, redo att öppnas' : 'redo att öppnas';
     btn.setAttribute('aria-label', `${doorName(day)}, ${status}`);
   }
+  updateHomeScene();
   state.onDoorsUpdated?.();
+}
+
+// --- Day scenes (js/scenes.js) ---
+
+// The small scene on the main screen: only on the date of a door whose scene has one.
+function updateHomeScene(dateKey = state.todayKey) {
+  const key = homeSceneFor(state.days, dateKey);
+  const { home } = state;
+  if (key === home.key && dateKey === home.date) return key;
+  home.cleanup?.();
+  home.cleanup = key
+    ? SCENES[key].render(els.homeScene, { date: dateKey, reducedMotion: prefersReducedMotion(), small: true })
+    : null;
+  home.key = key;
+  home.date = dateKey;
+  return key;
+}
+
+// The door's scene behind the text in the card. Replaces any scene already there.
+function showCardScene(day) {
+  clearCardScene();
+  if (!isScene(day.scene)) return;
+  const layer = el('div', 'card-scene');
+  layer.setAttribute('aria-hidden', 'true');
+  els.cardInner.prepend(layer);
+  const cleanup = SCENES[day.scene].render(layer, { date: day.date, reducedMotion: prefersReducedMotion() });
+  els.card.classList.add('has-scene');
+  state.cardScene = () => {
+    cleanup();
+    layer.remove();
+  };
+}
+
+function clearCardScene() {
+  state.cardScene?.();
+  state.cardScene = null;
+  els.card.classList.remove('has-scene');
 }
 
 // --- Interaction ---
@@ -331,12 +374,14 @@ function showCard(day, reveal = null) {
 
   if (!els.card.open) els.card.showModal();
   els.card.scrollTop = 0;
+  showCardScene(day); // starts its entrance now, as the card appears
 }
 
 // Close the card when tapping the backdrop.
 els.card.addEventListener('click', (e) => {
   if (e.target === els.card) els.card.close();
 });
+els.card.addEventListener('close', clearCardScene);
 
 // --- Keeping "today" fresh while the app stays open ---
 

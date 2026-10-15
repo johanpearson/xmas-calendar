@@ -43,6 +43,8 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/audio-ui.js   ljud- och musikknappar
   js/weather.js    väder: prognoskälla (provider), klassning, cache (milstolpe 10)
   js/melodies.js   melodier som data och logik för Blandat (milstolpe 11)
+  js/scenes.js     dagsscener: register, SVG och cleanup (milstolpe 12)
+  css/scenes.css   dagsscenernas animationer (milstolpe 12)
   content/days.json
   content/tomte.json
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
@@ -53,6 +55,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/audio.test.js    ren logik i js/audio.js: noter, melodier, mute
   tests/weather.test.js  js/weather.js: klassning, cache, timeout, fel
   tests/melodies.test.js js/melodies.js: notdata och blandningslogik
+  tests/scenes.test.js   js/scenes.js: registret och kopplingen till days.json
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -88,7 +91,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
 - `body` renderas med `textContent` (aldrig `innerHTML`), stycken delas på `\n`.
 - `sound`: valfri. Namnet på en ljudeffekt som spelas när luckan öppnas i stället för typens standardljud (milstolpe 11). Måste vara en känd effekt i `js/audio.js`.
 - `music`: valfri. Namnet på en melodi i `js/melodies.js` som spelas en gång när luckan öppnas (milstolpe 11).
-- `scene`: valfri. Bakgrundsscen för luckan (nästa milstolpe, ignoreras tills vidare).
+- `scene`: valfri. Nyckeln till en dagsscen i `js/scenes.js` som visas bakom texten i kortet när luckan öppnas (milstolpe 12). Måste finnas i registret.
 
 ### Seed-innehåll (fasta punkter)
 
@@ -227,6 +230,18 @@ Skapa dessa med riktigt innehåll:
    - **Dev-läge:** alla melodier och effekter med knappen "Spela", "Spela alla effekter i följd" och vilka luckor som använder vilken effekt eller melodi.
    - **Tester** (`node --test`): notdata (giltiga noter, positiva längder, rimlig längd), att alla `sound` och `music` i `days.json` finns i koden och blandningslogiken (ingen upprepning i rad, `santa-lucia` låst före 13 december).
    - **PWA:** `js/melodies.js` precachas och `CACHE_VERSION` bumpas.
+
+12. **Dagsscener.** Varje lucka kan ha en egen liten animerad scen (fältet `scene`). Klar när: punkterna nedan fungerar på 360 px, `tests/scenes.test.js`, `tests/content.test.js` och e2e-testerna är gröna och `CACHE_VERSION` är bumpad med `js/scenes.js` och `css/scenes.css` i precache.
+   - **Inga bilder, inga beroenden.** Allt ritas med inline-SVG och animeras med CSS. Högst ett fåtal DOM-element per partikel och högst cirka 40 partiklar per scen.
+   - **Register** (`js/scenes.js`): varje scennyckel har `render(container, { date, reducedMotion })` som ritar scenen och returnerar en cleanup-funktion. Cleanup tar bort alla noder, lyssnare och timers.
+   - **I kortet:** scenen visas bakom texten när luckan öppnas: en kort entré (högst cirka 3 s) och sedan en lugn loop med låg CPU-last. Loopen pausas när fliken är dold. Texten ligger på papper, så kontrast och läsbarhet blir inte sämre.
+   - **På huvudskärmen:** för `advent1`, `advent2`, `lucia`, `advent4`, `cat` och `christmas` visas en liten version på luckans datum. Den ligger bakom rutnätet, tar inga tryck och ändrar inte layouten.
+   - **`prefers-reduced-motion`** ger en stilla bild (slutläget).
+   - **Scener:** `advent1`, `advent2`, `advent4` (adventsljusstake med 1, 2 och 4 tända ljus, `advent4` med snöig skog), `lucia` (Lucia och tärnor glider in, skenet tonar upp, tre ljus tänds, stjärnor), `tree` (granen växer fram och tänds), `christmas` (gran med paket, stjärna och glöd), `cat` (Hiro tittar upp och viftar på svansen), `camera` (blixt och polaroid), `letter` (vaxsigill som bryts), `candy` (fallande godis), `paint` (färgklickar som blir en ren), `party` (konfetti och bubblor), `cozy` (ljus och hjärtan), `gold` (guldstoft), `snow`, `stars`, `lanterns`, `flashlight` (ficklampskägla), `mystery` (frågetecken), `movie` (filmflimmer och stjärnor), `glogg` (rykande mugg), `solstice` (solnedgång, stjärnor och ljus), `countdown` (två blinkande stjärnor) och `bingo` (studsande bingokulor).
+   - **Ljud:** scenens entré och luckans ljudeffekt (`sound`, annars typens) startar samtidigt. Temalåten (`music`) spelas som i milstolpe 11.
+   - **Dev-läge:** alla scener med "Spela upp" (förhandsvisning i kortet utan att markera eller nollställa luckor) och "Visa dagens huvudskärmsdekor" för valfritt datum.
+   - **Tester:** alla `scene` i `days.json` finns i registret, cleanup tar bort alla noder och timers. Playwright tar skärmdumpar vid 360 px av slutläget för varje scen och av huvudskärmen 2026-12-13, 2026-12-04 och 2026-12-24.
+   - **PWA:** `js/scenes.js` och `css/scenes.css` precachas och `CACHE_VERSION` bumpas.
 
 ## Datamodell: `content/tomte.json`
 

@@ -1,0 +1,125 @@
+/* Day scenes (js/scenes.js): animations for the inline SVG pictures.
+   Conventions:
+   - Entrances (sc-fade, sc-rise, sc-ignite, ...) run once, start after --in and only
+     animate *from* a hidden state, so an element's own state is the end state.
+   - Loops (sc-twinkle, sc-flicker, ...) take their length from --dur and phase from --ph.
+   - .is-still (reduced motion) switches every animation off: a still picture of the end
+     state. .is-paused (tab hidden) freezes them where they are.
+   Only transform and opacity are animated, to keep the CPU load low. */
+
+.sc {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sc svg { display: block; width: 100%; height: 100%; }
+.sc svg * { transform-box: fill-box; transform-origin: 50% 50%; }
+.sc.is-paused * { animation-play-state: paused !important; }
+.sc.is-still * { animation: none !important; }
+
+/* --- Entrances (all finished within about 3 s) --- */
+.sc-fade { animation: sc-fade .8s var(--in, 0s) ease-out both; }
+.sc-fade-slow { animation: sc-fade 2.4s var(--in, 0s) ease-in-out both; }
+.sc-rise { animation: sc-rise .9s var(--in, 0s) cubic-bezier(.2, .8, .3, 1) both; }
+.sc-ignite { transform-origin: 50% 100%; animation: sc-ignite .5s var(--in, 0s) cubic-bezier(.2, .9, .3, 1.5) both; }
+.sc-pop { animation: sc-pop .45s var(--in, 0s) cubic-bezier(.2, .9, .3, 1.5) both; }
+.sc-grow { transform-origin: 50% 100%; animation: sc-grow 1.2s var(--in, 0s) cubic-bezier(.2, .8, .3, 1.1) both; }
+.sc-glide { animation: sc-glide 2.4s var(--in, 0s) cubic-bezier(.25, .6, .3, 1) both; }
+.sc-peek { animation: sc-peek 1.4s var(--in, 0s) cubic-bezier(.2, .8, .3, 1) both; }
+.sc-drop { animation: sc-drop .9s var(--in, 0s) both; }
+
+@keyframes sc-fade { from { opacity: 0; } }
+@keyframes sc-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes sc-ignite { from { opacity: 0; transform: scale(0); } }
+@keyframes sc-pop { from { opacity: 0; transform: scale(0); } }
+@keyframes sc-grow { from { opacity: .4; transform: scale(.6, 0); } }
+@keyframes sc-glide { from { transform: translateX(-250px); } }
+@keyframes sc-peek { from { transform: translateY(80px); } }
+@keyframes sc-drop {
+  0% { opacity: 0; transform: translateY(-150px); animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
+  10% { opacity: 1; }
+  60% { transform: translateY(0); animation-timing-function: ease-out; }
+  78% { transform: translateY(-8px); animation-timing-function: ease-in; }
+  100% { transform: translateY(0); }
+}
+
+/* --- Calm loops --- */
+.sc-twinkle { animation: sc-twinkle var(--dur, 3s) var(--ph, 0s) ease-in-out infinite alternate; }
+.sc-flicker { transform-origin: 50% 100%; animation: sc-flicker 1.4s var(--ph, 0s) ease-in-out infinite alternate; }
+.sc-breathe { animation: sc-breathe 3.2s var(--ph, 0s) ease-in-out infinite alternate; }
+.sc-blink { animation: sc-blink 5.5s 2s ease-in-out infinite; }
+.sc-wag { transform-origin: 0% 100%; animation: sc-wag 2.6s ease-in-out infinite alternate; }
+.sc-twitch { transform-origin: 80% 100%; animation: sc-twitch 7s 3s ease-in-out infinite; }
+
+@keyframes sc-twinkle { from { opacity: .25; } }
+@keyframes sc-flicker {
+  0% { transform: scale(1, 1) rotate(-2deg); }
+  50% { transform: scale(.9, 1.1) rotate(2deg); }
+  100% { transform: scale(1.05, .94) rotate(-1deg); }
+}
+@keyframes sc-breathe { from { opacity: .7; transform: scale(.94); } }
+@keyframes sc-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  94% { transform: scaleY(.1); }
+}
+@keyframes sc-wag {
+  from { transform: rotate(-10deg); }
+  to { transform: rotate(16deg); }
+}
+@keyframes sc-twitch {
+  0%, 88%, 100% { transform: rotate(0); }
+  92% { transform: rotate(-12deg); }
+  96% { transform: rotate(4deg); }
+}
+
+/* Falling and rising particles. --y and --r0 place them for the still picture. */
+.sc-fall { animation: sc-fall var(--dur, 8s) var(--ph, 0s) linear infinite; }
+.sc-up { opacity: var(--o, 1); animation: sc-up var(--dur, 10s) var(--ph, 0s) linear infinite; }
+.sc.is-still .sc-fall { transform: translateY(var(--y, 60px)) rotate(var(--r0, 0deg)); }
+.sc.is-still .sc-up { transform: translateY(var(--y, 60px)); }
+@keyframes sc-fall {
+  from { transform: translate(0, -24px) rotate(0deg); }
+  to { transform: translate(var(--dx, 0px), 172px) rotate(var(--rot, 0deg)); }
+}
+@keyframes sc-up {
+  0% { opacity: 0; transform: translate(0, 172px); }
+  12%, 80% { opacity: var(--o, 1); }
+  100% { opacity: 0; transform: translate(var(--dx, 0px), -28px); }
+}
+
+/* --- Where scenes are shown --- */
+
+/* In the card: across the top, fading into the paper above the text, so the text always
+   sits on plain paper and keeps its contrast. */
+.card-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 156px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.card-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 70%, var(--paper) 97%);
+}
+.card.has-scene .card-inner { padding-top: 150px; }
+.card.has-scene .card-inner > :not(.card-scene) { position: relative; }
+
+/* On the main screen: a small picture on the snow at the bottom, behind the doors. It is
+   absolutely positioned (no layout change) and takes no taps. */
+.home-scene {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: 50%;
+  bottom: calc(4px + env(safe-area-inset-bottom));
+  width: min(100%, 420px);
+  height: 124px;
+  transform: translateX(-50%);
+}
+.home-scene:empty { display: none; }
