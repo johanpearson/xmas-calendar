@@ -120,8 +120,11 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
   - **Spela upp animation**: välj lucka och animation ("Luckans egen" är den som
     `type`/`animation` ger) och förhandsgranska. Luckan markeras inte som öppnad och
     det fungerar även på låsta luckor.
-  - **Ljud**: **Spela alla ljud** spelar effekterna en i taget (namnet visas i en
-    toast) och **Testa jingle** spelar tomtens jingel. Ljudknappen måste vara på.
+  - **Ljud och musik**: **Spela alla effekter i följd** spelar effekterna en i taget
+    (namnet visas i en toast), **Testa jingle** spelar tomtens jingel och **Stoppa melodi**
+    stoppar en melodi. Under **Melodier** och **Effekter** har varje melodi och effekt
+    en **Spela**-knapp och en rad om vilka luckor som använder den. Ljudknappen måste vara på.
+    Musikmenyns Blandat följer det simulerade datumet (Santa Lucia från 13 december).
   - **Tomten**: intro, välkomst och alla scener med knappen **Spela upp**, som visar dem
     direkt oavsett datum och om de redan setts (och utan att markera dem som sedda).
     Scenen som det simulerade datumet pekar på är markerad "aktuell", och "sedd" visar vad
@@ -178,12 +181,18 @@ En lucka ser ut så här:
   | `snowburst` | snöyra från luckan | |
 
   Ett okänt värde ger typens standard. Prova animationerna med "Spela upp animation" i dev-läget.
+- `sound` är valfri: ljudeffekten när luckan öppnas, i stället för typens standardljud.
+  Se listan under "Ljud" nedan, t.ex. `"sound": "cat"`.
+- `music` är valfri: en melodi som spelas en gång när luckan öppnas (temalåt), t.ex.
+  `"music": "stilla-natt"`. Se "Melodier" nedan.
+- `scene` är valfri och används av nästa milstolpe (ignoreras än så länge).
 - `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
 - `verse` är valfri: en vers som visas i kursiv stil direkt under titeln, före `body`
   (även i specialrutan). `\n` ger en ny rad. Ingen HTML, texten visas precis som den står.
   Plan B visar samma vers, om inte `alternative` har en egen `verse`.
-- `npm test` kontrollerar filen: giltig JSON, unika datum i stigande ordning, unika `id`
-  och att `type` är en av de fem ovan. Kör det efter varje ändring.
+- `npm test` kontrollerar filen: giltig JSON, unika datum i stigande ordning, unika `id`,
+  att `type` är en av de fem ovan, att `sound` och `music` är kända namn och att luckan
+  inte har några okända fält (fångar stavfel som `"sonud"`). Kör det efter varje ändring.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
 
@@ -333,34 +342,113 @@ bumpa `CACHE_VERSION` och kontrollera att källan tillåter CORS.
 ## Ljud
 
 Allt ljud skapas i webbläsaren med Web Audio API i `js/audio.js` (oscillatorer, brus,
-filter och envelopes). Det finns inga ljudfiler och inga beroenden.
+filter och envelopes) och melodierna är noter i `js/melodies.js`. Det finns inga
+ljudfiler och inga beroenden.
 
 - **Ljudknappen** (högtalaren under rubriken och i tomtens pratbubbla) slår på och av allt
-  ljud. Standard: på. Av betyder helt tyst, även musiken.
-- **Musik** (bredvid) slår på en lugn speldosa-version av tomtens melodi som loopar med
-  en paus mellan varven. Standard: av.
+  ljud. Standard: på. Av betyder helt tyst, även musik och temalåtar.
+- **Musik** (bredvid) öppnar en meny: Av, Blandat, en lista med låtarna och "Nästa låt".
+  Överst står "Nu spelas: <låt>". Valet sparas, standard är Av.
+  - **Blandat** spelar låtarna i slumpad ordning, aldrig samma två gånger i rad, med 3 s
+    paus emellan. Santa Lucia är med först från och med 13 december (`MIX_FROM` i
+    `js/melodies.js`; dev-läget räknar med det simulerade datumet).
+  - **En låt** i listan spelas om och om igen med 6 s paus. "Nästa låt" går då vidare
+    till nästa låt i listan, med Blandat till en annan slumpad låt.
+- **Temalåt:** en lucka med `music` spelar den melodin en gång (högst 20 s) när den
+  öppnas, även om musikmenyn står på Av. Bakgrundsmusiken sänks medan temalåten eller
+  tomtens jingel spelar och kommer tillbaka efteråt.
 - Inget ljud spelas före första trycket i appen (webbläsarnas autoplay-regler). För en ny
   användare är det tomtens första "Nästa", och då börjar hans jingel.
 - Ljudet pausas när appen eller fliken hamnar i bakgrunden och fortsätter när den visas.
+- En limiter sist i kedjan gör att flera ljud samtidigt inte klipper.
 
-| Händelse | Ljud |
+### Ljudeffekter
+
+Alla är syntetiska och kortare än 2 s. I koden: `sfx.play('cat')` (eller `playEffect`).
+
+| Händelse | Effekt |
 |---|---|
-| `bells` (`uppdrag`), tomtens entré | bjällror |
-| `sparkle` (`ledtrad`), `ribbon` (`rim`), `snowburst` | pling och glittrande arpeggio |
-| `gift` (`litet`), `confetti` | mjukt pop och glitter |
-| `magnifier` (`jakt`) | sökarsvep och ding |
-| låst lucka | lågt "tonk" |
-| "Nästa" hos tomten | litet klick |
-| tomten dyker upp | bjällror och jingel (refrängen ur "Jingle Bells") |
+| tomten dyker upp | `sleigh` (släde med bjällror som sveper förbi från vänster till höger), `ho` ("ho ho ho") och jingeln |
+| låst lucka | `knock` (två dova knackningar) |
+| jakt-lucka öppnas | luckans ljud, sedan `fanfare` |
+| redan öppnad lucka öppnas igen | `door` (knarrande dörr) |
+| "Nästa" hos tomten | `click` |
 
-Ljudet följer animationen, så fältet `animation` i `days.json` byter även ljudet.
+Luckans eget ljud väljs med `sound` i `days.json`:
 
-**Ändra melodin:** den ligger i `JINGLE_BELLS` i `js/audio.js` som en lista per stämma med
-`[notnamn, taktslag]`, t.ex. `['E5', 1]` (fjärdedel) eller `['C5', 4]` (helnot). Notnamn
-är bokstav, valfritt `#` eller `b` och oktav (`A4` = 440 Hz), `'R'` är paus. `bpm` styr
-jingelns tempo (testet kräver 5-8 s) och `calmBpm` bakgrundsmusikens. Ljudnivåer och
-klangfärger ändras i `SOUNDS` och `MASTER_GAIN`. Kör `npm test` efteråt och bumpa
-`CACHE_VERSION`.
+| `sound` | Ljud |
+|---|---|
+| `bells` | bjällror (även standard för `uppdrag`) |
+| `twinkle` | tindrande stjärnor |
+| `cat` | jamande katt |
+| `sneak` | smygande staccato |
+| `camera` | slutarklick och blixt |
+| `paper` | pappersprassel |
+| `candy` | många små godisklirr |
+| `chime` | mjukt ding |
+| `splat` | lågt plask |
+| `pop` | korkpopp med fräsande bubblor |
+| `mystery` | stigande mystisk ton |
+| `popcorn` | popcorn som poppar |
+| `glogg` | glögg som hälls upp och bubblar |
+| `bingo` | rasslande bingokulor och ett pling |
+| `unwrap` | paket som öppnas, prassel och pling |
+
+Utan `sound` får luckan sin typs standardljud (det följer animationen, så fältet
+`animation` byter även det):
+
+| Animation (typ) | Ljud |
+|---|---|
+| `bells` (`uppdrag`) | `bells` |
+| `sparkle` (`ledtrad`), `ribbon` (`rim`), `snowburst` | `sparkle`, pling och glittrande arpeggio |
+| `gift` (`litet`), `confetti` | `gift`, mjukt pop och glitter |
+| `magnifier` (`jakt`) | `search`, sökarsvep och ding |
+
+Prova allt i dev-panelen under "Ljud och musik": varje melodi och effekt har en
+"Spela"-knapp och visar vilka luckor som använder den ("standard" betyder att ljudet
+kommer från luckans typ). "Spela alla effekter i följd" spelar alla med 2,2 s mellanrum.
+
+### Melodier
+
+Alla är traditionella eller så gamla att upphovsrätten har gått ut (i Sverige och EU
+70 år efter upphovspersonens död). Noterna är nedskrivna för hand i `js/melodies.js`,
+ingen inspelning eller ljudfil, och ingen text visas.
+
+| Namn | Melodi | Källa | Varför den är fri |
+|---|---|---|---|
+| `jingle-bells` | Jingle Bells (refrängen) | James Lord Pierpont, 1857 | Pierpont dog 1893 |
+| `tusen-juleljus` | Nu tändas tusen juleljus | Emmy Köhler, text och melodi 1898 | Köhler dog 1925 |
+| `hej-tomtegubbar` | Hej tomtegubbar | Svensk folkmelodi, tryckt 1815 | traditionell, ingen känd upphovsperson |
+| `deck-the-halls` | Deck the Halls | Walesisk folkmelodi "Nos Galan", 1700-talet | traditionell |
+| `we-wish-you` | We Wish You a Merry Christmas | Engelsk folkmelodi (West Country), 1500-1800-tal | traditionell |
+| `stilla-natt` | Stilla natt (Stille Nacht) | Franz Xaver Gruber, 1818 | Gruber dog 1863 |
+| `santa-lucia` | Santa Lucia (bara melodin) | Napolitansk visa, utgiven av Teodoro Cottrau 1849 | Cottrau dog 1879 |
+
+Tomtens jingel är refrängen ur Jingle Bells i snabbare tempo (`TOMTE_JINGLE`).
+
+**Ändra en melodi:** varje melodi i `MELODIES` i `js/melodies.js` skrivs takt för takt:
+
+```js
+'jingle-bells': {
+  title: 'Jingle Bells',     // visas i menyn
+  bpm: 132,                  // taktslag per minut
+  meter: 4,                  // taktslag per takt
+  melody: `E5 E5 E5:2 | E5 E5 E5:2 | E5 G5 C5:1.5 D5:0.5 | E5:4 | ...`,
+  bass: 'C3 C3 C3 C3 ...',   // en basnot per takt, R = ingen
+  theme: [9, 16],            // takterna som blir luckans temalåt (valfritt)
+},
+```
+
+- En not är `NAMN:TAKTSLAG`, t.ex. `E5:1` (ett slag, `:1` kan utelämnas), `C5:1.5` eller
+  `E5:1/3` (triol). Namnet är bokstav, valfritt `#` eller `b` och oktav (`A4` = 440 Hz),
+  `R` är paus. `|` är taktstreck.
+- Varje takt måste bli exakt `meter` slag, utom en kortare första takt (upptakt) och en
+  kortare sista takt. `npm test` säger vilken takt som är fel, och kontrollerar att det
+  finns en basnot per takt, att alla notnamn är giltiga och att temalåten ryms på 20 s.
+- `bells: false` stänger av det svaga bjällerlagret (Stilla natt har det avstängt).
+- Klangen (celesta: triangel och sinus med klockaktig avklingning) och nivåerna ändras i
+  `musicBoxNote`, `bassNote` och `playSong` i `js/audio.js`, effekterna i `SOUNDS`.
+- Bumpa `CACHE_VERSION` efter en ändring i `js/`.
 
 ## Deploy och CACHE_VERSION
 
@@ -395,6 +483,50 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Mer musik och roligare ljud (milstolpe 11)
+
+- **Noterna är skrivna ur minnet** (miljön där det byggdes kom inte åt noter på nätet).
+  Jingle Bells, Deck the Halls, We Wish You a Merry Christmas och Stilla natt bör stämma.
+  **Nu tändas tusen juleljus, Hej tomtegubbar och Santa Lucia är ungefärliga** och
+  behöver rättas efter gehör. Ackorden i basen är enkla gissningar, en ton per takt.
+- Alla melodier ligger i C-dur (eller nära), så att de låter bra ihop i Blandat och på
+  speldosan. Stilla natt skrivs i 6/8 med åttondelar som taktslag.
+- Temalåten är ett utdrag (`theme`) när hela melodin är längre än cirka 20 s: Jingle Bells
+  andra halvan av refrängen, Deck the Halls och Santa Lucia första halvan, Nu tändas
+  tusen juleljus de första fraserna och Stilla natt de sista raderna ("sov i himmelsk ro").
+  We Wish You och Hej tomtegubbar spelas hela. Blir en temalåt ändå längre än 20 s tonas
+  den ut.
+- Temalåten spelas varje gång luckan öppnas, även en redan öppnad lucka, men startar inte
+  om om samma låt redan spelar. Den startar 1 s efter luckans ljud. En ny temalåt avbryter
+  den förra, och ljudknappen av tystar den direkt.
+- "Santa Lucia från 2026-12-13" är skrivet som månad och dag (`'12-13'`) utan år, så att
+  regeln gäller även nästa år (ingen årsspecifik logik). Santa Lucia går alltid att välja
+  för sig i menyn, regeln gäller bara Blandat.
+- Ett sparat `advent.music` = `on` från milstolpe 9 tolkas som Blandat.
+- Musikmenyn stängs med ett tryck utanför eller Escape, men inte när man väljer en låt
+  (så att man ser "Nu spelas"). "Nästa låt" är avstängd när musiken är Av. Musikknappen
+  visas guldfärgad när musik spelar. Väljer man musik med ljudet avstängt slås ljudet på.
+- I Blandat visas den senast startade låten även under pausen mellan två låtar.
+- Bjällerlagret i musiken är ett svagt bjällerslag på varje taktslag utom det första i
+  takten.
+- Tomtens entré är nu släden (`sleigh`), "ho ho ho" efter 1,1 s och jingeln efter 2,3 s.
+  Före första trycket spelas bara jingeln (som tidigare), inte släden eller "ho ho ho".
+- `door` (knarrande dörr) används när en redan öppnad lucka öppnas igen. Tidigare var det
+  tyst då. Jakt-luckor får sitt eget ljud (`sneak` i årets innehåll) och fanfaren 1,1 s
+  senare.
+- `sound` får vara vilken effekt som helst i `EFFECTS`, även typernas standardljud
+  (`sparkle`, `gift`, `search`) och de globala. Ett okänt namn underkänns av `npm test`;
+  skulle det ändå nå appen används typens standardljud.
+- Valideringen underkänner nu okända fält i en lucka, så att ett stavfel i `sound` eller
+  `music` inte passerar tyst.
+- Alla effekter är uppmätta genom att rendera dem i en `OfflineAudioContext` i Chromium:
+  alla klingar ut inom 1,7 s och toppar under 0,16 (före master gain 0,25), med jämnade
+  nivåer. En `DynamicsCompressor` (tröskel -6 dB, ratio 12) ligger sist som limiter.
+- Ljudet är inte avlyssnat, bara mätt. Melodier, klang och effekter behöver lyssnas på.
+- Dev-panelens "Spela" för en melodi spelar hela melodin (inte bara temat), så att den
+  går att rätta. "Stoppa melodi" stoppar den.
+- `js/melodies.js` ligger i precache och `CACHE_VERSION` är `v9`.
 
 ### Väder (milstolpe 10)
 
