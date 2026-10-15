@@ -10,6 +10,12 @@ import {
   JINGLE,
   EFFECTS,
   soundForAnimation,
+  soundForDoor,
+  fanfareFor,
+  FANFARE_DELAY,
+  isEffect,
+  EFFECT_LABELS,
+  sfx,
   parseToggle,
   mixFor,
   MASTER_GAIN,
@@ -87,13 +93,37 @@ test('the jingle starts with "jingle bells" (E E E)', () => {
 
 test('every opening animation has a sound, unknown ones fall back', () => {
   for (const name of ANIMATIONS) assert.ok(EFFECTS.includes(soundForAnimation(name)), name);
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.uppdrag), 'sleighbells');
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.ledtrad), 'chime');
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.rim), 'chime');
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.litet), 'pop');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.uppdrag), 'bells');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.ledtrad), 'sparkle');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.rim), 'sparkle');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.litet), 'gift');
   assert.equal(soundForAnimation(TYPE_ANIMATIONS.jakt), 'search');
-  assert.equal(soundForAnimation('nope'), 'chime');
-  assert.equal(soundForAnimation(undefined), 'chime');
+  assert.equal(soundForAnimation('nope'), 'sparkle');
+  assert.equal(soundForAnimation(undefined), 'sparkle');
+});
+
+test('a door\'s own "sound" wins over its type\'s, unknown names fall back', () => {
+  assert.equal(soundForDoor({ type: 'litet', sound: 'cat' }, 'gift'), 'cat');
+  assert.equal(soundForDoor({ type: 'litet' }, 'gift'), 'gift');
+  assert.equal(soundForDoor({ type: 'litet', sound: 'nope' }, 'gift'), 'gift');
+  assert.equal(soundForDoor(undefined, 'bells'), 'bells');
+});
+
+test('a treasure hunt gets a fanfare after its own sound', () => {
+  assert.equal(fanfareFor({ type: 'jakt' }), true);
+  assert.equal(fanfareFor({ type: 'litet' }), false);
+  assert.ok(FANFARE_DELAY > 0.5 && FANFARE_DELAY < 2);
+});
+
+test('the effects: every one asked for exists and has a Swedish label', () => {
+  const asked = ['ho', 'sleigh', 'knock', 'fanfare', 'door', 'bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
+  for (const name of asked) assert.ok(isEffect(name), name);
+  assert.equal(new Set(EFFECTS).size, EFFECTS.length);
+  for (const name of EFFECTS) assert.equal(typeof EFFECT_LABELS[name], 'string', name);
+  assert.deepEqual(Object.keys(EFFECT_LABELS).sort(), [...EFFECTS].sort());
+  assert.deepEqual(sfx.names, EFFECTS);
+  assert.equal(typeof sfx.play, 'function');
+  assert.equal(isEffect('locked'), false); // the old "tonk" is now "knock"
 });
 
 test('stored toggles: "on"/"off", anything else is the default', () => {

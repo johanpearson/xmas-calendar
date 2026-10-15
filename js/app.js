@@ -36,7 +36,7 @@ import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
 import { icon, typeIcon, adventCandles } from './icons.js';
-import { initAudio, playEffect, playForAnimation, playAllEffects, playJingle, isSoundOn } from './audio.js';
+import { initAudio, playEffect, playForDoor, playAllEffects, playJingle, isSoundOn } from './audio.js';
 import { audioControls } from './audio-ui.js';
 
 const CONTENT_URL = './content/days.json';
@@ -242,7 +242,7 @@ function onDoorClick(id) {
     btn.classList.remove('is-shaking');
     void btn.offsetWidth; // restart the animation on repeated taps
     btn.classList.add('is-shaking');
-    playEffect('locked');
+    playEffect('knock');
     showToast(`Den här luckan öppnas ${formatDate(day.date)}`);
     return;
   }
@@ -253,8 +253,9 @@ function onDoorClick(id) {
 
   if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
   else {
-    // Reduced motion skips the animation but not its sound.
-    if (firstTime) playForAnimation(animationFor(day));
+    // Reduced motion skips the animation but not its sound. An opened door just creaks.
+    if (firstTime) playForDoor(day, animationFor(day));
+    else playEffect('door');
     showCard(day, firstTime ? 'fade' : null);
   }
 }
@@ -262,7 +263,7 @@ function onDoorClick(id) {
 // Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
 async function playThenShow(day, btn, animation, { haptics = true } = {}) {
   state.busy = true;
-  playForAnimation(animation);
+  playForDoor(day, animation);
   try {
     const { skipped } = await playOpening(btn, animation, { haptics });
     showCard(day, skipped ? 'fade' : revealFor(animation));
@@ -402,7 +403,7 @@ async function startDevMode() {
       if (els.card.open) els.card.close();
       entry.btn.scrollIntoView({ block: 'center' });
       if (prefersReducedMotion()) {
-        playForAnimation(animation ?? animationFor(entry.day));
+        playForDoor(entry.day, animation ?? animationFor(entry.day));
         showCard(entry.day, 'fade');
       } else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false });
     },

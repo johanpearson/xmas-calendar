@@ -1,6 +1,7 @@
 // Dev panel. Only imported (and only touches the DOM) when the dev flag is set.
 import { formatDate, isValidDateKey } from './dates.js';
 import { ANIMATIONS, animationFor } from './themes.js';
+import { EFFECT_LABELS } from './audio.js';
 
 const ANIMATION_LABELS = {
   sparkle: 'Gnistor och brev',
@@ -187,14 +188,6 @@ function describeLastFetch(last) {
   return `Senast hämtat ${when}, för ${formatDate(last.date)}: nederbörd ${decimal(last.precipitation, 'mm')}, vind ${decimal(last.wind, 'm/s')}.`;
 }
 
-const SOUND_LABELS = {
-  sleighbells: 'Bjällror',
-  chime: 'Pling och arpeggio',
-  pop: 'Pop och glitter',
-  search: 'Sökarsvep och ding',
-  locked: 'Tonk (låst)',
-  click: 'Klick (Nästa)',
-};
 
 // Sound: every effect in turn, and Tomten's jingle. The panel stays open.
 function audioSection(audio, toast) {
@@ -206,7 +199,7 @@ function audioSection(audio, toast) {
   };
   const actions = el('div', 'dev-actions');
   actions.append(
-    button('Spela alla ljud', whenOn(() => audio.playAll((name) => toast(SOUND_LABELS[name] ?? name)))),
+    button('Spela alla ljud', whenOn(() => audio.playAll((name) => toast(EFFECT_LABELS[name] ?? name)))),
     button('Testa jingle', whenOn(() => audio.playJingle())),
   );
   node.append(actions);
