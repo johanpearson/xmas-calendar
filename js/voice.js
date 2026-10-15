@@ -1,4 +1,4 @@
-// Voices and creaks, rendered sample by sample into plain arrays (pure logic, testable
+// The cat's voice, rendered sample by sample into a plain array (pure logic, testable
 // with node --test; audio.js turns them into AudioBuffers).
 //
 // Oscillators with straight-line ramps sound mechanical, because nothing in them ever
@@ -125,36 +125,6 @@ export function renderVoice(spec, { rate = 44100, random = Math.random } = {}) {
   return finish(data, rate);
 }
 
-// Tomten's "ho ho ho": a deep, warm voice. Each syllable starts with a breathy "h" (breath
-// through the shape of the coming vowel, which is what an "h" is) and falls in pitch.
-export function hoSpec() {
-  const syllables = [[0, 118, 0.27, 1], [0.32, 110, 0.27, 0.82], [0.64, 101, 0.48, 0.7]];
-  const f0 = [];
-  const voicing = [[0, 0]];
-  const breath = [[0, 0]];
-  for (const [start, pitch, length, level] of syllables) {
-    breath.push([start + 0.005, 0], [start + 0.03, 0.4 * level], [start + 0.075, 0.32 * level], [start + 0.12, 0.07 * level], [start + length - 0.04, 0.05 * level], [start + length, 0]);
-    voicing.push([start + 0.05, 0], [start + 0.11, level], [start + length * 0.6, 0.8 * level], [start + length, 0]);
-    f0.push([start + 0.05, pitch * 1.04], [start + 0.13, pitch], [start + length, pitch * 0.82]);
-  }
-  return {
-    dur: 1.2,
-    f0,
-    voicing,
-    breath,
-    jitter: 0.012,
-    shimmer: 0.06,
-    vibrato: { rate: 5.2, depth: 0.012 },
-    // An "o" that rounds off a little towards "u" at the end of the laugh.
-    formants: [
-      { f: [[0, 490], [1.2, 430]], bw: [[0, 80]] },
-      { f: [[0, 850], [1.2, 770]], bw: [[0, 90]] },
-      { f: [[0, 2550]], bw: [[0, 140]] },
-      { f: [[0, 3350]], bw: [[0, 250]] },
-    ],
-  };
-}
-
 // A cat's "mjau": a high, slightly rough voice that opens from a closed "m" into "iaa"
 // and rounds off into "ow" while its pitch rises and falls.
 export function catSpec() {
@@ -173,36 +143,4 @@ export function catSpec() {
       { f: [[0, 4500]], bw: [[0, 320]] },
     ],
   };
-}
-
-/**
- * A creaking door: stick and slip. Each slip is a click that rings a few of the wood's
- * resonances (every click a little different); the clicks come slowly, then quickly
- * (a rising squeak), then slow down as the door stops, never quite evenly.
- */
-export function renderCreak({ rate = 44100, random = Math.random } = {}) {
-  const dur = 1.05;
-  const data = new Float32Array(Math.ceil(dur * rate));
-  const clicksPerSecond = [[0, 25], [0.12, 45], [0.25, 35], [0.42, 140], [0.55, 300], [0.68, 340], [0.8, 220], [0.92, 90], [1.0, 40]];
-  const swell = [[0, 0], [0.05, 0.6], [0.3, 0.5], [0.55, 1], [0.8, 0.8], [1.0, 0]];
-  const modes = [[480, 0.6, 0.006], [1050, 1, 0.004], [1700, 0.7, 0.003], [2600, 0.4, 0.002], [3800, 0.2, 0.0015]];
-  const length = Math.floor(rate * 0.025);
-  const kernels = Array.from({ length: 8 }, () => {
-    const parts = modes.map(([f, level, tau]) => [2 * Math.PI * f * (0.96 + 0.08 * random()), level * (0.7 + 0.3 * random()), tau]);
-    return Float32Array.from({ length }, (_, i) => parts.reduce((sum, [w, level, tau]) => sum + level * Math.sin((w * i) / rate) * Math.exp(-i / (tau * rate)), 0));
-  });
-  const speed = wobble(rate, 6, random);
-  const loud = wobble(rate, 11, random);
-  let next = 0.01;
-  for (let n = 0; n < data.length; n++) {
-    const s = speed();
-    const l = loud();
-    const t = n / rate;
-    if (t < next) continue;
-    const kernel = kernels[Math.floor(random() * kernels.length)];
-    const amp = curveAt(swell, t / dur) * (0.75 + 0.25 * l) * (0.8 + 0.2 * random());
-    for (let i = 0; i < length && n + i < data.length; i++) data[n + i] += amp * kernel[i];
-    next = t + (1 / (curveAt(clicksPerSecond, t / dur) * (1 + 0.1 * s))) * (0.92 + 0.16 * random());
-  }
-  return finish(data, rate, 150);
 }

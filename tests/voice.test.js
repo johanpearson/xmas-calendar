@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { curveAt, renderVoice, hoSpec, catSpec, renderCreak } from '../js/voice.js';
+import { curveAt, renderVoice, catSpec } from '../js/voice.js';
 
 // A repeatable random source, so the renders are the same on every run.
 function seeded(seed = 1) {
@@ -34,11 +34,7 @@ function pitchOf(data, rate, from, lo, hi) {
   return rate / lag;
 }
 
-for (const [name, render, seconds] of [
-  ['ho', (o) => renderVoice(hoSpec(), o), 1.2],
-  ['cat', (o) => renderVoice(catSpec(), o), 0.9],
-  ['door', (o) => renderCreak(o), 1.05],
-]) {
+for (const [name, render, seconds] of [['cat', (o) => renderVoice(catSpec(), o), 0.9]]) {
   test(`${name}: finite samples, a peak of 1, under 2 seconds`, () => {
     const data = render({ rate: 22050, random: seeded() });
     assert.equal(data.length, Math.ceil(seconds * 22050));
@@ -52,17 +48,13 @@ for (const [name, render, seconds] of [
   });
 }
 
-test('the cat rises and falls in pitch; "ho ho ho" is deep and falls', () => {
+test('the cat rises and falls in pitch', () => {
   const rate = 22050;
   const cat = renderVoice(catSpec(), { rate, random: seeded(3) });
   const start = pitchOf(cat, rate, 0.08, 300, 1200);
   const top = pitchOf(cat, rate, 0.32, 300, 1200);
   const end = pitchOf(cat, rate, 0.78, 300, 1200);
   assert.ok(top > start * 1.1 && top > end * 1.2, `cat ${start} -> ${top} -> ${end}`);
-  const ho = renderVoice(hoSpec(), { rate, random: seeded(4) });
-  const first = pitchOf(ho, rate, 0.12, 60, 300);
-  const last = pitchOf(ho, rate, 0.95, 60, 300);
-  assert.ok(first < 140 && last < first, `ho ${first} -> ${last}`);
 });
 
 test('every render is a little different, like a real voice', () => {

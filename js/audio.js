@@ -4,7 +4,7 @@
 // The top of this file is pure logic (notes, melodies, the mixer rules) so node --test
 // can import it; nothing here touches window or AudioContext at import time.
 
-import { renderVoice, hoSpec, catSpec, renderCreak } from './voice.js';
+import { renderVoice, catSpec } from './voice.js';
 import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
 
 // --- Notes and melodies ---
@@ -86,11 +86,11 @@ export const EFFECT_LABELS = {
   sparkle: 'Pling och arpeggio',
   gift: 'Pop och glitter',
   search: 'Sökarsvep och ding',
-  ho: 'Ho ho ho',
+  ho: 'Ho ho ho (horn)',
   sleigh: 'Släde som sveper förbi',
   knock: 'Knack (låst lucka)',
   fanfare: 'Fanfar (jakt)',
-  door: 'Knarrande dörr (öppnad lucka)',
+  door: 'Lucka som öppnas igen',
   click: 'Klick (Nästa)',
 };
 
@@ -129,7 +129,7 @@ export const fanfareFor = (day) => day?.type === 'jakt';
 // --- Mixer rules ---
 
 export const MASTER_GAIN = 0.25;
-export const MUSIC_GAIN = 0.32; // relative to the master: the music sits well below the effects
+export const MUSIC_GAIN = 0.8; // relative to the master: the background music, clearly audible but below the effects
 export const RESUME_GAP = 1.5; // seconds of quiet before the music comes back after a pause
 
 /**
@@ -261,7 +261,7 @@ function ensureContext() {
   blip.connect(ctx.destination);
   blip.start(0);
   setTimeout(() => safely(bellBank), 50); // ready before Tomten's first sleigh bells
-  setTimeout(() => safely(warmUp), 120); // and his "ho ho ho"
+  setTimeout(() => safely(warmUp), 120); // and the cat
   ctx.addEventListener?.('statechange', () => {
     if (ctx.state === 'running') flushPending();
   });
@@ -680,9 +680,7 @@ function brass(dest, t, freq, dur, peak) {
 // milliseconds, so one is kept ready, and a new one (every take a little different, like
 // a real voice) is made after each play when the page is idle.
 const RENDERERS = {
-  ho: (rate) => renderVoice(hoSpec(), { rate }),
   cat: (rate) => renderVoice(catSpec(), { rate }),
-  door: (rate) => renderCreak({ rate }),
 };
 
 function prerendered(name) {
@@ -756,10 +754,18 @@ const SOUNDS = {
     noise(runners, { t, dur: 1.5, peak: 0.035, attack: 0.6, freq: 2200, q: 0.6 });
   },
 
-  // Tomten's "ho ho ho", rendered by the voice synthesiser in voice.js.
+  // Tomten's "ho ho ho", played rather than spoken: three jolly notes on a warm, low
+  // horn (G, E, C, short short long), each scooping up into its pitch, with a little
+  // sparkle after. A synthesised voice sounded too artificial.
   ho(dest, t) {
-    playRendered(dest, t, prerendered('ho'), 0.3);
+    [['G3', 0, 0.2, 1], ['E3', 0.26, 0.2, 0.9], ['C3', 0.52, 0.5, 0.85]].forEach(([note, offset, dur, level]) => {
+      const freq = noteToFrequency(note);
+      brass(dest, t + offset, freq, dur, 0.11 * level);
+      tone(dest, { t: t + offset, freq: freq / 2, dur: dur + 0.1, peak: 0.08 * level, attack: 0.02 });
+    });
+    glitter(dest, t + 0.75, { count: 5, over: 0.4, peak: 0.025 });
   },
+
 
 
 
@@ -782,10 +788,16 @@ const SOUNDS = {
     glitter(dest, t + 0.4, { count: 6, over: 0.5, peak: 0.03 });
   },
 
-  // A creaking door, rendered click by click in voice.js.
+  // A door already opened, opened again: a soft wooden knock of the little door, a short
+  // swoosh as it swings and a small two-note plink. (A synthesised creak sounded odd.)
   door(dest, t) {
-    playRendered(dest, t, prerendered('door'), 0.17);
+    tone(dest, { t, freq: 130, freqTo: 85, dur: 0.12, peak: 0.4, attack: 0.002 });
+    noise(dest, { t, dur: 0.03, peak: 0.08, filter: 'lowpass', freq: 900 });
+    noise(dest, { t: t + 0.04, dur: 0.38, peak: 0.06, attack: 0.12, q: 1.2, freq: 500, sweep: [[0.35, 1500]] });
+    bell(dest, t + 0.3, noteToFrequency('G6'), { peak: 0.1, dur: 0.6 });
+    bell(dest, t + 0.42, noteToFrequency('C7'), { peak: 0.09, dur: 0.7 });
   },
+
 
 
 

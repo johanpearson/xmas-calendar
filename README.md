@@ -371,10 +371,10 @@ Alla är syntetiska och kortare än 2 s. I koden: `sfx.play('cat')` (eller `play
 
 | Händelse | Effekt |
 |---|---|
-| tomten dyker upp | `sleigh` (släde med bjällror som sveper förbi från vänster till höger), `ho` ("ho ho ho") och jingeln |
+| tomten dyker upp | `sleigh` (släde med bjällror som sveper förbi från vänster till höger), `ho` ("ho ho ho" spelat på ett horn) och jingeln |
 | låst lucka | `knock` (två dova knackningar) |
 | jakt-lucka öppnas | luckans ljud, sedan `fanfare` |
-| redan öppnad lucka öppnas igen | `door` (knarrande dörr) |
+| redan öppnad lucka öppnas igen | `door` (mjukt träklonk, ett sus och ett litet pling) |
 | "Nästa" hos tomten | `click` |
 
 Luckans eget ljud väljs med `sound` i `days.json`:
@@ -518,7 +518,7 @@ och bumpa sedan `CACHE_VERSION`.
   takten.
 - Tomtens entré är nu släden (`sleigh`), "ho ho ho" efter 1,1 s och jingeln efter 2,3 s.
   Före första trycket spelas bara jingeln (som tidigare), inte släden eller "ho ho ho".
-- `door` (knarrande dörr) används när en redan öppnad lucka öppnas igen. Tidigare var det
+- `door` används när en redan öppnad lucka öppnas igen. Tidigare var det
   tyst då. Jakt-luckor får sitt eget ljud (`sneak` i årets innehåll) och fanfaren 1,1 s
   senare.
 - `sound` får vara vilken effekt som helst i `EFFECTS`, även typernas standardljud
@@ -537,18 +537,19 @@ och bumpa sedan `CACHE_VERSION`.
   - Bakgrundsmusiken **pausas** nu i stället för att sänkas när en temalåt eller tomten
     spelar, och fortsätter med en ny låt (eller samma låt från början) efteråt. Att
     fortsätta mitt i en låt går inte, eftersom hela låten schemaläggs när den startar.
-  - `cat`, `ho` och `door` är omgjorda från grunden, eftersom oscillatorer med raka
-    ramper lät mekaniska. De renderas nu sampel för sampel i `js/voice.js`. `cat` och
-    `ho` kommer från en liten röstsyntes: glottispulser vars tonhöjd och styrka vinglar
-    lite från period till period, andningsbrus och resonatorer för munhålan (formanter)
-    som glider mjukt mellan vokalerna. `h` i "ho" är andning genom samma vokalform, som
-    ett riktigt h. `door` är ett tåg av ojämna små klick som var och ett klingar lite
-    olika i träets resonanser. Varje uppspelning blir lite olika. Ljuden renderas i förväg
-    (några tiotals millisekunder) så att de inte fördröjs.
-  - Katten följer inte längre önskemålet om en ren sinusvåg genom bandpassfilter, och
-    ho ho ho använder inte längre en sågtandsvåg: båda lät för konstgjorda.
-  - Effekterna är kontrollerade genom att rendera dem till WAV och mäta tonhöjdskurvan,
-    men inte avlyssnade.
+  - `cat` renderas sampel för sampel i `js/voice.js` av en liten röstsyntes:
+    glottispulser vars tonhöjd och styrka vinglar lite från period till period,
+    andningsbrus och resonatorer för munhålan (formanter) som glider mjukt från "m" via
+    "iaa" till "ow". Varje uppspelning blir lite olika, och en renderas i förväg så att den
+    inte fördröjs. Den följer inte längre önskemålet om en ren sinusvåg genom
+    bandpassfilter, som lät som en vissling.
+  - `ho` och `door` försökte först låta äkta (en syntetisk röst och ett syntetiskt
+    knarr) men lät konstgjorda. De är nu medvetet tecknade: "ho ho ho" är tre glada toner
+    på ett varmt, mörkt horn (G, E, C, kort kort lång) med glitter efteråt, och `door` är
+    ett mjukt träklonk, ett kort sus och ett litet pling i två toner.
+  - Bakgrundsmusiken är 2,5 gånger så stark som förut (`MUSIC_GAIN` 0,8 i stället för
+    0,32), så att den hörs utan full volym på telefonen. Effekter och temalåter är
+    oförändrade.
 
 ### Väder (milstolpe 10)
 
