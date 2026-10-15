@@ -44,6 +44,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/weather.js    väder: prognoskälla (provider), klassning, cache (milstolpe 10)
   js/melodies.js   melodier som data och logik för Blandat (milstolpe 11)
   js/scenes.js     dagsscener: register, SVG och cleanup (milstolpe 12)
+  js/card.js       ren logik: kortets stycken och val av plan A eller B (milstolpe 13)
   css/scenes.css   dagsscenernas animationer (milstolpe 12)
   content/days.json
   content/tomte.json
@@ -56,6 +57,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/weather.test.js  js/weather.js: klassning, cache, timeout, fel
   tests/melodies.test.js js/melodies.js: notdata och blandningslogik
   tests/scenes.test.js   js/scenes.js: registret och kopplingen till days.json
+  tests/card.test.js     js/card.js: stycken, plan A/B och reservvärden (milstolpe 13)
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -76,7 +78,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
       "title": "När första ljuset brinner",
       "verse": "står julens dörr på glänt\noch alla människor glädjas",
       "body": "Text, \n separerar stycken. Ingen HTML.",
-      "alternative": { "title": "Plan B", "body": "Valfri reservplan vid dåligt väder" }
+      "alternative": { "title": "När första ljuset brinner", "verse": "…", "body": "Reservplan vid dåligt väder" }
     }
   ]
 }
@@ -86,9 +88,9 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
 - `type`: `ledtrad` | `litet` | `uppdrag` | `rim` | `jakt`. Styr ikon, färgaccent och öppna-animation.
 - `label`: valfri text på luckan, annars dagens nummer i månaden.
 - `animation`: valfri. Överstyr typens öppna-animation: `sparkle` (standard för `ledtrad`), `gift` (`litet`), `bells` (`uppdrag`), `ribbon` (`rim`), `magnifier` (`jakt`), `confetti` eller `snowburst`. Okänt värde ger typens standard.
-- `alternative`: valfri. Om den finns visas knappen "Dåligt väder? Visa plan B" som byter innehåll i kortet.
+- `alternative`: valfri, `{ title, verse, body }`. Plan B vid dåligt väder: väljs automatiskt efter prognosen för luckans datum och kan alltid bytas för hand (milstolpe 13). `title` och `verse` är valfria och faller tillbaka på luckans egna.
 - `verse`: valfri sträng, rader separerade med `\n`. Visas i kursiv stil direkt under titeln i kortet, före `body`, en rad per radbrytning. Gäller alla luckor, även specialrutan. Renderas med `textContent` (aldrig `innerHTML`). Plan B visar `alternative.verse` om den finns, annars luckans `verse`.
-- `body` renderas med `textContent` (aldrig `innerHTML`), stycken delas på `\n`.
+- `body` renderas med `textContent` (aldrig `innerHTML`), stycken delas på `\n`. En tom rad (`\n\n`) ger extra avstånd mellan stycken. `body` får vara tom om `verse` finns.
 - `sound`: valfri. Namnet på en ljudeffekt som spelas när luckan öppnas i stället för typens standardljud (milstolpe 11). Måste vara en känd effekt i `js/audio.js`.
 - `music`: valfri. Namnet på en melodi i `js/melodies.js` som spelas en gång när luckan öppnas (milstolpe 11).
 - `scene`: valfri. Nyckeln till en dagsscen i `js/scenes.js` som visas bakom texten i kortet när luckan öppnas (milstolpe 12). Måste finnas i registret.
@@ -242,6 +244,21 @@ Skapa dessa med riktigt innehåll:
    - **Dev-läge:** alla scener med "Spela upp" (förhandsvisning i kortet utan att markera eller nollställa luckor) och "Visa dagens huvudskärmsdekor" för valfritt datum.
    - **Tester:** alla `scene` i `days.json` finns i registret, cleanup tar bort alla noder och timers. Playwright tar skärmdumpar vid 360 px av slutläget för varje scen och av huvudskärmen 2026-12-13, 2026-12-04 och 2026-12-24.
    - **PWA:** `js/scenes.js` och `css/scenes.css` precachas och `CACHE_VERSION` bumpas.
+
+13. **Innehållsuppdatering och automatisk plan B.** Innehållet redigeras i Excel och konverteras till `content/days.json` och `content/tomte.json`. Appen anpassas till det nya innehållet och plan B väljs automatiskt efter vädret. Klar när: punkterna nedan fungerar på 360 px, `tests/card.test.js`, `tests/content.test.js`, `tests/tomte.test.js` och e2e-testerna är gröna och `CACHE_VERSION` är bumpad med `js/card.js` i precache.
+   - **`alternative`** har `title`, `verse` och `body`. Plan B visar `alternative.title` och `alternative.verse` (saknas de: luckans egna) med `alternative.body`. Titel och vers ser likadana ut i plan A och B, bara texten skiljer.
+   - **Tom `body`** är tillåten om luckan har `verse`: kortet visar titel och kursiv vers utan tom text eller extra avstånd.
+   - **Tomma rader** i `body` ger extra avstånd mellan stycken, de försvinner inte.
+   - **Validering:** typen `jakt` och fälten `scene`, `sound` och `music` tillåts, `body` får vara tom om `verse` finns och `alternative.verse` är tillåtet. Varje `scene`, `sound` och `music` i `days.json` ska finnas i koden.
+   - **Automatisk plan B:** gäller varje lucka med `alternative`. När luckan öppnas anropas `getWeatherVariant([luckans datum])` i `js/weather.js`, samma funktion och cache som tomtens väderscener.
+     - `bad`: plan B visas direkt med raden "Tomten har tittat på vädret och det ser blött eller blåsigt ut, så det blir plan B." ovanför texten, och knappen "Visa plan A".
+     - `good` eller `unknown`: huvudtexten med knappen "Dåligt väder? Visa plan B".
+     - Knappen fungerar alltid åt båda hållen oavsett prognos.
+     - Hämtningen fördröjer aldrig öppnandet märkbart: har prognosen inte kommit inom cirka 800 ms öppnas luckan med huvudtexten, och blir svaret sedan `bad` byts den till plan B med en mjuk övergång, men inte om Elin redan bytt för hand.
+     - Prognosen på luckans dag gäller, även om den skiljer sig från vad tomten sa tidigare i veckan.
+   - **Dev-läge:** väljaren "Prognos" (Riktig, Bra, Dålig, Okänd) styr även plan B.
+   - **Tester:** `node --test` för valet av plan A eller B (bad, good, unknown, timeout, manuellt byte åt båda hållen) och reservvärdena för titel och vers. Playwright med mockad Open-Meteo och simulerat datum 2026-12-20 (dålig, bra och okänd prognos, knappen åt båda hållen, samma titel och vers), plus luckorna 2026-12-02 (tom `body`) och 2026-12-08 (tom rad i `body`). Skärmdumpar vid 360 px.
+   - **PWA:** `js/card.js` precachas, `CACHE_VERSION` bumpas, `content/days.json` och `content/tomte.json` ligger kvar i precache med stale-while-revalidate.
 
 ## Datamodell: `content/tomte.json`
 
