@@ -6,6 +6,46 @@
 
 import { renderVoice, catSpec } from './voice.js';
 import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
+import { noteSfx } from './latency.js';
+
+// --- Sync with the animations: adjust here (milestone 14) ---
+//
+// When an effect is heard, in ms relative to the start of the animation it belongs to
+// (the opening animation's first frame, the locked door's shake, the card for an opened
+// door, Tomten's entrance). Negative: the sound comes first. The engine subtracts the
+// device's own output latency (baseLatency + outputLatency), so these are the times you
+// hear and see; a sound can never start before the tap, so values below about -20 ms
+// all mean "as early as possible".
+//
+// SFX_LEAD_MS moves every effect at once (e.g. -15 if all sounds feel late on a phone),
+// SFX_OFFSETS_MS moves one (e.g. gift: 520 to hit the lid lifting instead of the door).
+export const SFX_LEAD_MS = 0;
+export const SFX_OFFSETS_MS = {
+  // Doors: the sound's onset is the door swinging open, the first frame.
+  bells: 0, // shakes from the start, the bells pop up while it rings
+  twinkle: 0,
+  cat: 0,
+  sneak: 0,
+  camera: 0, // the shutter clicks as the door opens
+  paper: 0,
+  candy: 0,
+  chime: 0, // also an opened door: the card fades in
+  splat: 0,
+  pop: 0, // the cork pops as the door opens
+  mystery: 0, // swells slowly, no hard onset
+  popcorn: 0,
+  glogg: 0,
+  bingo: 0, // its ding comes 1.15 s in, as the card appears
+  unwrap: 0,
+  sparkle: 0, // pling on the door, the arpeggio while the letter flies out
+  gift: 0, // pop on the door (520: on the lid lifting)
+  search: 20, // its ding (0.8 s in) lands on the magnifier finding the note (820 ms)
+  // The app's own sounds.
+  sleigh: 0, // Tomten's entrance
+  knock: 0, // the locked door's shake
+  fanfare: 0, // FANFARE_DELAY after a treasure hunt's door
+  click: 0,
+};
 
 // --- Notes and melodies ---
 
@@ -166,6 +206,124 @@ export function mixFor({ soundOn, musicOn, unlocked, visible }) {
   };
 }
 
+// --- Scheduling (milestone 14) ---
+//
+// An effect is started on the audio clock, a hair ahead (LOOKAHEAD) so the audio thread
+// never gets a start time that has already passed, and never with setTimeout. A running
+// context is never awaited; a suspended one is asked to resume and the sound waits on
+// its clock (which stands still until then). A prerendered buffer is one
+// AudioBufferSourceNode; without one the effect is synthesised on the spot (fallback).
+
+export const LOOKAHEAD = 0.005; // seconds
+export const DUCK_RAMP = 0.08; // seconds: the background music fades this fast for a theme song or Tomten
+
+/** What playing needs: { resume } a context that is not running, { source } 'buffer' or 'live'. */
+export function planPlayback({ state, hasBuffer }) {
+  return { resume: state !== 'running', source: hasBuffer ? 'buffer' : 'live' };
+}
+
+// The animation's first frame comes about one frame after the tap that started it (the
+// sound starts in the event handler, the drawing in the next requestAnimationFrame).
+export const ANIMATION_FRAME_MS = 16;
+
+/** SFX_LEAD_MS plus the effect's own offset, in ms. */
+export const effectOffsetMs = (name) => SFX_LEAD_MS + (SFX_OFFSETS_MS[name] ?? 0);
+
+/**
+ * Seconds from now until an effect should start, so that it is heard offsetMs after the
+ * animation's first frame: delay (seconds, e.g. FANFARE_DELAY) plus the first frame plus
+ * the offset, minus the output latency (seconds). Never negative.
+ */
+export function effectDelay({ delay = 0, offsetMs = 0, latency = 0 }) {
+  return Math.max(0, delay + (ANIMATION_FRAME_MS + offsetMs) / 1000 - latency);
+}
+
+/** When an effect starts on the audio clock: now (ctx.currentTime) + LOOKAHEAD + delay (seconds). */
+export function effectStartTime({ now, delay = 0 }) {
+  return now + LOOKAHEAD + Math.max(0, delay);
+}
+
+/** The output latency of a context in seconds (0 where the browser does not say). */
+export const outputLatencyOf = (ctx) => (Number(ctx.baseLatency) || 0) + (Number(ctx.outputLatency) || 0);
+
+/**
+ * Starts one effect on ctx, synchronously: { buffer } plays as a buffer source, else
+ * live(dest, at) synthesises it. delay and offsetMs as in effectDelay. Everything goes
+ * through its own gain into dest, so the returned handle can stop it
+ * ({ at, source, stop(fade) }).
+ */
+export function startEffect(ctx, { buffer = null, dest, delay = 0, offsetMs = 0, live }) {
+  const plan = planPlayback({ state: ctx.state, hasBuffer: Boolean(buffer) });
+  if (plan.resume) Promise.resolve(ctx.resume?.()).catch(() => {}); // never awaited
+  const at = effectStartTime({ now: ctx.currentTime, delay: effectDelay({ delay, offsetMs, latency: outputLatencyOf(ctx) }) });
+  const out = ctx.createGain();
+  out.connect(dest);
+  let src = null;
+  if (plan.source === 'buffer') {
+    src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(out);
+    src.start(at);
+    src.onended = () => out.disconnect();
+  } else live(out, at);
+  return {
+    at,
+    source: plan.source,
+    stop(fade = 0.04) {
+      try {
+        const t = ctx.currentTime;
+        out.gain.cancelScheduledValues(t);
+        out.gain.setValueAtTime(out.gain.value, t);
+        out.gain.linearRampToValueAtTime(0, t + fade);
+        src?.stop(t + fade + 0.01);
+      } catch {
+        // Already stopped or the context is gone.
+      }
+    },
+  };
+}
+
+// Prerendering: low sample rates keep the buffers small (an effect of 1.5 s in stereo
+// at 22050 Hz is about 260 kB); the sleigh bells get a little more for their shimmer.
+export const RENDER_RATE = 22050;
+export const RENDER_RATES = { bells: 32000, sleigh: 32000 };
+export const MAX_THEME_BUFFERS = 2; // theme songs are long (up to 20 s): only the latest ones are kept
+
+/**
+ * The order in which sounds are prerendered: today's door first, then the app's own
+ * effects, the doors already unlocked (newest first), Tomten's sleigh and jingle and
+ * last the theme songs (today's first). doors: [{ date, effect, fanfare, music }].
+ * Locked doors are left out. Keys: "effect:<name>", "jingle", "theme:<melody>".
+ */
+export function prerenderOrder(doors, today) {
+  const unlocked = doors.filter((d) => d.date <= today).sort((a, b) => b.date.localeCompare(a.date));
+  const todays = unlocked.filter((d) => d.date === today);
+  const keys = [
+    ...todays.flatMap(doorEffectKeys),
+    'effect:knock',
+    'effect:chime',
+    'effect:click',
+    ...unlocked.flatMap(doorEffectKeys),
+    'effect:sleigh',
+    'jingle',
+    ...unlocked.filter((d) => d.music).map((d) => `theme:${d.music}`),
+  ];
+  return [...new Set(keys)];
+}
+
+/**
+ * The sounds prerendered already before the first tap: today's door only. Elin's first
+ * tap of the day is usually on that door, and without its buffer the sound would be
+ * synthesised during the tap. (An offline context needs no user gesture.)
+ */
+export function startupKeys(doors, today) {
+  const todays = doors.filter((d) => d.date === today);
+  return [...new Set(todays.flatMap(doorEffectKeys))];
+}
+
+// A door's effects as prerender keys: its sound, and a treasure hunt's fanfare.
+const doorEffectKeys = (d) => [d.effect, d.fanfare && 'fanfare'].filter(Boolean).map((name) => `effect:${name}`);
+
 // --- The engine (browser only) ---
 //
 // Signal path: effects -> fx bus ┐
@@ -177,8 +335,10 @@ export function mixFor({ soundOn, musicOn, unlocked, visible }) {
 
 const MUSIC_GAP = 6; // seconds of silence before one chosen song plays again (the mix: MIX_GAP)
 const JINGLE_DELAY = 1.4; // Tomten's entrance: the sleigh passes by, then his jingle starts
-// Events that count as user activation (pointerup covers touch, click comes after a mouse press).
-const GESTURES = ['pointerup', 'touchend', 'click', 'keydown'];
+// User gestures. pointerdown comes first, so the context exists (and wakes up) before the
+// door's own pointerdown handler plays anything. On a phone's very first touch it is not
+// yet a user activation: the context then starts on pointerup or touchend of that tap.
+const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
 
 const engine = {
   prefs: null,
@@ -186,7 +346,8 @@ const engine = {
   master: null,
   fx: null,
   musicBus: null,
-  noise: null,
+  noise: new Map(), // sample rate -> a second of white noise
+  bells: new Map(), // sample rate -> the sleigh bell bank
   soundOn: true,
   musicChoice: 'off', // the music menu: "off", "mix" or a melody key
   unlocked: false,
@@ -194,13 +355,23 @@ const engine = {
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
   jingle: null, // { gain }
   theme: null, // { key, gain, end, timer }
-  rendered: {}, // sounds rendered ahead of time (see prerendered)
   pauses: new Map(), // what pauses the music -> when it ends (see pausedUntil)
+  buffers: new Map(), // prerendered sounds: key (see prerenderOrder) -> AudioBuffer
+  renderPlan: () => [], // the keys to prerender, in order (set by the app)
+  startupPlan: () => [], // the few allowed before the first tap
+  rendering: false,
+  renderFailed: new Set(),
   music: { bus: null, until: 0, timer: null, current: null, previous: null, paused: false },
   listeners: new Set(),
 };
 
 const AudioContextClass = () => globalThis.AudioContext ?? globalThis.webkitAudioContext ?? null;
+const OfflineContextClass = () => globalThis.OfflineAudioContext ?? globalThis.webkitOfflineAudioContext ?? null;
+
+// The context the synthesis building blocks build on: the live one, or an offline one
+// while a sound is being prerendered (see renderOffline).
+let building = null;
+const ac = () => building ?? engine.ctx;
 
 export function audioSupported() {
   return AudioContextClass() !== null;
@@ -257,8 +428,7 @@ function ensureContext() {
   blip.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
   blip.connect(ctx.destination);
   blip.start(0);
-  setTimeout(() => safely(bellBank), 50); // ready before Tomten's first sleigh bells
-  setTimeout(() => safely(warmUp), 120); // and the cat
+  pumpRenders(); // prerender in idle moments from now on
   ctx.addEventListener?.('statechange', () => {
     if (ctx.state === 'running') flushPending();
   });
@@ -320,12 +490,15 @@ export function initAudio(prefs) {
       if (e.key !== 'Escape') safely(unlock); // Esc is no user activation
     };
     for (const type of GESTURES) document.addEventListener(type, onGesture, { capture: true, passive: true });
-    document.addEventListener('visibilitychange', () =>
+    // On the window in the capture phase: runs before the app's own visibilitychange work,
+    // so the context is already waking up while the calendar refreshes.
+    const onVisibility = () =>
       safely(() => {
         engine.visible = document.visibilityState !== 'hidden';
         apply();
-      }),
-    );
+      });
+    window.addEventListener('visibilitychange', onVisibility, { capture: true });
+    window.addEventListener('pageshow', onVisibility);
   });
 }
 
@@ -415,21 +588,23 @@ export function nextSong() {
 
 const rand = (min, max) => min + Math.random() * (max - min);
 
-// A shared second of white noise for knocks, whooshes and the sleigh bells' shimmer.
+// A shared second of white noise for knocks, whooshes and the sleigh bells' shimmer
+// (one per sample rate: the live context and the offline renderer differ).
 function noiseBuffer() {
-  if (!engine.noise) {
-    const { ctx } = engine;
-    const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+  const ctx = ac();
+  let buffer = engine.noise.get(ctx.sampleRate);
+  if (!buffer) {
+    buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    engine.noise = buffer;
+    engine.noise.set(ctx.sampleRate, buffer);
   }
-  return engine.noise;
+  return buffer;
 }
 
 // An envelope: a soft attack to `peak`, then an exponential decay to silence at t + dur.
 function envelope(t, dur, peak, attack) {
-  const gain = engine.ctx.createGain();
+  const gain = ac().createGain();
   gain.gain.value = 0; // silent until t, not the default 1
   gain.gain.setValueAtTime(0.0001, t);
   gain.gain.linearRampToValueAtTime(peak, t + attack);
@@ -439,7 +614,7 @@ function envelope(t, dur, peak, attack) {
 
 // One oscillator through an envelope. freqTo glides the pitch over the note.
 function tone(dest, { t, freq, dur, type = 'sine', peak = 0.2, attack = 0.005, freqTo = null }) {
-  const { ctx } = engine;
+  const ctx = ac();
   const osc = ctx.createOscillator();
   osc.type = type;
   osc.frequency.value = freq;
@@ -454,7 +629,7 @@ function tone(dest, { t, freq, dur, type = 'sine', peak = 0.2, attack = 0.005, f
 
 // Filtered noise through an envelope. `sweep` is a list of [time offset, frequency].
 function noise(dest, { t, dur, peak = 0.2, attack = 0.003, filter = 'bandpass', freq = 1000, q = 1, sweep = null }) {
-  const { ctx } = engine;
+  const ctx = ac();
   const src = ctx.createBufferSource();
   src.buffer = noiseBuffer();
   src.loop = true;
@@ -472,35 +647,56 @@ function noise(dest, { t, dur, peak = 0.2, attack = 0.003, filter = 'bandpass', 
   src.onended = () => gain.disconnect();
 }
 
+const BELL_BANK_RATE = 32000;
+
 // A small set of single sleigh bell strikes, synthesised once into buffers. Each bell
 // has its own inharmonic partials, each doubled a little sharp so it shimmers (beats),
 // and starts with the click of its pellet. Playing many of them with slightly different
 // speeds, levels and pans sounds like a real shake instead of one tone repeated.
+// One bank per sample rate; partials above the rate's Nyquist limit are left out.
 function bellBank() {
-  if (engine.bells) return engine.bells;
-  const { ctx } = engine;
-  const rate = ctx.sampleRate;
+  const ctx = ac();
+  // The live bank is made at most at BELL_BANK_RATE: it may be made during the very first
+  // tap (before anything is prerendered), and half the samples take half the time.
+  const rate = Math.min(ctx.sampleRate, BELL_BANK_RATE);
+  if (engine.bells.has(rate)) return engine.bells.get(rate);
   const length = Math.floor(rate * 0.5);
   const fadeFrom = Math.floor(length * 0.8);
   const PARTIALS = [[1, 1, 0.16], [1.52, 0.65, 0.12], [2.03, 0.5, 0.09], [2.71, 0.35, 0.07], [3.39, 0.22, 0.05], [4.18, 0.14, 0.035]];
-  engine.bells = Array.from({ length: 6 }, () => {
+  const bank = Array.from({ length: 6 }, () => {
     const base = rand(2400, 3600);
-    const partials = PARTIALS.map(([ratio, level, tau]) => ({
-      w: 2 * Math.PI * base * ratio * rand(0.97, 1.03),
-      level: level * rand(0.7, 1),
-      tau: tau * rand(0.7, 1.3),
-      phase: rand(0, 2 * Math.PI),
-      beat: rand(1.002, 1.006),
-    }));
+    // Each partial is two sines (the second a little sharp, so they beat) that decay
+    // exponentially. Computed by rotation and multiplication per sample rather than
+    // Math.sin and Math.exp: several times faster, the same sound.
+    const oscs = [];
+    for (const [ratio, level, tau] of PARTIALS) {
+      if (base * ratio * 1.04 >= rate * 0.45) continue; // above the Nyquist limit
+      const w = 2 * Math.PI * base * ratio * rand(0.97, 1.03);
+      const phase = rand(0, 2 * Math.PI);
+      const beat = rand(1.002, 1.006);
+      const decay = Math.exp(-1 / (tau * rand(0.7, 1.3) * rate));
+      const amp = level * rand(0.7, 1);
+      // [cos, sin, step cos, step sin, amplitude, decay]
+      oscs.push([Math.cos(phase), Math.sin(phase), Math.cos(w / rate), Math.sin(w / rate), amp, decay]);
+      oscs.push([1, 0, Math.cos((w * beat) / rate), Math.sin((w * beat) / rate), amp * 0.5, decay]);
+    }
     const buffer = ctx.createBuffer(1, length, rate);
     const data = buffer.getChannelData(0);
+    const click = Math.exp(-1 / (0.004 * rate)); // the pellet's click dies in a few ms
+    let clickLevel = 0.8;
     let peak = 0;
     for (let i = 0; i < length; i++) {
-      const time = i / rate;
-      let v = (Math.random() * 2 - 1) * Math.exp(-time / 0.004) * 0.8;
-      for (const p of partials) {
-        const ring = p.level * Math.exp(-time / p.tau);
-        v += ring * (Math.sin(p.w * time + p.phase) + 0.5 * Math.sin(p.w * p.beat * time));
+      let v = 0;
+      if (clickLevel > 1e-5) {
+        v = (Math.random() * 2 - 1) * clickLevel;
+        clickLevel *= click;
+      }
+      for (const o of oscs) {
+        v += o[4] * o[1];
+        const c = o[0] * o[2] - o[1] * o[3];
+        o[1] = o[1] * o[2] + o[0] * o[3];
+        o[0] = c;
+        o[4] *= o[5];
       }
       if (i > fadeFrom) v *= (length - i) / (length - fadeFrom);
       data[i] = v;
@@ -509,13 +705,14 @@ function bellBank() {
     for (let i = 0; i < length; i++) data[i] /= peak;
     return buffer;
   });
-  return engine.bells;
+  engine.bells.set(rate, bank);
+  return bank;
 }
 
 // One bell from the bank at time t, with a level (0-1), a stereo position (-1 to 1) and
 // a playback speed (higher is brighter).
 function jingleHit(dest, t, level, pan, rate = rand(0.94, 1.08)) {
-  const { ctx } = engine;
+  const ctx = ac();
   const bells = bellBank();
   const src = ctx.createBufferSource();
   src.buffer = bells[Math.floor(Math.random() * bells.length)];
@@ -590,7 +787,7 @@ function playSong(dest, t, song, bpm = song.bpm, { peak = 0.16 } = {}) {
 
 // A stereo position for whatever is connected to the returned node (-1 left, 1 right).
 function pannedTo(dest, pan) {
-  const { ctx } = engine;
+  const ctx = ac();
   if (!ctx.createStereoPanner) return dest;
   const panner = ctx.createStereoPanner();
   panner.pan.value = Math.max(-1, Math.min(1, pan));
@@ -600,7 +797,7 @@ function pannedTo(dest, pan) {
 
 // A gain that rises to `peak`, holds and then fades out: for sounds that sustain.
 function sustained(t, dur, peak, attack, release) {
-  const gain = engine.ctx.createGain();
+  const gain = ac().createGain();
   gain.gain.value = 0;
   gain.gain.setValueAtTime(0.0001, t);
   gain.gain.linearRampToValueAtTime(peak, t + attack);
@@ -612,7 +809,7 @@ function sustained(t, dur, peak, attack, release) {
 // An oscillator into `into` (usually an envelope), with a pitch path (a list of
 // [time offset, frequency]) and an optional vibrato ({ rate, depth } in Hz).
 function voice(into, { t, dur, type = 'sine', path, vibrato = null }) {
-  const { ctx } = engine;
+  const ctx = ac();
   const osc = ctx.createOscillator();
   osc.type = type;
   osc.frequency.value = path[0][1];
@@ -637,7 +834,7 @@ function voice(into, { t, dur, type = 'sine', path, vibrato = null }) {
 
 // A biquad filter at a frequency (set right away, see noise()) with an optional sweep.
 function filter(type, freq, q, t, sweep = []) {
-  const biquad = engine.ctx.createBiquadFilter();
+  const biquad = ac().createBiquadFilter();
   biquad.type = type;
   biquad.Q.value = q;
   biquad.frequency.value = freq;
@@ -673,28 +870,13 @@ function brass(dest, t, freq, dur, peak) {
   }
 }
 
-// The sounds rendered in JavaScript (voice.js). Rendering takes a few tens of
-// milliseconds, so one is kept ready, and a new one (every take a little different, like
-// a real voice) is made after each play when the page is idle.
-const RENDERERS = {
-  cat: (rate) => renderVoice(catSpec(), { rate }),
-};
-
-function prerendered(name) {
-  const rate = engine.ctx.sampleRate;
-  const ready = engine.rendered[name] ?? RENDERERS[name](rate);
-  engine.rendered[name] = null;
-  setTimeout(() => safely(() => (engine.rendered[name] ??= RENDERERS[name](rate))), 400);
-  return ready;
-}
-
-function warmUp() {
-  for (const name of Object.keys(RENDERERS)) engine.rendered[name] ??= RENDERERS[name](engine.ctx.sampleRate);
-}
+// The cat is rendered in JavaScript (voice.js), which takes a few tens of milliseconds:
+// it is normally played from the prerendered buffer (see prerender), this is the fallback.
+const catSamples = (rate) => renderVoice(catSpec(), { rate });
 
 // Plays samples rendered in JavaScript (voice.js) at time t and level `level`.
 function playRendered(dest, t, samples, level) {
-  const { ctx } = engine;
+  const ctx = ac();
   const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
   buffer.getChannelData(0).set(samples);
   const src = ctx.createBufferSource();
@@ -817,7 +999,7 @@ const SOUNDS = {
 
   // A cat's "mjau", rendered by the voice synthesiser in voice.js.
   cat(dest, t) {
-    playRendered(dest, t, prerendered('cat'), 0.16);
+    playRendered(dest, t, catSamples(ac().sampleRate), 0.16);
   },
 
 
@@ -954,26 +1136,178 @@ const SOUNDS = {
 
 const ready = () => engine.ctx && mixFor(state()).effects;
 
-/** Plays one of EFFECTS, after `delay` seconds. Silent (and harmless) before the first tap, while hidden or when off. */
+/**
+ * Plays one of EFFECTS, `delay` seconds from now on the audio clock (plus its offset, see
+ * SFX_OFFSETS_MS): from its prerendered buffer when it is ready, else synthesised on the
+ * spot. Silent (and harmless) before the first tap, while hidden or when off. Returns a
+ * handle with stop(), or null.
+ */
 export function playEffect(name, delay = 0) {
-  safely(() => {
-    if (!ready() || !SOUNDS[name]) return;
-    SOUNDS[name](engine.fx, engine.ctx.currentTime + 0.01 + delay);
-  });
+  return (
+    safely(() => {
+      if (!ready() || !SOUNDS[name]) return null;
+      const calledAt = performance.now();
+      const { ctx } = engine;
+      const handle = startEffect(ctx, {
+        buffer: engine.buffers.get(`effect:${name}`) ?? null,
+        dest: engine.fx,
+        delay,
+        offsetMs: effectOffsetMs(name),
+        live: (dest, at) => SOUNDS[name](dest, at),
+      });
+      noteSfx({ name, source: handle.source, calledAt, at: handle.at, ...clockInfo(ctx) });
+      return handle;
+    }) ?? null
+  );
 }
+
+// The audio clock and its latencies, for the dev panel's latency log.
+function clockInfo(ctx) {
+  return {
+    state: ctx.state,
+    currentTime: ctx.currentTime,
+    baseLatency: ctx.baseLatency,
+    outputLatency: ctx.outputLatency,
+  };
+}
+
+/** "none" before the first tap, else the AudioContext's state (dev panel). */
+export const audioState = () => engine.ctx?.state ?? 'none';
 
 /** The sound effects by name: sfx.play('cat'). */
 export const sfx = { play: playEffect, names: EFFECTS, labels: EFFECT_LABELS };
 
 /** The sound that goes with an opening animation (see soundForAnimation). */
 export function playForAnimation(animation) {
-  playEffect(soundForAnimation(animation));
+  return playEffect(soundForAnimation(animation));
 }
 
-/** A door opens: its own sound or its animation's, and a fanfare for a treasure hunt. */
+/** A door opens: its own sound or its animation's, and a fanfare for a treasure hunt. Returns the handles. */
 export function playForDoor(day, animation) {
-  playEffect(soundForDoor(day, animation));
-  if (fanfareFor(day)) playEffect('fanfare', FANFARE_DELAY);
+  const handles = [playEffect(soundForDoor(day, animation))];
+  if (fanfareFor(day)) handles.push(playEffect('fanfare', FANFARE_DELAY));
+  return handles.filter(Boolean);
+}
+
+// --- Prerendering ---
+//
+// Each sound in the app's plan (see prerenderOrder and setPrerenderPlan) is rendered once
+// into an AudioBuffer with an OfflineAudioContext, one sound per idle moment, and kept.
+// Playing it is then a single buffer source: no node graphs or noise built per play.
+
+const idle = (fn) =>
+  globalThis.requestIdleCallback ? globalThis.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 50);
+
+// Seconds to render for a key, the sample rate, the channels and how to build it at time t
+// on dest. The songs are long and only their soft bells are panned: mono halves them.
+function renderSpec(key) {
+  const [kind, name] = key.split(':');
+  if (kind === 'effect' && SOUNDS[name]) return { seconds: 2.4, rate: RENDER_RATES[name] ?? RENDER_RATE, build: (dest, t) => SOUNDS[name](dest, t) };
+  if (kind === 'jingle') return { seconds: songSeconds(JINGLE) + 1.8, rate: RENDER_RATE, channels: 1, build: (dest, t) => playSong(dest, t, JINGLE) };
+  if (kind === 'theme' && MELODIES[name]) {
+    return { seconds: themeSeconds(MELODIES[name]) + 1.8, rate: RENDER_RATE, channels: 1, build: (dest, t) => themeGraph(dest, t, MELODIES[name]) };
+  }
+  return null;
+}
+
+// Old Safari's offline context answers with an event instead of a promise.
+function startRendering(offline) {
+  return new Promise((resolve, reject) => {
+    offline.oncomplete = (e) => resolve(e.renderedBuffer);
+    const promise = offline.startRendering();
+    promise?.then?.(resolve, reject);
+  });
+}
+
+async function renderOffline(key) {
+  const spec = renderSpec(key);
+  const Offline = OfflineContextClass();
+  if (!spec || !Offline) throw new Error(`Cannot prerender ${key}`);
+  const offline = new Offline(spec.channels ?? 2, Math.ceil(spec.seconds * spec.rate), spec.rate);
+  building = offline;
+  try {
+    spec.build(offline.destination, 0);
+  } finally {
+    building = null;
+  }
+  return trimmed(await startRendering(offline));
+}
+
+// The rendered sound without its silent tail, in mono when both channels are the same.
+function trimmed(buffer) {
+  const channels = [...Array(buffer.numberOfChannels).keys()].map((c) => buffer.getChannelData(c));
+  let end = 0;
+  for (const data of channels) {
+    for (let i = data.length - 1; i > end; i--) {
+      if (Math.abs(data[i]) > 1e-4) {
+        end = i;
+        break;
+      }
+    }
+  }
+  const length = Math.max(1, Math.min(buffer.length, end + Math.ceil(buffer.sampleRate * 0.02)));
+  const mono = channels.length === 1 || channels[0].every((v, i) => v === channels[1][i]);
+  const numberOfChannels = mono ? 1 : channels.length;
+  const { sampleRate } = buffer;
+  // Before the first tap there is no live context to make buffers with.
+  let out;
+  if (engine.ctx) out = engine.ctx.createBuffer(numberOfChannels, length, sampleRate);
+  else if (typeof AudioBuffer === 'function') out = new AudioBuffer({ numberOfChannels, length, sampleRate });
+  else return buffer;
+  (mono ? channels.slice(0, 1) : channels).forEach((data, c) => out.getChannelData(c).set(data.subarray(0, length)));
+  return out;
+}
+
+function store(key, buffer) {
+  engine.buffers.set(key, buffer);
+  // Theme songs are long: keep only the latest few.
+  const themes = [...engine.buffers.keys()].filter((k) => k.startsWith('theme:'));
+  for (const old of themes.slice(0, Math.max(0, themes.length - MAX_THEME_BUFFERS))) engine.buffers.delete(old);
+}
+
+// Renders the next sound in the plan that is not ready yet, one at a time, in idle moments.
+function pumpRenders() {
+  if (engine.rendering || !OfflineContextClass()) return;
+  const plan = engine.ctx ? engine.renderPlan : engine.startupPlan;
+  const key = safely(plan)?.find((k) => !engine.buffers.has(k) && !engine.renderFailed.has(k) && renderSpec(k));
+  if (!key) return;
+  engine.rendering = true;
+  idle(async () => {
+    try {
+      store(key, await renderOffline(key));
+    } catch (err) {
+      engine.renderFailed.add(key); // played live from now on
+      console.warn('Prerendering failed', key, err);
+    } finally {
+      engine.rendering = false;
+      pumpRenders();
+    }
+  });
+}
+
+/**
+ * The app's lists of sounds to prerender, as functions returning keys in order: plan
+ * after the first tap (see prerenderOrder), startup before it (see startupKeys). Asked
+ * again after each render, so a new day or a simulated date changes the order. Theme
+ * songs beyond MAX_THEME_BUFFERS push out the oldest.
+ */
+export function setPrerenderPlan(plan, startup = () => []) {
+  engine.renderPlan = plan;
+  engine.startupPlan = startup;
+  safely(pumpRenders);
+}
+
+/** Which sounds are prerendered (dev panel): keys and the memory they take in bytes. */
+export function prerendered() {
+  return [...engine.buffers].map(([key, b]) => ({ key, seconds: b.duration, bytes: b.length * b.numberOfChannels * 4, rate: b.sampleRate }));
+}
+
+// Plays a prerendered buffer on dest at time t.
+function playBuffer(dest, buffer, t) {
+  const src = engine.ctx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(dest);
+  src.start(t);
 }
 
 // --- Tomten's jingle ---
@@ -990,7 +1324,7 @@ function applyPause() {
   const until = pausedUntil(engine.pauses, now);
   if (until !== null) {
     if (music.bus && !music.paused) {
-      release(music.bus, 0.4);
+      release(music.bus, DUCK_RAMP); // quick, and on its own gain: effects never wait for it
       music.bus = bus(1, engine.musicBus);
       music.current = null;
     }
@@ -1031,9 +1365,12 @@ export function playJingle(delay = 0) {
   safely(() => {
     if (!ready()) return;
     stopJingle(0.05);
-    const t = engine.ctx.currentTime + 0.03 + delay;
+    const t = effectStartTime({ now: engine.ctx.currentTime, delay });
     const gain = bus(1, engine.master);
-    const length = playSong(gain, t, JINGLE);
+    const buffer = engine.buffers.get('jingle');
+    if (buffer) playBuffer(gain, buffer, t);
+    else playSong(gain, t, JINGLE);
+    const length = songSeconds(JINGLE);
     engine.jingle = { gain };
     pauseMusic('jingle', t + length);
   });
@@ -1064,19 +1401,36 @@ export function playTheme(key, { full = false, delay = THEME_DELAY } = {}) {
     const now = engine.ctx.currentTime;
     if (engine.theme?.key === key && engine.theme.full === full && engine.theme.end > now) return;
     stopTheme(0.1);
-    const t = now + 0.03 + delay;
+    const t = effectStartTime({ now, delay });
     const gain = bus(1, engine.master);
-    const length = playSong(gain, t, full ? toSong(melody) : themeSong(melody));
-    let end = t + length;
-    if (!full && length > THEME_MAX_SECONDS) {
-      end = t + THEME_MAX_SECONDS;
-      gain.gain.setValueAtTime(1, end - 1.5);
-      gain.gain.linearRampToValueAtTime(0, end);
-    }
+    const buffer = full ? null : engine.buffers.get(`theme:${key}`);
+    let end;
+    if (full) end = t + playSong(gain, t, toSong(melody));
+    else if (buffer) {
+      playBuffer(gain, buffer, t);
+      end = t + themeSeconds(melody);
+    } else end = t + themeGraph(gain, t, melody);
     const timer = setTimeout(() => safely(() => engine.theme?.gain === gain && stopTheme(0.1)), (end - now + 1.6) * 1000);
     engine.theme = { key, full, gain, end, timer };
     pauseMusic('theme', end);
   });
+}
+
+/** How long a melody's theme plays: its excerpt, never longer than THEME_MAX_SECONDS. */
+export function themeSeconds(melody) {
+  return Math.min(songSeconds(themeSong(melody)), THEME_MAX_SECONDS);
+}
+
+// A theme song on dest from time t, cut with a fade at THEME_MAX_SECONDS. Returns its length.
+function themeGraph(dest, t, melody) {
+  const gain = ac().createGain();
+  gain.connect(dest);
+  const length = playSong(gain, t, themeSong(melody));
+  if (length <= THEME_MAX_SECONDS) return length;
+  const end = t + THEME_MAX_SECONDS;
+  gain.gain.setValueAtTime(1, end - 1.5);
+  gain.gain.linearRampToValueAtTime(0, end);
+  return THEME_MAX_SECONDS;
 }
 
 /** The door's "music", if it has one. */

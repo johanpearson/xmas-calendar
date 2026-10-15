@@ -48,8 +48,15 @@ import {
   isSoundOn,
   soundForDoor,
   fanfareFor,
+  audioState,
+  setPrerenderPlan,
+  prerenderOrder,
+  startupKeys,
+  prerendered,
+  effectOffsetMs,
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
+import { enableLatencyLog, notePress, noteFrame, noteExtra, onLatency, latencyEntries, clearLatency } from './latency.js';
 import { SCENES, SCENE_KEYS, isScene, homeSceneFor } from './scenes.js';
 import {
   paragraphs,
@@ -96,6 +103,9 @@ const state = {
   doors: new Map(), // id -> { day, btn }
   todayKey: null,
   busy: false, // true while an opening animation runs
+  press: null, // the door opened by the latest pointerdown (see cancelPress)
+  pointerDoor: null, // that door, until its click (which is swallowed) has come
+  pointerDoorTimer: null,
   midnightTimer: null,
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
@@ -194,7 +204,9 @@ function createDoor(day, theme) {
   leaf.append(icon('lock', 'door-lock'), el('span', 'door-knob'));
 
   btn.append(inside, leaf);
-  btn.addEventListener('click', () => onDoorClick(day.id));
+  btn.addEventListener('pointerdown', (e) => onDoorPointerDown(e, day.id));
+  btn.addEventListener('pointercancel', () => cancelPress(day.id));
+  btn.addEventListener('click', (e) => onDoorClick(e, day.id));
   btn.addEventListener('animationend', (e) => {
     if (e.animationName === 'shake') btn.classList.remove('is-shaking');
   });
@@ -300,35 +312,109 @@ function showToast(message) {
   state.toastTimer = setTimeout(() => els.toast.classList.remove('is-visible'), TOAST_MS);
 }
 
-function onDoorClick(id) {
+// A door opens on pointerdown, not on click: the click only comes when the finger lifts
+// (and on a phone often later still). The click that follows is swallowed; a click
+// without a pointer before it (Enter or Space on a focused door) opens the door as before.
+function onDoorPointerDown(e, id) {
+  if (!e.isPrimary || e.button !== 0) return;
+  notePress(state.doors.get(id)?.day.date ?? id, e.timeStamp, { audio: audioState() });
+  state.pointerDoor = id;
+  clearTimeout(state.pointerDoorTimer);
+  state.pointerDoorTimer = setTimeout(() => (state.pointerDoor = null), 1500);
+  const press = { id, cancelled: false, shown: false, toast: false, theme: false, sounds: [], controller: new AbortController() };
+  state.press = press;
+  openDoor(id, press);
+}
+
+function onDoorClick(e, id) {
+  if (e.detail > 0 && state.pointerDoor === id) {
+    state.pointerDoor = null; // opened on its pointerdown already
+    return;
+  }
+  notePress(state.doors.get(id)?.day.date ?? id, e.timeStamp, { audio: audioState() });
+  openDoor(id);
+}
+
+// The tap became a scroll (the browser took the pointer over): the door does not open
+// after all. Its sound fades out at once and the animation stops before the card.
+function cancelPress(id) {
+  const { press } = state;
+  if (!press || press.id !== id || press.shown || press.cancelled) return;
+  press.cancelled = true;
+  press.controller.abort();
+  for (const sound of press.sounds) sound.stop();
+  if (press.theme) stopThemeSong();
+  if (press.toast) els.toast.classList.remove('is-visible');
+}
+
+// Opens a door (or knocks on a locked one). The sound starts first, right here in the
+// event handler; everything that draws waits for the next frame (see runOpening).
+function openDoor(id, press = null) {
   const entry = state.doors.get(id);
   if (!entry || state.busy) return;
   const { day, btn } = entry;
 
-  // Always re-check against the clock at click time, not the last render.
+  // Always re-check against the clock at tap time, not the last render.
   if (currentToday() !== state.todayKey) updateDoors();
 
   if (!isUnlocked(day.date, state.todayKey)) {
-    btn.classList.remove('is-shaking');
-    void btn.offsetWidth; // restart the animation on repeated taps
-    btn.classList.add('is-shaking');
-    playEffect('knock');
-    showToast(`Den här luckan öppnas ${formatDate(day.date)}`);
+    const knock = playEffect('knock');
+    if (press && knock) press.sounds.push(knock);
+    requestAnimationFrame(() => {
+      if (press?.cancelled) return;
+      btn.classList.remove('is-shaking');
+      void btn.offsetWidth; // restart the animation on repeated taps
+      btn.classList.add('is-shaking');
+      showToast(`Den här luckan öppnas ${formatDate(day.date)}`);
+      if (press) press.toast = true;
+    });
     return;
   }
 
   const firstTime = !btn.classList.contains('is-opened');
-  markOpened(day.id);
-  updateDoors();
-  playThemeFor(day); // the door's own song, opened before or not
-  const forecast = forecastFor(day); // asked at once, while the door opens
+  const animation = animationFor(day);
+  // Reduced motion skips the animation but not its sound. An opened door gets a soft ding.
+  const sounds = firstTime ? playForDoor(day, animation) : [playEffect('chime')].filter(Boolean);
+  press?.sounds.push(...sounds);
+  runOpening(day, btn, {
+    animation: firstTime && !prefersReducedMotion() ? animation : null,
+    reveal: firstTime ? 'fade' : null,
+    mark: true,
+    press,
+  });
+}
 
-  if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day), { forecast });
-  else {
-    // Reduced motion skips the animation but not its sound. An opened door gets a soft ding.
-    if (firstTime) playForDoor(day, animationFor(day));
-    else playEffect('chime');
-    openCard(day, firstTime ? 'fade' : null, forecast);
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+// The heavy part of opening a door, after its sound has started. In the next frame: the
+// opening animation (none for reduced motion or an opened door, which get `reveal`), the
+// forecast lookup and, just after, the door's theme song. Then the card, once the
+// animation has ended and the forecast is in (but waiting at most FORECAST_WAIT_MS: a
+// later answer can still switch the open card to plan B, see showCard). The forecast
+// never holds up the sound or the animation. mark: save the door as opened (not for dev
+// previews). A cancelled press (see cancelPress) stops before the card.
+async function runOpening(day, btn, { animation = null, reveal = null, haptics = true, mark = false, press = null } = {}) {
+  state.busy = true;
+  try {
+    await nextFrame();
+    if (press?.cancelled) return;
+    const forecast = forecastFor(day);
+    const opening = animation ? playOpening(btn, animation, { haptics, signal: press?.controller.signal }) : null;
+    setTimeout(() => {
+      if (press?.cancelled) return;
+      playThemeFor(day); // the door's own song, opened before or not (it starts a second in)
+      if (press) press.theme = Boolean(day.music);
+    }, 0);
+    const [result, variant] = await Promise.all([opening ?? { skipped: false }, waitForForecast(forecast)]);
+    if (press?.cancelled || result.aborted) return;
+    if (press) press.shown = true;
+    if (mark) {
+      markOpened(day.id);
+      updateDoors();
+    }
+    showCard(day, animation ? (result.skipped ? 'fade' : revealFor(animation)) : reveal, { variant, forecast });
+  } finally {
+    state.busy = false;
   }
 }
 
@@ -339,36 +425,6 @@ function forecastFor(day) {
   if (!hasAlternative(day)) return null;
   const override = isDevEnabled() ? getForecastOverride() : null;
   return getWeatherVariant([day.date], { override });
-}
-
-// Shows the card once the forecast is in, but waits at most FORECAST_WAIT_MS from now:
-// a later answer can still switch the open card to plan B (see showCard).
-async function openCard(day, reveal, forecast) {
-  state.busy = true;
-  try {
-    const variant = await waitForForecast(forecast);
-    showCard(day, reveal, { variant, forecast });
-  } finally {
-    state.busy = false;
-  }
-}
-
-// Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
-// The door's sound starts with the opening animation, or, for a door with a scene, together
-// with the scene's entrance when the card appears. The forecast wait runs alongside the
-// animation, which usually outlasts it.
-async function playThenShow(day, btn, animation, { haptics = true, forecast = null } = {}) {
-  state.busy = true;
-  const withScene = isScene(day.scene);
-  if (!withScene) playForDoor(day, animation);
-  try {
-    const ready = waitForForecast(forecast);
-    const [{ skipped }, variant] = await Promise.all([playOpening(btn, animation, { haptics }), ready]);
-    showCard(day, skipped ? 'fade' : revealFor(animation), { variant, forecast });
-    if (withScene) playForDoor(day, animation);
-  } finally {
-    state.busy = false;
-  }
 }
 
 // Plain text to one element per line, never innerHTML. A blank line in the text gives the
@@ -444,6 +500,8 @@ function showCard(day, reveal = null, { variant = null, forecast = null } = {}) 
 
   if (!els.card.open) els.card.showModal();
   els.card.scrollTop = 0;
+  noteExtra('card');
+  requestAnimationFrame(noteFrame); // without an opening animation the card is the first frame
   showCardScene(day); // starts its entrance now, as the card appears
 }
 
@@ -507,6 +565,7 @@ function handleDevParam() {
 
 // Dev code is only loaded when the flag is set, so without it nothing dev related reaches the DOM.
 async function startDevMode() {
+  enableLatencyLog();
   const { mountDevPanel } = await import('./dev.js');
   state.onDoorsUpdated = mountDevPanel({
     days: state.days,
@@ -533,14 +592,11 @@ async function startDevMode() {
     async playAnimation(id, animation) {
       const entry = state.doors.get(id);
       if (!entry || state.busy) return;
-      playThemeFor(entry.day);
       if (els.card.open) els.card.close();
       entry.btn.scrollIntoView({ block: 'center' });
-      const forecast = forecastFor(entry.day);
-      if (prefersReducedMotion()) {
-        playForDoor(entry.day, animation ?? animationFor(entry.day));
-        await openCard(entry.day, 'fade', forecast);
-      } else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false, forecast });
+      const name = animation ?? animationFor(entry.day);
+      playForDoor(entry.day, name); // the sound first, as when a door opens
+      await runOpening(entry.day, entry.btn, { animation: prefersReducedMotion() ? null : name, reveal: 'fade', haptics: false });
     },
     disable() {
       setDevEnabled(false);
@@ -556,6 +612,23 @@ async function startDevMode() {
       playMelody: (key) => playTheme(key, { full: true, delay: 0 }),
       stopMelody: () => stopThemeSong(),
       usage: soundUsage(),
+    },
+    latency: {
+      entries: latencyEntries,
+      onChange: onLatency,
+      clear: clearLatency,
+      prerendered,
+      offsetOf: effectOffsetMs,
+      isOn: isSoundOn,
+      // The sound now (with its offset), then flash() as the animation in the next frame.
+      test(name, flash) {
+        notePress(`test ${name}`, performance.now(), { audio: audioState() });
+        playEffect(name);
+        requestAnimationFrame((time) => {
+          noteFrame(time);
+          flash();
+        });
+      },
     },
     toast: showToast,
   });
@@ -592,8 +665,8 @@ function devScenes() {
       const day = door
         ? { ...door, scene: key }
         : { id: `scene-${key}`, date: state.todayKey, type: 'ledtrad', title: SCENES[key].label, body: 'Förhandsvisning av scenen.', scene: key };
+      playForDoor(day, animationFor(day)); // the sound first, as when a door opens
       showCard(day, 'fade', { forecast: forecastFor(day) });
-      playForDoor(day, animationFor(day)); // together with the entrance, as when a door opens
     },
     // Shows the main-screen scene of dateKey (until the simulated date changes). Returns its key or null.
     showHome(dateKey) {
@@ -706,6 +779,12 @@ async function init() {
 
   renderGrid();
   updateDoors();
+  // The sounds to prerender: today's door's at once, the others after the first tap.
+  const doorSounds = state.days.map((d) => ({ date: d.date, effect: soundForDoor(d, animationFor(d)), fanfare: fanfareFor(d), music: d.music }));
+  setPrerenderPlan(
+    () => prerenderOrder(doorSounds, state.todayKey ?? currentToday()),
+    () => startupKeys(doorSounds, state.todayKey ?? currentToday()),
+  );
   els.loading.hidden = true;
   els.app.setAttribute('aria-busy', 'false');
   scheduleMidnight();

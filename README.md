@@ -63,6 +63,11 @@ scenregistret och vilka scener som visas på huvudskärmen (se "Dagsscener").
 `tests/card.test.js` testar kortets rena logik i `js/card.js`: stycken och tomma rader,
 valet av plan A eller B (dålig, bra och okänd prognos, timeout, byte för hand åt båda
 hållen) och att plan B faller tillbaka på luckans titel och vers (se "Plan B").
+`tests/latency.test.js` testar ljudets schemaläggning med en falsk `AudioContext`:
+lookahead (`currentTime + 0.005`), att en igång-kontext aldrig ombeds återupptas och att
+inget väntar på en pausad, reserven (direkt syntes) när bufferten inte är klar, offseten
+med enhetens utgångslatens, ordningen för förrendering och dev-loggen (se "Ljudfördröjning
+och synk").
 
 ### E2e (Playwright)
 
@@ -98,6 +103,11 @@ hållen med samma titel och vers, en sen prognos byter mjukt men aldrig efter et
 hand, och dev-panelens **Prognos** styr plan B. Den kontrollerar också luckorna 2026-12-02
 (bara vers, tom `body`) och 2026-12-08 (tom rad i `body`) och tar skärmdumpar vid 360 px
 (se "Plan B").
+`tests/e2e/latency.spec.js` mockar `AudioContext` helt: ljudet startas i luckans
+`pointerdown` (medan fingret är nere), före öppna-animationens första ritning, och ett
+långsamt Open-Meteo-svar (5 s) vid 2026-12-20 håller varken upp ljudet eller animationen.
+Enter öppnar fortfarande en lucka, ett tryck som blir en scroll (`pointercancel`) öppnar
+inget, och dev-panelens "Ljudlatens" visar trycken.
 De andra e2e-testerna markerar alla tomtescener som sedda (`tests/e2e/helpers.js`), så att
 tomten inte står i vägen, och svarar på alla väderanrop med ett fel, så att inget test
 når riktiga Open-Meteo.
@@ -163,6 +173,14 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     för morgondagen enligt det riktiga datumet, inte det simulerade, och visar resultatet
     i en toast ("Prognos för 15 oktober: bra" eller varför det misslyckades). Scenerna
     påverkas inte.
+  - **Ljudlatens**: en rad per tryck på en lucka, i ms från `pointerdown`: när
+    `sfx.play` anropas, hur länge ljudet byggs (*buffer* = förrenderat, *live* = reserven),
+    när det startar på ljudklockan, när det hörs (plus `baseLatency` och `outputLatency`),
+    animationens första bildruta, *Ljud − bild* (negativt = ljudet först) och när kortet
+    visas. Raden visar också kontextens läge vid trycket och om det var första trycket
+    efter appstart. Under raderna står hur många ljud som är förrenderade och hur mycket
+    minne de tar. **Testa ljud med aktuell offset** spelar varje effekt med sin offset
+    (se "Ljudfördröjning och synk") och blinkar en lampa där animationen skulle börja.
 - Utan flaggan laddas `js/dev.js` aldrig och inget dev-element finns i DOM:en.
 - OBS: en installerad PWA på iOS har egen `localStorage`, så dev-flaggan från Safari
   gäller inte där. Testa datumlogik i webbläsaren och installationen separat.
@@ -463,7 +481,8 @@ ljudfiler och inga beroenden.
   temalåten är klar eller tomten har stängts börjar musiken igen: nästa låt i Blandat, eller den
   valda låten från början. Under tiden står "Musiken är pausad en stund" i menyn.
 - Inget ljud spelas före första trycket i appen (webbläsarnas autoplay-regler). För en ny
-  användare är det tomtens första "Nästa", och då börjar hans jingel.
+  användare är det tomtens första "Nästa", och då börjar hans jingel. `AudioContext`
+  skapas redan när fingret sätts ner (`pointerdown`) var som helst i appen.
 - Ljudet pausas när appen eller fliken hamnar i bakgrunden och fortsätter när den visas.
 - En limiter sist i kedjan gör att flera ljud samtidigt inte klipper.
 
@@ -512,6 +531,47 @@ Utan `sound` får luckan sin typs standardljud (det följer animationen, så fä
 Prova allt i dev-panelen under "Ljud och musik": varje melodi och effekt har en
 "Spela"-knapp och visar vilka luckor som använder den ("standard" betyder att ljudet
 kommer från luckans typ). "Spela alla effekter i följd" spelar alla med 2,2 s mellanrum.
+
+### Ljudfördröjning och synk
+
+En lucka öppnas när fingret sätts ner (`pointerdown`), inte när det lyfts (`click`).
+Ljudet startas först, direkt i händelsen, och öppna-animationen ritas i nästa bildruta,
+så ljudet aldrig väntar på DOM-arbete eller på prognosen (4:e advent). Klicket som kommer
+efter trycket ignoreras; Enter och mellanslag öppnar luckan som förut. Blir trycket en
+scroll avbryts öppnandet och ljudet tonas ut.
+
+Effekterna, tomtens jingel och temalåtarna förrenderas till ljudbuffertar
+(`OfflineAudioContext`) när appen är ledig: dagens luckas ljud redan vid start, resten
+efter första trycket (dagens och upplåsta luckor först, låsta luckor inte alls). Att spela
+en effekt är då bara att starta en buffert. Hinner en buffert inte bli klar syntetiseras
+ljudet direkt som förut. Buffertarna görs i 22050 Hz (bjällrorna 32000 Hz), tystnaden i
+slutet kapas och jingel och temalåtar är mono; högst två temalåtar sparas åt gången.
+
+**Justera synken** överst i `js/audio.js`:
+
+```js
+export const SFX_LEAD_MS = 0;    // flyttar alla effekter, t.ex. -15 om allt känns sent
+export const SFX_OFFSETS_MS = {
+  gift: 0,                       // t.ex. 520 för att träffa locket som lyfter
+  search: 20,                    // dinget landar när förstoringsglaset hittar lappen
+  // ...en rad per effekt
+};
+```
+
+Värdena är millisekunder från animationens första bildruta till att ljudet *hörs*
+(motorn drar av enhetens `baseLatency` och `outputLatency`). Negativt betyder ljudet
+först, men ett ljud kan aldrig starta före trycket, så allt under cirka -20 ms betyder
+"så tidigt som möjligt". Standard är 0: ljudets början träffar dörren som öppnas, den
+första bildrutan. Prova med dev-panelens **Testa ljud med aktuell offset**, eller öppna
+en lucka och läs **Ljudlatens**. Glöm inte att bumpa `CACHE_VERSION` efter en ändring.
+
+För att mäta på datorn (headless Chromium som en Pixel 7 med 4 gånger långsammare
+processor och ett långsamt Open-Meteo):
+
+```sh
+npm install
+npm run latency   # skriver en tabell i Markdown
+```
 
 ### Melodier
 
@@ -564,8 +624,9 @@ beroenden.
 - När luckan öppnas visas scenen överst i kortet, bakom texten. Den tonar ut i papperet
   innan texten börjar, så texten står alltid på rent papper. Entrén tar högst cirka 3 s,
   sedan följer en lugn loop som pausas när fliken är dold och försvinner när kortet stängs.
-- Luckans ljudeffekt (`sound`, annars typens) startar samtidigt som scenens entré, alltså
-  när kortet visas. Temalåten (`music`) spelas som förut.
+- Luckans ljudeffekt (`sound`, annars typens) startar direkt när luckan trycks, med
+  öppna-animationen (milstolpe 14; förut när kortet och scenens entré visades, cirka en
+  sekund senare). Temalåten (`music`) spelas som förut.
 - `advent1`, `advent2`, `lucia`, `advent4`, `cat` och `christmas` visas också i en liten
   version på huvudskärmen just på luckans datum, på snön längst ner bakom luckorna.
 - Med reducerad rörelse (`prefers-reduced-motion`) visas en stilla bild av slutläget.
@@ -645,6 +706,48 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Ljudfördröjning (milstolpe 14)
+
+- **Orsaken** var framför allt att alla luckor har en dagsscen, och då startade ljudet
+  först när öppna-animationen var slut och kortet visades: cirka 1,1-1,3 s efter trycket,
+  för alla effekter och inte bara första luckan. Lucka 20 dec väntade dessutom på
+  prognosen tillsammans med animationen. Nu startar ljudet i trycket och scenens entré
+  kommer som förut när kortet visas.
+- **Mätningarna** i PR:en är gjorda i headless Chromium som en Pixel 7 med 4 gånger
+  långsammare processor (`npm run latency`), inte på en riktig Android. Telefonens egen
+  utgångslatens (`outputLatency`, ofta 20-100 ms på Android) kommer ovanpå och går inte
+  att påverka från webben, bara kompensera för (offseten räknar med den). Läs
+  dev-panelens **Ljudlatens** på telefonen för de riktiga siffrorna.
+- **Första trycket någonsin** på en telefon: `pointerdown` räknas inte som användargest
+  för autoplay i Chrome på pekskärm, så kontexten startar först när fingret lyfts från det
+  allra första trycket i appen. Från andra trycket (eller efter tomtens "Nästa") gäller
+  `pointerdown`.
+- **Förrendering före första trycket:** planen sa "efter första tryck", men Elins första
+  tryck för dagen är oftast dagens lucka, och utan buffert syntetiseras ljudet då under
+  trycket (cirka 75 ms för bjällrorna med långsam processor). Därför förrenderas *bara
+  dagens luckas* ljud redan när appen är ledig efter start (en `OfflineAudioContext`
+  kräver ingen användargest och spelar inget). Resten väntar till första trycket.
+- **Samma ljud varje gång:** en förrenderad effekt låter likadant vid varje uppspelning
+  (förut slumpades småskillnader, t.ex. katten, varje gång). Reserven och bakgrundsmusiken
+  syntetiseras som förut.
+- **Bakgrundsmusiken** förrenderas inte: den schemaläggs flera sekunder i förväg och är
+  inte känslig för fördröjning. Dev-panelens "Spela" för en hel melodi syntetiseras också
+  direkt.
+- **Duckningen** (bakgrundsmusiken tonas ut för en temalåt eller tomten) tar nu 80 ms i
+  stället för 400 ms, på sin egen gain, och fördröjer aldrig effekterna.
+- **Scroll:** att öppna på `pointerdown` betyder att ett tryck som börjar på en lucka
+  öppnar den direkt. Blir trycket en scroll (`pointercancel`) avbryts öppnandet: ljudet
+  tonas ut på 40 ms, animationen tas bort och luckan markeras inte som öppnad. Luckan
+  markeras därför som öppnad först när kortet visas. En låst lucka hinner knacka lite.
+- **Animationens första bildruta** antas komma cirka 16 ms efter trycket
+  (`ANIMATION_FRAME_MS`), eftersom ljudet startas i händelsen och ritandet i nästa
+  `requestAnimationFrame`.
+- Dev-panelens "Testa ljud med aktuell offset" visar bara en blinkande lampa i stället för
+  animationen; använd "Spela upp animation" för att se en riktig öppning (den spelar nu
+  också ljudet först).
+- Temalåten schemaläggs direkt efter att animationen har startat (den börjar ändå en
+  sekund in), så den inte tar tid från trycket.
 
 ### Innehållsuppdatering och automatisk plan B (milstolpe 13)
 

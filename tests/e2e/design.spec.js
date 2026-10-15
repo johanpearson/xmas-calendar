@@ -147,6 +147,7 @@ test('neighbouring doors never share a theme and specials have their own look', 
   expect(doors.find((d) => d.date === '2026-12-24').cls).toContain('look-christmas');
   // Same layout on every visit.
   await page.reload();
+  await expect(page.locator('#grid .door')).toHaveCount(24); // evaluateAll does not wait for the grid
   const again = await page.locator('#grid .door').evaluateAll((els) => els.map((el) => el.dataset.theme ?? null));
   expect(again).toEqual(doors.map((d) => d.theme));
 });

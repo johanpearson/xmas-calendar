@@ -6,7 +6,8 @@
     "test": "node --test",
     "test:e2e": "playwright test",
     "icons": "node scripts/generate-icons.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "latency": "node scripts/latency.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"
