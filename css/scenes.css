@@ -110,8 +110,8 @@
 @keyframes sc-crack { from, 55% { opacity: 1; transform: none; } }
 .sc-flap { transform-origin: 50% 0%; transform: scaleY(-1); animation: sc-flap .6s 1.5s ease-in-out backwards; }
 @keyframes sc-flap { from { transform: scaleY(1); } }
-.sc-letter { animation: sc-letter .8s var(--in, 0s) cubic-bezier(.2, .8, .3, 1) both; }
-@keyframes sc-letter { from { opacity: 0; transform: translateY(40px); } }
+.sc-unfold { animation: sc-unfold .8s var(--in, 0s) cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes sc-unfold { from { opacity: 0; transform: translateY(40px); } }
 .sc-float { animation: sc-float 4s 3s ease-in-out infinite alternate; }
 @keyframes sc-float { to { transform: translateY(-3px); } }
 
@@ -241,7 +241,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 70%, var(--paper) 97%);
+  background: linear-gradient(transparent 68%, var(--paper) 94%);
 }
 .card.has-scene .card-inner { padding-top: 150px; }
 .card.has-scene .card-inner > :not(.card-scene) { position: relative; }

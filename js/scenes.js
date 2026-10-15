@@ -478,7 +478,7 @@ function letter(ctx) {
     enter('sc-rise', 0.1,
       el('rect', { x: 98, y: 60, width: 124, height: 74, rx: 3, fill: '#e9d8b4' }),
       el('polygon', { class: 'sc-flap', points: '98,60 222,60 160,100', fill: '#dcc79d' }),
-      g({ class: 'sc-float' }, enter('sc-letter', 2.0,
+      g({ class: 'sc-float' }, enter('sc-unfold', 2.0,
         el('rect', { x: 112, y: 32, width: 96, height: 66, rx: 2, fill: '#fffdf6' }),
         paperLines,
         el('path', { d: 'M196 82c-3-4-9-1-5 4l5 4 5-4c4-5-2-8-5-4z', fill: '#d6334a' }))),
