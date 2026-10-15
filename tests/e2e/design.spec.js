@@ -199,9 +199,10 @@ test('verse shows in italics under the title, one line per line break, as plain 
   await expect(verse.locator('p')).toHaveText(['Första raden', 'Andra <b>raden</b>']);
   await expect(verse.locator('b')).toHaveCount(0);
   expect(await verse.evaluate((el) => getComputedStyle(el).fontStyle)).toBe('italic');
-  // Between the title and the body.
-  expect(await verse.evaluate((el) => [el.previousElementSibling.id, el.nextElementSibling.id])).toEqual([
+  // Between the title and the body (with only Tomten's plan B line, hidden here, between them).
+  expect(await verse.evaluate((el) => [el.previousElementSibling.id, el.nextElementSibling.id, el.nextElementSibling.nextElementSibling.id])).toEqual([
     'card-title',
+    'card-note',
     'card-body',
   ]);
   await card.getByRole('button', { name: 'Stäng' }).click();
