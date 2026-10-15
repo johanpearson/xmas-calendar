@@ -36,7 +36,19 @@ import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
 import { icon, typeIcon, adventCandles } from './icons.js';
-import { initAudio, playEffect, playForDoor, playThemeFor, playAllEffects, playJingle, isSoundOn } from './audio.js';
+import {
+  initAudio,
+  playEffect,
+  playForDoor,
+  playThemeFor,
+  playTheme,
+  stopThemeSong,
+  playAllEffects,
+  playJingle,
+  isSoundOn,
+  soundForDoor,
+  fanfareFor,
+} from './audio.js';
 import { audioControls } from './audio-ui.js';
 
 const CONTENT_URL = './content/days.json';
@@ -418,9 +430,28 @@ async function startDevMode() {
       isOn: isSoundOn,
       playAll: (onEach) => playAllEffects(onEach),
       playJingle: () => playJingle(),
+      playEffect: (name) => playEffect(name),
+      playMelody: (key) => playTheme(key, { full: true, delay: 0 }),
+      stopMelody: () => stopThemeSong(),
+      usage: soundUsage(),
     },
     toast: showToast,
   });
+}
+
+// Which doors use which effect and melody, for the dev panel: { effects, melodies },
+// each a Map from name to [{ door, own }] (own: set in days.json, not the type's default).
+function soundUsage() {
+  const effects = new Map();
+  const melodies = new Map();
+  const add = (map, name, entry) => map.set(name, [...(map.get(name) ?? []), entry]);
+  for (const day of state.days) {
+    const door = doorName(day);
+    add(effects, soundForDoor(day, animationFor(day)), { door, own: Boolean(day.sound) && soundForDoor(day) === day.sound });
+    if (fanfareFor(day)) add(effects, 'fanfare', { door, own: false });
+    if (day.music) add(melodies, day.music, { door, own: true });
+  }
+  return { effects, melodies };
 }
 
 // --- Tomten ---

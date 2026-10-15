@@ -804,7 +804,11 @@ body {
 .dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
 .dev-tomte { gap: 8px; }
 .dev-tomte-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.dev-tomte-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; }
+.dev-tomte-item,
+.dev-sound-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; }
+.dev-sounds { margin-top: 8px; }
+.dev-sounds > summary { cursor: pointer; font-weight: 800; padding: 6px 0; }
+.dev-sounds > .dev-tomte-list { margin-top: 4px; }
 .dev-tomte-item.is-current { background: #ffd23f66; outline: 2px solid #1a1300; }
 .dev-tomte-text { display: grid; flex: 1; min-width: 0; font-size: .8rem; line-height: 1.3; }
 .dev-tomte-name { font-weight: 800; overflow-wrap: anywhere; }

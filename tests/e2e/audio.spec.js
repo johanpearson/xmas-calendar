@@ -252,14 +252,33 @@ test('without Web Audio: no sound buttons and no errors', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('dev panel: "Spela alla ljud" and "Testa jingle"', async ({ page }) => {
+test('dev panel: every melody and effect with "Spela", who uses it, all effects in a row', async ({ page }) => {
   await skipTomte(page);
   await spyOnAudio(page);
   await page.clock.setFixedTime(at('2026-12-05'));
   await page.goto('./?dev=on');
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
-  await page.getByRole('button', { name: 'Testa jingle' }).click();
+  const panel = page.locator('#dev-panel');
+  await panel.getByRole('button', { name: 'Testa jingle' }).click();
   await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(60);
-  await page.getByRole('button', { name: 'Spela alla ljud' }).click();
+
+  await panel.getByText('Melodier (7)').click();
+  const lucia = panel.locator('.dev-sound-item', { hasText: 'santa-lucia' });
+  await expect(lucia).toContainText('Används av: Lucka 13, 3:e advent');
+  await expect(lucia).toContainText('I Blandat från 12-13');
+  let before = (await audio(page)).oscillators;
+  await panel.getByRole('button', { name: 'Spela Stilla natt' }).click();
+  await expect.poll(async () => (await audio(page)).oscillators - before).toBeGreaterThan(150); // the whole song, not just its theme (about 60)
+  await panel.getByRole('button', { name: 'Stoppa melodi' }).click();
+
+  await panel.getByText(/^Effekter \(\d+\)$/).click();
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Katt som jamar' })).toContainText('Används av: Lucka 4');
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Fanfar' })).toContainText('Lucka 5 (standard)');
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Knarrande dörr' })).toContainText('Används inte av någon lucka');
+  before = (await audio(page)).oscillators;
+  await panel.getByRole('button', { name: 'Spela Katt som jamar' }).click();
+  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before);
+
+  await panel.getByRole('button', { name: 'Spela alla effekter i följd' }).click();
   await expect(page.locator('#toast')).toHaveText('Bjällror');
 });

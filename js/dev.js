@@ -1,7 +1,8 @@
 // Dev panel. Only imported (and only touches the DOM) when the dev flag is set.
 import { formatDate, isValidDateKey } from './dates.js';
 import { ANIMATIONS, animationFor } from './themes.js';
-import { EFFECT_LABELS } from './audio.js';
+import { EFFECTS, EFFECT_LABELS } from './audio.js';
+import { MELODIES, MELODY_KEYS, MIX_FROM } from './melodies.js';
 
 const ANIMATION_LABELS = {
   sparkle: 'Gnistor och brev',
@@ -189,20 +190,63 @@ function describeLastFetch(last) {
 }
 
 
-// Sound: every effect in turn, and Tomten's jingle. The panel stays open.
+// "Lucka 5, Lucka 9 (standard)": the doors that use an effect or a melody.
+function usedBy(entries = []) {
+  if (entries.length === 0) return 'Används inte av någon lucka';
+  return `Används av: ${entries.map(({ door, own }) => (own ? door : `${door} (standard)`)).join(', ')}`;
+}
+
+// One row in a sound list: a name, who uses it and a "Spela" button.
+function soundRow(label, key, usage, onPlay) {
+  const row = el('li', 'dev-sound-item');
+  const text = el('span', 'dev-tomte-text');
+  text.append(el('span', 'dev-tomte-name', label), el('span', 'dev-tomte-dates', key), el('span', 'dev-tomte-status', usage));
+  const play = button('Spela', onPlay);
+  play.setAttribute('aria-label', `Spela ${label}`);
+  row.append(text, play);
+  return row;
+}
+
+// Sound: every melody and every effect with "Spela" and the doors that use it, all
+// effects in a row, and Tomten's jingle. The panel stays open.
 function audioSection(audio, toast) {
   const node = el('fieldset', 'dev-preview dev-audio');
-  node.append(el('legend', null, 'Ljud'));
+  node.append(el('legend', null, 'Ljud och musik'));
   const whenOn = (fn) => () => {
     if (!audio.isOn()) toast('Ljudet är avstängt');
     else fn();
   };
   const actions = el('div', 'dev-actions');
   actions.append(
-    button('Spela alla ljud', whenOn(() => audio.playAll((name) => toast(EFFECT_LABELS[name] ?? name)))),
+    button('Spela alla effekter i följd', whenOn(() => audio.playAll((name) => toast(EFFECT_LABELS[name] ?? name)))),
     button('Testa jingle', whenOn(() => audio.playJingle())),
+    button('Stoppa melodi', () => audio.stopMelody()),
   );
-  node.append(actions);
+
+  const melodies = el('details', 'dev-sounds');
+  melodies.append(el('summary', null, `Melodier (${MELODY_KEYS.length})`));
+  const melodyList = el('ul', 'dev-tomte-list');
+  for (const key of MELODY_KEYS) {
+    const title = MELODIES[key].title;
+    const from = MIX_FROM[key] ? `. I Blandat från ${MIX_FROM[key]}` : '';
+    melodyList.append(
+      soundRow(title, key, `${usedBy(audio.usage.melodies.get(key))}${from}`, whenOn(() => {
+        audio.playMelody(key);
+        toast(`Spelar ${title}`);
+      })),
+    );
+  }
+  melodies.append(melodyList);
+
+  const effects = el('details', 'dev-sounds');
+  effects.append(el('summary', null, `Effekter (${EFFECTS.length})`));
+  const effectList = el('ul', 'dev-tomte-list');
+  for (const name of EFFECTS) {
+    effectList.append(soundRow(EFFECT_LABELS[name], name, usedBy(audio.usage.effects.get(name)), whenOn(() => audio.playEffect(name))));
+  }
+  effects.append(effectList);
+
+  node.append(actions, melodies, effects);
   return node;
 }
 

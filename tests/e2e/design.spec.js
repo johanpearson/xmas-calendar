@@ -155,7 +155,7 @@ test('dev: "Spela upp animation" previews without opening the door', async ({ pa
   await gotoApp(page, './?dev=on');
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
   const panel = page.locator('#dev-panel');
-  await panel.getByLabel('Lucka').selectOption({ label: '20 december · 4:e advent' });
+  await panel.getByLabel('Lucka', { exact: true }).selectOption({ label: '20 december · 4:e advent' });
   await panel.getByLabel('Animation').selectOption('confetti');
   await panel.getByRole('button', { name: 'Spela upp animation' }).click();
   await expect(page.locator('.fx')).toHaveCount(1);
