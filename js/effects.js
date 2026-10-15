@@ -5,6 +5,7 @@
 // from the DOM when the animation ends.
 
 import { icon } from './icons.js';
+import { noteFrame } from './latency.js';
 
 // The card's entrance after each animation (see .card[data-reveal] in style.css).
 const REVEALS = {
@@ -342,6 +343,7 @@ export function playOpening(door, name, { haptics = true } = {}) {
   layer.append(stage);
   document.body.append(layer);
   door.classList.add('is-fx-hidden');
+  requestAnimationFrame(noteFrame); // the frame that first draws the overlay (dev latency log)
 
   // The door centre relative to the stage, where props and some bursts start.
   const from = { x: rect.left + rect.width / 2 - stageX, y: rect.top + rect.height / 2 - stageY };

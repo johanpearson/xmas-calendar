@@ -3,6 +3,7 @@ import { formatDate, isValidDateKey } from './dates.js';
 import { ANIMATIONS, animationFor } from './themes.js';
 import { EFFECTS, EFFECT_LABELS } from './audio.js';
 import { MELODIES, MELODY_KEYS, MIX_FROM } from './melodies.js';
+import { summarize } from './latency.js';
 
 const ANIMATION_LABELS = {
   sparkle: 'Gnistor och brev',
@@ -128,6 +129,7 @@ export function mountDevPanel(api) {
   panel.append(heading, realInfo, dateLabel, actions, preview);
   if (scenes) panel.append(scenes.node);
   if (api.audio) panel.append(audioSection(api.audio, api.toast));
+  if (api.latency) panel.append(latencySection(api.latency));
   if (tomte) panel.append(tomte.node);
   // Toggle first so Tab moves from it into the open panel.
   document.body.append(toggle, panel);
@@ -250,6 +252,54 @@ function audioSection(audio, toast) {
   effects.append(effectList);
 
   node.append(actions, melodies, effects);
+  return node;
+}
+
+const ms = (value) => (value === null ? '–' : `${value} ms`);
+const secMs = (value) => (typeof value === 'number' ? `${Math.round(value * 1000)} ms` : '–');
+
+// "Ljudlatens": one row per press on a door, in ms from its pointerdown: when sfx.play
+// was called, when the sound is due on the audio clock, when it is heard (plus
+// baseLatency and outputLatency) and the opening animation's first frame.
+function latencySection(latency) {
+  const node = el('fieldset', 'dev-preview dev-latency');
+  node.append(el('legend', null, 'Ljudlatens'));
+  const hint = el(
+    'p',
+    'dev-info',
+    'Tid från pointerdown på luckan: sfx.play anropas, hur länge ljudet byggs (noder eller färdig buffert), ljudets starttid på ljudklockan, när det hörs (plus baseLatency och outputLatency) och animationens första bildruta. "Ljud − bild" negativt = ljudet först.',
+  );
+  const wrap = el('div', 'dev-latency-wrap');
+  const table = el('table', 'dev-latency-table');
+  const head = el('tr');
+  for (const text of ['Lucka', 'Effekt', 'sfx.play', 'Bygga', 'Start', 'Hörs', 'Bild', 'Ljud − bild', 'Kort', 'base / output', 'Kontext']) head.append(el('th', null, text));
+  const thead = el('thead');
+  thead.append(head);
+  const tbody = el('tbody');
+  table.append(thead, tbody);
+  wrap.append(table);
+  const empty = el('p', 'dev-info', 'Inga tryck mätta än. Öppna en lucka.');
+
+  function render() {
+    const entries = latency.entries();
+    empty.hidden = entries.length > 0;
+    wrap.hidden = entries.length === 0;
+    tbody.replaceChildren(
+      ...entries.map((entry) => {
+        const t = summarize(entry);
+        const row = el('tr');
+        const effect = entry.effect ? `${entry.effect}${entry.source ? ` (${entry.source})` : ''}` : '–';
+        const context = [entry.audio, entry.firstPress && 'första trycket'].filter(Boolean).join(', ');
+        for (const text of [entry.label, effect, ms(t.sfx), ms(t.build), ms(t.start), ms(t.heard), ms(t.frame), ms(t.soundMinusFrame), ms(t.card), `${secMs(entry.baseLatency)} / ${secMs(entry.outputLatency)}`, context]) {
+          row.append(el('td', null, text));
+        }
+        return row;
+      }),
+    );
+  }
+  latency.onChange(render);
+  render();
+  node.append(hint, empty, wrap, button('Rensa mätningar', () => latency.clear()));
   return node;
 }
 

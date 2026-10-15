@@ -6,6 +6,7 @@
 
 import { renderVoice, catSpec } from './voice.js';
 import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
+import { noteSfx } from './latency.js';
 
 // --- Notes and melodies ---
 
@@ -958,9 +959,26 @@ const ready = () => engine.ctx && mixFor(state()).effects;
 export function playEffect(name, delay = 0) {
   safely(() => {
     if (!ready() || !SOUNDS[name]) return;
-    SOUNDS[name](engine.fx, engine.ctx.currentTime + 0.01 + delay);
+    const calledAt = performance.now();
+    const { ctx } = engine;
+    const at = ctx.currentTime + 0.01 + delay;
+    SOUNDS[name](engine.fx, at);
+    noteSfx({ name, source: 'live', calledAt, at, ...clockInfo(ctx) });
   });
 }
+
+// The audio clock and its latencies, for the dev panel's latency log.
+function clockInfo(ctx) {
+  return {
+    state: ctx.state,
+    currentTime: ctx.currentTime,
+    baseLatency: ctx.baseLatency,
+    outputLatency: ctx.outputLatency,
+  };
+}
+
+/** "none" before the first tap, else the AudioContext's state (dev panel). */
+export const audioState = () => engine.ctx?.state ?? 'none';
 
 /** The sound effects by name: sfx.play('cat'). */
 export const sfx = { play: playEffect, names: EFFECTS, labels: EFFECT_LABELS };

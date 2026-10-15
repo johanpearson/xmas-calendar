@@ -832,6 +832,9 @@ body {
 .dev-tomte-name { font-weight: 800; overflow-wrap: anywhere; }
 .dev-tomte-dates, .dev-tomte-status { color: #4d4426; }
 .dev-tomte-status:empty { display: none; }
+.dev-latency-wrap { overflow-x: auto; margin-bottom: 8px; }
+.dev-latency-table { border-collapse: collapse; font-size: .75rem; white-space: nowrap; }
+.dev-latency-table th, .dev-latency-table td { padding: 2px 6px; border-bottom: 1px solid #1a130033; text-align: left; }
 /* Keep the app's own top safe-area padding from doubling up under the banner. */
 .has-dev-banner .app { padding-top: 16px; }
 

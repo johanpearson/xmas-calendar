@@ -48,8 +48,10 @@ import {
   isSoundOn,
   soundForDoor,
   fanfareFor,
+  audioState,
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
+import { enableLatencyLog, notePress, noteFrame, noteExtra, onLatency, latencyEntries, clearLatency } from './latency.js';
 import { SCENES, SCENE_KEYS, isScene, homeSceneFor } from './scenes.js';
 import {
   paragraphs,
@@ -194,6 +196,7 @@ function createDoor(day, theme) {
   leaf.append(icon('lock', 'door-lock'), el('span', 'door-knob'));
 
   btn.append(inside, leaf);
+  btn.addEventListener('pointerdown', (e) => notePress(day.date, e.timeStamp, { audio: audioState() }));
   btn.addEventListener('click', () => onDoorClick(day.id));
   btn.addEventListener('animationend', (e) => {
     if (e.animationName === 'shake') btn.classList.remove('is-shaking');
@@ -444,6 +447,8 @@ function showCard(day, reveal = null, { variant = null, forecast = null } = {}) 
 
   if (!els.card.open) els.card.showModal();
   els.card.scrollTop = 0;
+  noteExtra('card');
+  if (reveal === 'fade') requestAnimationFrame(noteFrame); // no opening animation: the card's fade is the first frame
   showCardScene(day); // starts its entrance now, as the card appears
 }
 
@@ -507,6 +512,7 @@ function handleDevParam() {
 
 // Dev code is only loaded when the flag is set, so without it nothing dev related reaches the DOM.
 async function startDevMode() {
+  enableLatencyLog();
   const { mountDevPanel } = await import('./dev.js');
   state.onDoorsUpdated = mountDevPanel({
     days: state.days,
@@ -557,6 +563,7 @@ async function startDevMode() {
       stopMelody: () => stopThemeSong(),
       usage: soundUsage(),
     },
+    latency: { entries: latencyEntries, onChange: onLatency, clear: clearLatency },
     toast: showToast,
   });
 }

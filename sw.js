@@ -35,6 +35,7 @@ const SHELL_FILES = [
   'js/weather.js',
   'js/scenes.js',
   'js/card.js',
+  'js/latency.js',
   'icons/favicon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
