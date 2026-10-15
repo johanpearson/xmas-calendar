@@ -226,7 +226,7 @@ test('plan B shows its own verse, or falls back to the day\'s verse', async ({ p
   await expect(verse).toHaveText('Dagens vers');
   await toggle.click();
   await expect(verse).toHaveText('Reservvers');
-  await card.getByRole('button', { name: 'Tillbaka till ursprungsplanen' }).click();
+  await card.getByRole('button', { name: 'Visa plan A' }).click();
   await expect(verse).toHaveText('Dagens vers');
   await card.getByRole('button', { name: 'Stäng' }).click();
 

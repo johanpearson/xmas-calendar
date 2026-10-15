@@ -51,6 +51,7 @@ import {
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
 import { SCENES, SCENE_KEYS, isScene, homeSceneFor } from './scenes.js';
+import { paragraphs, hasAlternative, planContent, SHOW_PLAN_A, SHOW_PLAN_B } from './card.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -333,23 +334,22 @@ async function playThenShow(day, btn, animation, { haptics = true } = {}) {
   }
 }
 
-// Plain text to one element per line, never innerHTML.
+// Plain text to one element per line, never innerHTML. A blank line in the text gives the
+// next line extra space before it (.is-spaced) instead of disappearing.
 function lines(text, tag) {
-  return String(text ?? '')
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((line) => el(tag, null, line));
+  return paragraphs(text).map(({ text: line, gapBefore }) => el(tag, gapBefore ? 'is-spaced' : null, line));
 }
 
-function setCardContent(title, verse, body) {
+function setCardContent({ title, verse, body }) {
   els.cardTitle.textContent = title ?? '';
   // Verse: one line per line break, shown in italics between title and body.
   const verseLines = lines(verse, 'p');
   els.cardVerse.replaceChildren(...verseLines);
   els.cardVerse.hidden = verseLines.length === 0;
-  // Body: one paragraph per line.
-  els.cardBody.replaceChildren(...lines(body, 'p'));
+  // Body: one paragraph per line. An empty body (a door that is all verse) takes no space.
+  const bodyLines = lines(body, 'p');
+  els.cardBody.replaceChildren(...bodyLines);
+  els.cardBody.hidden = bodyLines.length === 0;
 }
 
 // reveal: how the card enters (see .card[data-reveal] in style.css), null for the default.
@@ -359,18 +359,16 @@ function showCard(day, reveal = null) {
   else delete els.card.dataset.reveal;
   els.cardIcon.replaceChildren(typeIcon(day.type));
   els.cardDate.textContent = day.label ? `${day.label} · ${formatDate(day.date)}` : formatDate(day.date);
-  setCardContent(day.title, day.verse, day.body);
+  setCardContent(planContent(day, 'A'));
 
-  const alt = day.alternative;
-  if (alt && (alt.title || alt.body)) {
-    let showingAlt = false;
+  if (hasAlternative(day)) {
+    let plan = 'A';
     els.cardAlt.hidden = false;
-    els.cardAlt.textContent = 'Dåligt väder? Visa plan B';
+    els.cardAlt.textContent = SHOW_PLAN_B;
     els.cardAlt.onclick = () => {
-      showingAlt = !showingAlt;
-      if (showingAlt) setCardContent(alt.title ?? day.title, alt.verse ?? day.verse, alt.body);
-      else setCardContent(day.title, day.verse, day.body);
-      els.cardAlt.textContent = showingAlt ? 'Tillbaka till ursprungsplanen' : 'Dåligt väder? Visa plan B';
+      plan = plan === 'A' ? 'B' : 'A';
+      setCardContent(planContent(day, plan));
+      els.cardAlt.textContent = plan === 'B' ? SHOW_PLAN_A : SHOW_PLAN_B;
     };
   } else {
     els.cardAlt.hidden = true;

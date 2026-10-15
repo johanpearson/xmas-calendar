@@ -713,7 +713,11 @@ body {
   line-height: 1.4;
 }
 .card-verse p { margin: 0; }
+/* A door that is all verse: no empty body below it, so no extra space either. */
+.card-verse:has(+ .card-body[hidden]) { margin-bottom: 0; }
 .card-body p { margin: 0 0 .8em; }
+/* A blank line in the text: extra space before the next paragraph. */
+.card-body p.is-spaced { margin-top: 1.4em; }
 .card-actions {
   display: flex;
   flex-wrap: wrap;

@@ -2,7 +2,7 @@
   "name": "Tomten",
   "intro": {
     "lines": [
-      "Ho ho ho! Hej Elin, det är jag, tomten.",
+      "Ho ho ho! Hej Elin, det är jag, Tomten!",
       "Johan har gjort en adventskalender åt dig. En lucka för varje dag, och några överraskningar på vägen.",
       "Sätt gärna på ljudet, det blir roligare då.",
       "Installera appen på telefonen, så bor jag där och kan hälsa på dig varje vecka.",
@@ -42,24 +42,42 @@
           "id": "gran",
           "text": "Har ni fixat julgranen?",
           "options": [
-            { "label": "Ja, den står där", "reply": "Fint! Nu börjar det likna jul." },
-            { "label": "Inte än", "reply": "Då är det dags. Ju tidigare granen kommer in, desto längre får ni njuta av den." }
+            {
+              "label": "Ja, den står där",
+              "reply": "Fint! Nu börjar det likna jul."
+            },
+            {
+              "label": "Inte än",
+              "reply": "Då är det dags. Ju tidigare granen kommer in, desto längre får ni njuta av den."
+            }
           ]
         },
         {
           "id": "ljusstakar",
           "text": "Har ni ställt fram adventsljusstakarna?",
           "options": [
-            { "label": "Ja, de lyser", "reply": "Perfekt. Fler ljus gör alltid julen bättre." },
-            { "label": "Inte än", "reply": "Det är ju redan advent, så de behöver sin plats. Fixa dem snart." }
+            {
+              "label": "Ja, de lyser",
+              "reply": "Perfekt. Fler ljus gör alltid julen bättre."
+            },
+            {
+              "label": "Inte än",
+              "reply": "Det är ju redan advent, så de behöver sin plats. Fixa dem snart."
+            }
           ]
         },
         {
           "id": "utebelysning",
           "text": "Lyser det ute hos er?",
           "options": [
-            { "label": "Ja, det lyser fint", "reply": "Snyggt! Grannarna blir säkert avundsjuka." },
-            { "label": "Inte än", "reply": "Mörkret blir mycket mysigare med ljus. Fixa det så snart ni kan." }
+            {
+              "label": "Ja, det lyser fint",
+              "reply": "Snyggt! Grannarna blir säkert avundsjuka."
+            },
+            {
+              "label": "Inte än",
+              "reply": "Mörkret blir mycket mysigare med ljus. Fixa det så snart ni kan."
+            }
           ]
         }
       ],
@@ -73,7 +91,7 @@
       "from": "2026-12-07",
       "until": "2026-12-10",
       "lines": [
-        "God måndag, Elin!",
+        "Ho ho ho! Ny vecka, nya möjligheter!",
         "Jag har en fråga: vad har Sten-Åke hittat på i år?",
         "Sätt er ner med honom, prata och lyssna riktigt noga. Han har säkert mycket att berätta.",
         "Jag kommer tillbaka på fredag och kollar."
@@ -91,8 +109,14 @@
           "id": "sten-ake",
           "text": "Har ni pratat med Sten-Åke?",
           "options": [
-            { "label": "Ja, han hade mycket att berätta", "reply": "Så fint. Det är viktigt att lyssna på gamla vänner." },
-            { "label": "Inte än", "reply": "Gör det i helgen. Han har säkert tänkt på det länge." }
+            {
+              "label": "Ja, han hade mycket att berätta",
+              "reply": "Så fint. Det är viktigt att lyssna på gamla vänner."
+            },
+            {
+              "label": "Inte än",
+              "reply": "Gör det i helgen. Han har säkert tänkt på det länge."
+            }
           ]
         }
       ]
@@ -101,7 +125,10 @@
       "id": "v3-vader",
       "from": "2026-12-14",
       "until": "2026-12-17",
-      "forecastFor": ["2026-12-19", "2026-12-20"],
+      "forecastFor": [
+        "2026-12-19",
+        "2026-12-20"
+      ],
       "lines": [
         "God måndag, Elin! Jag har tittat på vädret inför helgen."
       ],
@@ -121,17 +148,20 @@
       "id": "v3-vaderrapport",
       "from": "2026-12-18",
       "until": "2026-12-20",
-      "forecastFor": ["2026-12-19", "2026-12-20"],
+      "forecastFor": [
+        "2026-12-19",
+        "2026-12-20"
+      ],
       "lines": [
         "Fredag, Elin! Nu har jag koll på helgens väder."
       ],
       "weatherVariants": {
         "good": [
-          "Det blir fint. Plan A gäller: promenad med något varmt i termosen på söndag.",
+          "Det blir fint. Plan A gäller!",
           "Klä på er ordentligt!"
         ],
         "bad": [
-          "Det blir inte väder för en promenad. Plan B gäller: julfilm, ljus och glögg hemma på soffan."
+          "Det blir inte väder för en promenad. Plan B gäller!"
         ],
         "unknown": [
           "Jag får inte tag i någon prognos. Titta ut genom fönstret på söndag morgon och bestäm själva."
