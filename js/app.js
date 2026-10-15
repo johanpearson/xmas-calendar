@@ -52,6 +52,8 @@ import {
   setPrerenderPlan,
   prerenderOrder,
   startupKeys,
+  prerendered,
+  effectOffsetMs,
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
 import { enableLatencyLog, notePress, noteFrame, noteExtra, onLatency, latencyEntries, clearLatency } from './latency.js';
@@ -611,7 +613,23 @@ async function startDevMode() {
       stopMelody: () => stopThemeSong(),
       usage: soundUsage(),
     },
-    latency: { entries: latencyEntries, onChange: onLatency, clear: clearLatency },
+    latency: {
+      entries: latencyEntries,
+      onChange: onLatency,
+      clear: clearLatency,
+      prerendered,
+      offsetOf: effectOffsetMs,
+      isOn: isSoundOn,
+      // The sound now (with its offset), then flash() as the animation in the next frame.
+      test(name, flash) {
+        notePress(`test ${name}`, performance.now(), { audio: audioState() });
+        playEffect(name);
+        requestAnimationFrame((time) => {
+          noteFrame(time);
+          flash();
+        });
+      },
+    },
     toast: showToast,
   });
 }

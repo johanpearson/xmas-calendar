@@ -8,6 +8,45 @@ import { renderVoice, catSpec } from './voice.js';
 import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
 import { noteSfx } from './latency.js';
 
+// --- Sync with the animations: adjust here (milestone 14) ---
+//
+// When an effect is heard, in ms relative to the start of the animation it belongs to
+// (the opening animation's first frame, the locked door's shake, the card for an opened
+// door, Tomten's entrance). Negative: the sound comes first. The engine subtracts the
+// device's own output latency (baseLatency + outputLatency), so these are the times you
+// hear and see; a sound can never start before the tap, so values below about -20 ms
+// all mean "as early as possible".
+//
+// SFX_LEAD_MS moves every effect at once (e.g. -15 if all sounds feel late on a phone),
+// SFX_OFFSETS_MS moves one (e.g. gift: 520 to hit the lid lifting instead of the door).
+export const SFX_LEAD_MS = 0;
+export const SFX_OFFSETS_MS = {
+  // Doors: the sound's onset is the door swinging open, the first frame.
+  bells: 0, // shakes from the start, the bells pop up while it rings
+  twinkle: 0,
+  cat: 0,
+  sneak: 0,
+  camera: 0, // the shutter clicks as the door opens
+  paper: 0,
+  candy: 0,
+  chime: 0, // also an opened door: the card fades in
+  splat: 0,
+  pop: 0, // the cork pops as the door opens
+  mystery: 0, // swells slowly, no hard onset
+  popcorn: 0,
+  glogg: 0,
+  bingo: 0, // its ding comes 1.15 s in, as the card appears
+  unwrap: 0,
+  sparkle: 0, // pling on the door, the arpeggio while the letter flies out
+  gift: 0, // pop on the door (520: on the lid lifting)
+  search: 20, // its ding (0.8 s in) lands on the magnifier finding the note (820 ms)
+  // The app's own sounds.
+  sleigh: 0, // Tomten's entrance
+  knock: 0, // the locked door's shake
+  fanfare: 0, // FANFARE_DELAY after a treasure hunt's door
+  click: 0,
+};
+
 // --- Notes and melodies ---
 
 const SEMITONES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -183,20 +222,40 @@ export function planPlayback({ state, hasBuffer }) {
   return { resume: state !== 'running', source: hasBuffer ? 'buffer' : 'live' };
 }
 
+// The animation's first frame comes about one frame after the tap that started it (the
+// sound starts in the event handler, the drawing in the next requestAnimationFrame).
+export const ANIMATION_FRAME_MS = 16;
+
+/** SFX_LEAD_MS plus the effect's own offset, in ms. */
+export const effectOffsetMs = (name) => SFX_LEAD_MS + (SFX_OFFSETS_MS[name] ?? 0);
+
+/**
+ * Seconds from now until an effect should start, so that it is heard offsetMs after the
+ * animation's first frame: delay (seconds, e.g. FANFARE_DELAY) plus the first frame plus
+ * the offset, minus the output latency (seconds). Never negative.
+ */
+export function effectDelay({ delay = 0, offsetMs = 0, latency = 0 }) {
+  return Math.max(0, delay + (ANIMATION_FRAME_MS + offsetMs) / 1000 - latency);
+}
+
 /** When an effect starts on the audio clock: now (ctx.currentTime) + LOOKAHEAD + delay (seconds). */
 export function effectStartTime({ now, delay = 0 }) {
   return now + LOOKAHEAD + Math.max(0, delay);
 }
 
+/** The output latency of a context in seconds (0 where the browser does not say). */
+export const outputLatencyOf = (ctx) => (Number(ctx.baseLatency) || 0) + (Number(ctx.outputLatency) || 0);
+
 /**
  * Starts one effect on ctx, synchronously: { buffer } plays as a buffer source, else
- * live(dest, at) synthesises it. Everything goes through its own gain into dest, so the
- * returned handle can stop it ({ at, source, stop(fade) }).
+ * live(dest, at) synthesises it. delay and offsetMs as in effectDelay. Everything goes
+ * through its own gain into dest, so the returned handle can stop it
+ * ({ at, source, stop(fade) }).
  */
-export function startEffect(ctx, { buffer = null, dest, delay = 0, live }) {
+export function startEffect(ctx, { buffer = null, dest, delay = 0, offsetMs = 0, live }) {
   const plan = planPlayback({ state: ctx.state, hasBuffer: Boolean(buffer) });
   if (plan.resume) Promise.resolve(ctx.resume?.()).catch(() => {}); // never awaited
-  const at = effectStartTime({ now: ctx.currentTime, delay });
+  const at = effectStartTime({ now: ctx.currentTime, delay: effectDelay({ delay, offsetMs, latency: outputLatencyOf(ctx) }) });
   const out = ctx.createGain();
   out.connect(dest);
   let src = null;
@@ -1075,9 +1134,10 @@ const SOUNDS = {
 const ready = () => engine.ctx && mixFor(state()).effects;
 
 /**
- * Plays one of EFFECTS, `delay` seconds from now on the audio clock: from its prerendered
- * buffer when it is ready, else synthesised on the spot. Silent (and harmless) before the
- * first tap, while hidden or when off. Returns a handle with stop(), or null.
+ * Plays one of EFFECTS, `delay` seconds from now on the audio clock (plus its offset, see
+ * SFX_OFFSETS_MS): from its prerendered buffer when it is ready, else synthesised on the
+ * spot. Silent (and harmless) before the first tap, while hidden or when off. Returns a
+ * handle with stop(), or null.
  */
 export function playEffect(name, delay = 0) {
   return (
@@ -1089,6 +1149,7 @@ export function playEffect(name, delay = 0) {
         buffer: engine.buffers.get(`effect:${name}`) ?? null,
         dest: engine.fx,
         delay,
+        offsetMs: effectOffsetMs(name),
         live: (dest, at) => SOUNDS[name](dest, at),
       });
       noteSfx({ name, source: handle.source, calledAt, at: handle.at, ...clockInfo(ctx) });

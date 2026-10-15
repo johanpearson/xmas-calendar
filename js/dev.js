@@ -129,7 +129,7 @@ export function mountDevPanel(api) {
   panel.append(heading, realInfo, dateLabel, actions, preview);
   if (scenes) panel.append(scenes.node);
   if (api.audio) panel.append(audioSection(api.audio, api.toast));
-  if (api.latency) panel.append(latencySection(api.latency));
+  if (api.latency) panel.append(latencySection(api.latency, api.toast));
   if (tomte) panel.append(tomte.node);
   // Toggle first so Tab moves from it into the open panel.
   document.body.append(toggle, panel);
@@ -261,7 +261,7 @@ const secMs = (value) => (typeof value === 'number' ? `${Math.round(value * 1000
 // "Ljudlatens": one row per press on a door, in ms from its pointerdown: when sfx.play
 // was called, when the sound is due on the audio clock, when it is heard (plus
 // baseLatency and outputLatency) and the opening animation's first frame.
-function latencySection(latency) {
+function latencySection(latency, toast) {
   const node = el('fieldset', 'dev-preview dev-latency');
   node.append(el('legend', null, 'Ljudlatens'));
   const hint = el(
@@ -297,10 +297,64 @@ function latencySection(latency) {
       }),
     );
   }
-  latency.onChange(render);
+  const buffers = el('p', 'dev-info');
+  const showBuffers = () => {
+    const list = latency.prerendered();
+    const kb = list.reduce((sum, b) => sum + b.bytes, 0) / 1024;
+    buffers.textContent = `Förrenderat: ${list.length} ljud, ${kb.toLocaleString('sv-SE', { maximumFractionDigits: 0 })} kB.`;
+  };
+  latency.onChange(() => {
+    render();
+    showBuffers();
+  });
   render();
-  node.append(hint, empty, wrap, button('Rensa mätningar', () => latency.clear()));
+  showBuffers();
+  node.append(hint, empty, wrap, buffers, button('Rensa mätningar', () => latency.clear()), offsetTests(latency, toast));
   return node;
+}
+
+// A button that acts on pointerdown, like the doors, and on Enter or Space.
+function pressButton(text, onPress) {
+  const btn = el('button', 'dev-btn', text);
+  btn.type = 'button';
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.isPrimary && e.button === 0) onPress();
+  });
+  btn.addEventListener('click', (e) => {
+    if (e.detail === 0) onPress(); // keyboard
+  });
+  return btn;
+}
+
+// "Testa ljud med aktuell offset": each effect with its offset (SFX_LEAD_MS and
+// SFX_OFFSETS_MS in js/audio.js). A press plays it the way a door does: the sound at
+// once, and in the next frame the flash stands in for the animation's first frame.
+function offsetTests(latency, toast) {
+  const list = el('details', 'dev-sounds');
+  list.append(el('summary', null, 'Testa ljud med aktuell offset'));
+  const flash = el('span', 'dev-flash');
+  flash.setAttribute('aria-hidden', 'true');
+  const info = el('p', 'dev-info', 'Lampan blinkar där animationen skulle börja. Ändra SFX_LEAD_MS eller SFX_OFFSETS_MS i js/audio.js.');
+  info.prepend(flash);
+  const ul = el('ul', 'dev-tomte-list');
+  for (const name of EFFECTS) {
+    const offset = latency.offsetOf(name);
+    const row = el('li', 'dev-offset-item');
+    const text = el('span', 'dev-tomte-text');
+    text.append(el('span', 'dev-tomte-name', EFFECT_LABELS[name]), el('span', 'dev-tomte-dates', `${name} · offset ${offset} ms`));
+    const play = pressButton('Testa', () => {
+      if (!latency.isOn()) {
+        toast('Ljudet är avstängt');
+        return;
+      }
+      latency.test(name, () => flash.animate([{ opacity: 1, transform: 'scale(1.4)' }, { opacity: 0.15, transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' }));
+    });
+    play.setAttribute('aria-label', `Testa ${EFFECT_LABELS[name]} med aktuell offset`);
+    row.append(text, play);
+    ul.append(row);
+  }
+  list.append(info, ul);
+  return list;
 }
 
 // Day scenes: every scene with "Spela upp" (a preview in the card, nothing is marked opened
