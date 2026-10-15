@@ -322,10 +322,11 @@ function vibrate(name) {
 }
 
 /**
- * Plays an opening animation over `door`. Resolves with { skipped } when it has ended
- * (or was skipped by a tap or key press) and the overlay has been removed.
+ * Plays an opening animation over `door`. Resolves with { skipped, aborted } when it has
+ * ended (or was skipped by a tap or key press, or aborted through `signal`) and the
+ * overlay has been removed.
  */
-export function playOpening(door, name, { haptics = true } = {}) {
+export function playOpening(door, name, { haptics = true, signal = null } = {}) {
   const run = ANIMATIONS[name] ?? ANIMATIONS.sparkle;
   const rect = door.getBoundingClientRect();
   const stageX = window.innerWidth / 2;
@@ -352,17 +353,19 @@ export function playOpening(door, name, { haptics = true } = {}) {
 
   return new Promise((resolve) => {
     let done = false;
-    const finish = (skipped) => {
+    const finish = (skipped, aborted = false) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
       layer.removeEventListener('click', onSkip);
       document.removeEventListener('keydown', onKey, true);
+      signal?.removeEventListener('abort', onAbort);
       for (const a of layer.getAnimations({ subtree: true })) a.cancel();
       layer.remove();
       door.classList.remove('is-fx-hidden');
-      resolve({ skipped });
+      resolve({ skipped, aborted });
     };
+    const onAbort = () => finish(true, true);
     // Skip on click, not pointerdown: the rest of the tap must land on the overlay,
     // or its click would hit the card's backdrop and close the card at once.
     const onSkip = () => finish(true);
@@ -375,5 +378,7 @@ export function playOpening(door, name, { haptics = true } = {}) {
     const timer = setTimeout(() => finish(false), total);
     layer.addEventListener('click', onSkip);
     document.addEventListener('keydown', onKey, true);
+    signal?.addEventListener('abort', onAbort);
+    if (signal?.aborted) onAbort();
   });
 }

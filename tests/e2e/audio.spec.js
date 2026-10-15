@@ -1,6 +1,7 @@
 // Sound (milestone 9): the wiring, not the sound itself (that is tested by ear).
-// AudioContext is wrapped so the tests can see when it is created, its state and how
-// many oscillators have been started.
+// AudioContext is wrapped so the tests can see when it is created, its state, how many
+// oscillators have been started and which prerendered buffers (milestone 14) have been
+// played (sounds counts both: a prerendered effect is one buffer source).
 import { test, expect } from '@playwright/test';
 import { skipTomte } from './helpers.js';
 
@@ -8,7 +9,7 @@ const at = (date) => new Date(`${date}T10:00:00+01:00`);
 
 async function spyOnAudio(page) {
   await page.addInitScript(() => {
-    const spy = { contexts: [], oscillators: 0 };
+    const spy = { contexts: [], oscillators: 0, buffers: [] };
     window.__audio = spy;
     const Real = window.AudioContext;
     window.AudioContext = class extends Real {
@@ -25,6 +26,16 @@ async function spyOnAudio(page) {
         };
         return osc;
       }
+      createBufferSource() {
+        const src = super.createBufferSource();
+        const start = src.start.bind(src);
+        src.start = (...a) => {
+          // The one-sample wake-up blip is not a sound.
+          if (src.buffer && src.buffer.length > 1) spy.buffers.push(src.buffer.duration);
+          return start(...a);
+        };
+        return src;
+      }
     };
   });
 }
@@ -34,6 +45,13 @@ const audio = (page) =>
     contexts: window.__audio.contexts.length,
     state: window.__audio.contexts[0]?.state ?? null,
     oscillators: window.__audio.oscillators,
+  }));
+
+// Started sounds: oscillators plus prerendered buffers, and the longest buffer (seconds).
+const played = (page) =>
+  page.evaluate(() => ({
+    sounds: window.__audio.oscillators + window.__audio.buffers.length,
+    longest: Math.max(0, ...window.__audio.buffers),
   }));
 
 // Collects uncaught errors and console errors.
@@ -65,7 +83,8 @@ test('no sound before the first tap; the intro\'s first "Nästa" starts the jing
   await expect.poll(async () => (await audio(page)).state).toBe('running');
   const after = await audio(page);
   expect(after.contexts).toBe(1);
-  expect(after.oscillators).toBeGreaterThan(60); // the click and the whole jingle
+  const sounds = await played(page);
+  expect(sounds.sounds > 60 || sounds.longest >= 5).toBe(true); // the click and the whole jingle (live or prerendered)
   expect(errors).toEqual([]);
 });
 
@@ -104,14 +123,14 @@ test('sound off is silent: tapping a locked door starts nothing', async ({ page 
 
   await locked.click(); // first tap: unlocks audio and plays the "tonk"
   await expect.poll(async () => (await audio(page)).state).toBe('running');
-  const tonk = (await audio(page)).oscillators;
+  const tonk = (await played(page)).sounds;
   expect(tonk).toBeGreaterThan(0);
 
   await header(page).getByRole('button', { name: 'Ljud' }).click();
   await expect.poll(async () => (await audio(page)).state).toBe('suspended');
   await locked.click();
   await page.waitForTimeout(100);
-  expect((await audio(page)).oscillators).toBe(tonk);
+  expect((await played(page)).sounds).toBe(tonk);
 });
 
 test('opening a door plays its sound', async ({ page }) => {
@@ -122,9 +141,9 @@ test('opening a door plays its sound', async ({ page }) => {
   await header(page).getByRole('button', { name: 'Ljud' }).click(); // off
   await header(page).getByRole('button', { name: 'Ljud' }).click(); // on again: a click
   await expect.poll(async () => (await audio(page)).state).toBe('running');
-  const before = (await audio(page)).oscillators;
+  const before = (await played(page)).sounds;
   await page.locator('.door[data-date="2026-12-05"]').click();
-  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before + 2);
+  await expect.poll(async () => (await played(page)).sounds).toBeGreaterThan(before);
 });
 
 test('a door with "music" plays its theme song, one without does not', async ({ page }) => {
@@ -135,20 +154,27 @@ test('a door with "music" plays its theme song, one without does not', async ({ 
   await page.locator('body').click({ position: { x: 5, y: 5 } }); // unlocks audio, silently
   await expect.poll(async () => (await audio(page)).state).toBe('running');
 
-  // 3 December has no music: only its sound.
-  let before = (await audio(page)).oscillators;
+  // 3 December has no music: only its sound (synthesised, or one prerendered buffer).
+  let before = await played(page);
   await page.locator('.door[data-date="2026-12-03"]').click();
   await page.waitForTimeout(1500);
-  const effectOnly = (await audio(page)).oscillators - before;
-  expect(effectOnly).toBeGreaterThan(2);
+  let after = await played(page);
+  const effectOnly = after.sounds - before.sounds;
+  expect(effectOnly).toBeGreaterThan(0);
   expect(effectOnly).toBeLessThan(30);
+  expect(after.longest).toBeLessThan(3);
   await page.keyboard.press('Escape');
 
-  // 1:a advent has "tusen-juleljus": its sound and a whole song.
-  before = (await audio(page)).oscillators;
+  // 1:a advent has "tusen-juleljus": its sound and a whole song. The first eight bars on
+  // the celesta with their bass: about 60 oscillators, or a prerendered buffer of 10 s or more.
+  before = await played(page);
   await page.locator('.door[data-date="2026-11-29"]').click();
-  // The first eight bars on the celesta with their bass: about 60 oscillators.
-  await expect.poll(async () => (await audio(page)).oscillators - before).toBeGreaterThan(45);
+  await expect
+    .poll(async () => {
+      const now = await played(page);
+      return now.sounds - before.sounds > 45 || now.longest >= 10;
+    })
+    .toBe(true);
 });
 
 test('music menu: off by default, Blandat starts it, a hidden page suspends it', async ({ page }) => {
@@ -302,14 +328,17 @@ test('dev panel: every melody and effect with "Spela", who uses it, all effects 
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
   const panel = page.locator('#dev-panel');
   await panel.getByRole('button', { name: 'Testa jingle' }).click();
-  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(60);
+  await expect.poll(async () => {
+    const { sounds, longest } = await played(page);
+    return sounds > 60 || longest >= 5;
+  }).toBe(true);
 
   await panel.getByText('Melodier (7)').click();
   const lucia = panel.locator('.dev-sound-item', { hasText: 'santa-lucia' });
   await expect(lucia).toContainText('Används av: Lucka 13, 3:e advent');
   await expect(lucia).toContainText('I Blandat från 12-13');
   let before = (await audio(page)).oscillators;
-  await panel.getByRole('button', { name: 'Spela Stilla natt' }).click();
+  await panel.getByRole('button', { name: 'Spela Stilla natt' }).click(); // the whole song: always synthesised
   await expect.poll(async () => (await audio(page)).oscillators - before).toBeGreaterThan(150); // the whole song, not just its theme (about 60)
   await panel.getByRole('button', { name: 'Stoppa melodi' }).click();
 
@@ -317,9 +346,9 @@ test('dev panel: every melody and effect with "Spela", who uses it, all effects 
   await expect(panel.locator('.dev-sound-item', { hasText: 'Katt som jamar' })).toContainText('Används av: Lucka 4');
   await expect(panel.locator('.dev-sound-item', { hasText: 'Fanfar' })).toContainText('Lucka 5 (standard)');
   await expect(panel.locator('.dev-sound-item', { hasText: 'Korkpopp med bubblor' })).toContainText('Används av: Lucka 12');
-  before = (await audio(page)).oscillators;
+  before = (await played(page)).sounds;
   await panel.getByRole('button', { name: 'Spela Mjukt ding' }).click();
-  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before);
+  await expect.poll(async () => (await played(page)).sounds).toBeGreaterThan(before);
 
   await panel.getByRole('button', { name: 'Spela alla effekter i följd' }).click();
   await expect(page.locator('#toast')).toHaveText('Bjällror');
