@@ -129,17 +129,16 @@ export const fanfareFor = (day) => day?.type === 'jakt';
 
 export const MASTER_GAIN = 0.25;
 export const MUSIC_GAIN = 0.32; // relative to the master: the music sits well below the effects
-export const DUCK_LEVEL = 0.15; // the music under a theme song or Tomten's jingle
+export const RESUME_GAP = 1.5; // seconds of quiet before the music comes back after a pause
 
 /**
- * Ducking: `ducks` maps what is ducking the music (a theme song, the jingle) to when it
- * ends, on the AudioContext's clock. Returns the music's level now and, while ducked,
- * when to bring it back: { level, until }.
+ * Pausing: `pauses` maps what pauses the background music (a theme song, Tomten) to
+ * when it ends, on the AudioContext's clock. Returns when the music may start again,
+ * or null when nothing pauses it now.
  */
-export function duckFor(ducks, now) {
-  const ends = [...ducks.values()].filter((end) => end > now);
-  if (ends.length === 0) return { level: MUSIC_GAIN, until: null };
-  return { level: MUSIC_GAIN * DUCK_LEVEL, until: Math.max(...ends) };
+export function pausedUntil(pauses, now) {
+  const ends = [...pauses.values()].filter((end) => end > now);
+  return ends.length ? Math.max(...ends) + RESUME_GAP : null;
 }
 
 /** A stored on/off value ("on" | "off") to a boolean, `fallback` for anything else. */
@@ -197,8 +196,8 @@ const engine = {
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
   jingle: null, // { gain }
   theme: null, // { key, gain, end, timer }
-  ducks: new Map(), // what ducks the music -> when it ends (see duckFor)
-  music: { bus: null, until: 0, timer: null, current: null, previous: null },
+  pauses: new Map(), // what pauses the music -> when it ends (see pausedUntil)
+  music: { bus: null, until: 0, timer: null, current: null, previous: null, paused: false },
   listeners: new Set(),
 };
 
@@ -339,6 +338,9 @@ export function onAudioChange(listener) {
 export const isSoundOn = () => engine.soundOn;
 export const getMusicChoice = () => engine.musicChoice;
 export const isMusicOn = () => engine.musicChoice !== 'off';
+
+/** True while the background music waits for a theme song or Tomten to finish. */
+export const isMusicPaused = () => Boolean(engine.music.bus && engine.music.paused);
 
 /** The title of the song playing (or last played, in the pause between songs), or null. */
 export function nowPlaying() {
@@ -671,6 +673,67 @@ function brass(dest, t, freq, dur, peak) {
   }
 }
 
+// A voice: an oscillator (sawtooth by default) with a pitch path and a vibrato, softened
+// by a low-pass filter and sent through formant band-pass filters ([freq, q, level,
+// sweep?]), plus a little of the softened source itself (`body`) for warmth.
+function vowel(dest, { t, dur, peak, attack, release, path, vibrato, formants, soften = 1800, body = 0, type = 'sawtooth' }) {
+  const { ctx } = engine;
+  const out = sustained(t, dur, peak, attack, release);
+  out.connect(dest);
+  const lowpass = filter('lowpass', soften, 0.7, t);
+  for (const [freq, q, level, sweep] of formants) {
+    const bp = filter('bandpass', freq, q, t, sweep ?? []);
+    const g = ctx.createGain();
+    g.gain.value = level;
+    lowpass.connect(bp).connect(g).connect(out);
+  }
+  if (body) {
+    const g = ctx.createGain();
+    g.gain.value = body;
+    lowpass.connect(g).connect(out);
+  }
+  voice(lowpass, { t, dur, type, path, vibrato });
+}
+
+// The door's creak, rendered once: a train of clicks whose rate follows a curve (slow,
+// fast, slow), each click ringing two damped resonances like a wooden board.
+function creakBuffer() {
+  if (engine.creak) return engine.creak;
+  const { ctx } = engine;
+  const rate = ctx.sampleRate;
+  const seconds = 1.05;
+  const data = new Float32Array(Math.floor(rate * seconds));
+  // Clicks per second over time: [time, rate].
+  const curve = [[0, 18], [0.25, 60], [0.55, 210], [0.8, 150], [1, 45]];
+  const rateAt = (time) => {
+    for (let i = 1; i < curve.length; i++) {
+      const [t1, r1] = curve[i];
+      const [t0, r0] = curve[i - 1];
+      if (time <= t1) return r0 + ((r1 - r0) * (time - t0)) / (t1 - t0);
+    }
+    return curve.at(-1)[1];
+  };
+  const kernelLength = Math.floor(rate * 0.012);
+  const ring = (freq, tau) => (i) => Math.sin((2 * Math.PI * freq * i) / rate) * Math.exp(-i / (tau * rate));
+  const parts = [ring(rand(850, 950), 0.003), ring(rand(1700, 1900), 0.002), ring(rand(3100, 3400), 0.001)];
+  const levels = [1, 0.6, 0.25];
+  const kernel = Float32Array.from({ length: kernelLength }, (_, i) => parts.reduce((sum, part, k) => sum + levels[k] * part(i), 0));
+  let time = 0.01;
+  while (time < seconds - 0.02) {
+    const start = Math.floor(time * rate);
+    const swell = Math.sin(Math.PI * Math.min(1, time / seconds)) ** 0.6;
+    const amp = swell * rand(0.6, 1);
+    for (let i = 0; i < kernelLength && start + i < data.length; i++) data[start + i] += amp * kernel[i];
+    time += (1 / rateAt(time)) * rand(0.85, 1.15);
+  }
+  let peak = 0;
+  for (const v of data) peak = Math.max(peak, Math.abs(v));
+  const buffer = ctx.createBuffer(1, data.length, rate);
+  buffer.getChannelData(0).set(data.map((v) => v / (peak || 1)));
+  engine.creak = buffer;
+  return buffer;
+}
+
 // --- The effects. Each takes the destination and a start time; all end within 2 s. ---
 
 const SOUNDS = {
@@ -716,33 +779,27 @@ const SOUNDS = {
     noise(runners, { t, dur: 1.5, peak: 0.035, attack: 0.6, freq: 2200, q: 0.6 });
   },
 
-  // Tomten's "ho ho ho": a deep sawtooth with a vibrato through the two formants of an
-  // "o" (about 450 and 800 Hz), three syllables falling in pitch, each with a breathy "h".
+  // Tomten's "ho ho ho": three voiced syllables, each starting with a breathy "h". The
+  // voice is a deep sawtooth with a little vibrato, softened and shaped by the formants of
+  // an "o" (about 500, 900 and 2500 Hz), falling in pitch through each syllable.
   ho(dest, t) {
-    const { ctx } = engine;
-    [[0, 120, 0.26], [0.32, 113, 0.26], [0.64, 102, 0.55]].forEach(([offset, f0, dur]) => {
+    [[0, 128, 0.24, 1], [0.3, 118, 0.24, 0.85], [0.6, 106, 0.42, 0.75]].forEach(([offset, f0, dur, level]) => {
       const at = t + offset;
-      noise(dest, { t: at, dur: 0.07, peak: 0.035, attack: 0.01, filter: 'highpass', freq: 1200, q: 0.5 });
-      const mouth = ctx.createGain();
-      mouth.connect(dest);
-      const formants = [[450, 5, 1.6], [800, 7, 0.8], [250, 1, 0.35]].map(([freq, q, level]) => {
-        const bp = filter('bandpass', freq, q, at);
-        const g = ctx.createGain();
-        g.gain.value = level;
-        bp.connect(g).connect(mouth);
-        return bp;
-      });
-      const gain = sustained(at + 0.03, dur, 0.32, 0.05, dur * 0.6);
-      for (const bp of formants) gain.connect(bp);
-      voice(gain, {
-        t: at + 0.03,
+      noise(dest, { t: at, dur: 0.09, peak: 0.05 * level, attack: 0.012, freq: 1100, q: 1.2 });
+      vowel(dest, {
+        t: at + 0.05,
         dur,
-        type: 'sawtooth',
-        path: [[0, f0 * 1.05], [0.06, f0], [dur, f0 * 0.88]],
-        vibrato: { rate: 5.5, depth: f0 * 0.025 },
+        peak: 0.42 * level,
+        attack: 0.03,
+        release: dur * 0.7,
+        path: [[0, f0 * 1.04], [0.05, f0], [dur, f0 * 0.86]],
+        vibrato: { rate: 5, depth: f0 * 0.02 },
+        formants: [[520, 3, 1], [880, 4, 0.5], [2500, 6, 0.08]],
+        body: 0.3,
       });
     });
   },
+
 
   // Two dull knocks: the door is locked.
   knock(dest, t) {
@@ -763,28 +820,20 @@ const SOUNDS = {
     glitter(dest, t + 0.4, { count: 6, over: 0.5, peak: 0.03 });
   },
 
-  // A creaking door: a slow, wobbling sawtooth (stick and slip) through two narrow
-  // resonances that move as the door swings.
+  // A creaking door: stick and slip. Each slip is a tiny click that rings the wood's
+  // resonances; the clicks come slowly, then faster and faster (a rising "krrr-iiik"),
+  // then slow down again as the door stops.
   door(dest, t) {
-    const dur = 1.1;
-    const low = filter('bandpass', 700, 12, t, [[0.6, 1300], [dur, 900]]);
-    const high = filter('bandpass', 1900, 10, t, [[0.5, 2600], [dur, 2100]]);
-    const out = engine.ctx.createGain();
-    out.gain.value = 6; // the narrow filters pass little of the buzz
-    low.connect(out);
-    high.connect(out);
-    out.connect(dest);
-    const gain = sustained(t, dur, 0.12, 0.08, 0.3);
-    gain.connect(low);
-    gain.connect(high);
-    voice(gain, {
-      t,
-      dur,
-      type: 'sawtooth',
-      path: [[0, 34], [0.25, 52], [0.5, 31], [0.8, 58], [dur, 42]],
-      vibrato: { rate: 13, depth: 7 },
-    });
+    const { ctx } = engine;
+    const src = ctx.createBufferSource();
+    src.buffer = creakBuffer();
+    const gain = ctx.createGain();
+    gain.gain.value = 0.16;
+    src.connect(gain).connect(dest);
+    src.start(t);
+    src.onended = () => gain.disconnect();
   },
+
 
   // A pling, then a glittering arpeggio upwards (ledtrad, rim).
   sparkle(dest, t) {
@@ -821,21 +870,27 @@ const SOUNDS = {
     glitter(dest, t + 0.6, { count: 6, over: 0.6, peak: 0.03 });
   },
 
-  // A meow: a sine (and a little sawtooth for the nose) gliding up and down through a
-  // band-pass filter that follows, "m-iaa-ow".
+  // A meow: a bright voice whose pitch rises and falls ("m-iaa-ow") while its formants
+  // move from a closed "m" to an open "iaa" and round off into "ow".
   cat(dest, t) {
-    const dur = 0.8;
-    const path = [[0, 470], [0.22, 830], [0.45, 720], [dur, 410]];
-    const mouth = filter('bandpass', 900, 2, t, [[0.22, 1700], [0.45, 1300], [dur, 700]]);
-    mouth.connect(dest);
-    const gain = sustained(t, dur, 0.25, 0.07, 0.35);
-    gain.connect(mouth);
-    voice(gain, { t, dur, path, vibrato: { rate: 6, depth: 9 } });
-    const nose = engine.ctx.createGain();
-    nose.gain.value = 0.25;
-    nose.connect(gain);
-    voice(nose, { t, dur, type: 'sawtooth', path, vibrato: { rate: 6, depth: 9 } });
+    const dur = 0.85;
+    vowel(dest, {
+      t,
+      dur,
+      peak: 0.2,
+      attack: 0.09,
+      release: 0.35,
+      path: [[0, 560], [0.18, 790], [0.4, 740], [dur, 500]],
+      vibrato: { rate: 7, depth: 8 },
+      soften: 5000,
+      formants: [
+        [500, 3, 1, [[0.2, 1150], [0.45, 900], [0.8, 600]]],
+        [1500, 5, 0.6, [[0.2, 2400], [0.5, 1600], [0.8, 1000]]],
+        [3500, 6, 0.15],
+      ],
+    });
   },
+
 
   // Tiptoeing: quiet staccato plucks in a minor key, each with a soft footstep.
   sneak(dest, t) {
@@ -993,27 +1048,38 @@ export function playForDoor(day, animation) {
 
 // --- Tomten's jingle ---
 
-// --- Ducking: the music steps aside for a theme song or Tomten's jingle ---
+// --- Pausing: the music stops for a theme song or Tomten, and comes back after ---
 
-function applyDuck() {
-  const { ctx } = engine;
+// Cuts the song that is playing (it fades out) and keeps the music waiting until
+// whatever paused it has ended. Then the next song starts from the beginning: the next
+// one in the mix, or the chosen song again.
+function applyPause() {
+  const { ctx, music } = engine;
   if (!ctx) return;
   const now = ctx.currentTime;
-  const { level, until } = duckFor(engine.ducks, now);
-  const gain = engine.musicBus.gain;
-  gain.cancelScheduledValues(now);
-  gain.setValueAtTime(gain.value, now);
-  gain.setTargetAtTime(level, now, until ? 0.1 : 0.25);
-  if (until) gain.setTargetAtTime(MUSIC_GAIN, until, 0.4);
+  const until = pausedUntil(engine.pauses, now);
+  if (until !== null) {
+    if (music.bus && !music.paused) {
+      release(music.bus, 0.4);
+      music.bus = bus(1, engine.musicBus);
+      music.current = null;
+    }
+    music.paused = Boolean(music.bus);
+    music.until = until;
+  } else if (music.paused) {
+    music.paused = false;
+    music.until = Math.min(music.until, now + RESUME_GAP);
+  }
+  notify();
 }
 
-function duck(name, end) {
-  engine.ducks.set(name, end);
-  applyDuck();
+function pauseMusic(name, end) {
+  engine.pauses.set(name, end);
+  applyPause();
 }
 
-function unduck(name) {
-  if (engine.ducks.delete(name)) applyDuck();
+function resumeMusic(name) {
+  if (engine.pauses.delete(name)) applyPause();
 }
 
 // Fades out a song's own gain and lets it go.
@@ -1027,10 +1093,10 @@ function stopJingle(fade = 0.25) {
   if (!jingle) return;
   engine.jingle = null;
   release(jingle.gain, fade);
-  unduck('jingle');
+  resumeMusic('jingle');
 }
 
-/** Plays Tomten's jingle (Jingle Bells on a music box, about 7 s). Ducks the music meanwhile. */
+/** Plays Tomten's jingle (Jingle Bells on a music box, about 7 s). The music pauses meanwhile. */
 export function playJingle(delay = 0) {
   safely(() => {
     if (!ready()) return;
@@ -1039,7 +1105,7 @@ export function playJingle(delay = 0) {
     const gain = bus(1, engine.master);
     const length = playSong(gain, t, JINGLE);
     engine.jingle = { gain };
-    duck('jingle', t + length + 0.5);
+    pauseMusic('jingle', t + length);
   });
 }
 
@@ -1053,12 +1119,12 @@ function stopTheme(fade = 0.4) {
   engine.theme = null;
   clearTimeout(theme.timer);
   release(theme.gain, fade);
-  unduck('theme');
+  resumeMusic('theme');
 }
 
 /**
  * Plays a melody from melodies.js once: its theme excerpt, cut at THEME_MAX_SECONDS
- * with a fade, or with { full: true } (dev mode) all of it. The background music ducks
+ * with a fade, or with { full: true } (dev mode) all of it. The background music pauses
  * meanwhile. Unknown keys, and the same song while it is still playing, do nothing.
  */
 export function playTheme(key, { full = false, delay = THEME_DELAY } = {}) {
@@ -1079,7 +1145,7 @@ export function playTheme(key, { full = false, delay = THEME_DELAY } = {}) {
     }
     const timer = setTimeout(() => safely(() => engine.theme?.gain === gain && stopTheme(0.1)), (end - now + 1.6) * 1000);
     engine.theme = { key, full, gain, end, timer };
-    duck('theme', end + 0.6);
+    pauseMusic('theme', end);
   });
 }
 
@@ -1119,6 +1185,8 @@ function startMusic() {
   if (!music.bus) {
     music.bus = bus(1, engine.musicBus);
     music.until = 0;
+    music.paused = false;
+    applyPause(); // a theme song or Tomten may be on right now
   }
   clearTimeout(music.timer);
   musicTick();
@@ -1130,7 +1198,8 @@ function musicTick() {
   safely(() => {
     const { music, ctx } = engine;
     if (!music.bus) return;
-    if (ctx.state === 'running' && mixFor(state()).music && ctx.currentTime >= music.until - 1.5) {
+    if (music.paused && pausedUntil(engine.pauses, ctx.currentTime) === null) applyPause();
+    if (ctx.state === 'running' && mixFor(state()).music && !music.paused && ctx.currentTime >= music.until - 1.5) {
       const key = songFor(engine.musicChoice, music.previous, engine.prefs?.today?.() ?? '');
       if (key) {
         const start = Math.max(ctx.currentTime + 0.15, music.until);
@@ -1152,6 +1221,7 @@ function stopMusic(fade = 0.5) {
   const old = music.bus;
   music.bus = null;
   music.current = null;
+  music.paused = false;
   release(old, fade);
 }
 

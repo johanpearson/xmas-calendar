@@ -355,8 +355,11 @@ ljudfiler och inga beroenden.
   - **En låt** i listan spelas om och om igen med 6 s paus. "Nästa låt" går då vidare
     till nästa låt i listan, med Blandat till en annan slumpad låt.
 - **Temalåt:** en lucka med `music` spelar den melodin en gång (högst 20 s) när den
-  öppnas, även om musikmenyn står på Av. Bakgrundsmusiken sänks medan temalåten eller
-  tomtens jingel spelar och kommer tillbaka efteråt.
+  öppnas, även om musikmenyn står på Av.
+- **Paus:** bakgrundsmusiken pausas medan en temalåt spelar och medan tomten dyker upp
+  (släde, "ho ho ho" och jingel). Låten som spelade tonas ut, och 1,5 s efter att
+  temalåten eller jingeln är klar börjar musiken igen: nästa låt i Blandat, eller den
+  valda låten från början. Under tiden står "Musiken är pausad en stund" i menyn.
 - Inget ljud spelas före första trycket i appen (webbläsarnas autoplay-regler). För en ny
   användare är det tomtens första "Nästa", och då börjar hans jingel.
 - Ljudet pausas när appen eller fliken hamnar i bakgrunden och fortsätter när den visas.
@@ -527,6 +530,21 @@ och bumpa sedan `CACHE_VERSION`.
 - Dev-panelens "Spela" för en melodi spelar hela melodin (inte bara temat), så att den
   går att rätta. "Stoppa melodi" stoppar den.
 - `js/melodies.js` ligger i precache och `CACHE_VERSION` är `v9`.
+- Efter första lyssningen (`CACHE_VERSION` `v10`):
+  - Bakgrundsmusiken **pausas** nu i stället för att sänkas när en temalåt eller tomten
+    spelar, och fortsätter med en ny låt (eller samma låt från början) efteråt. Att
+    fortsätta mitt i en låt går inte, eftersom hela låten schemaläggs när den startar.
+  - `cat` är omgjord: en ljus sågtandsröst (inte en ren sinus, som lät som en vissling)
+    med tonhöjd som stiger från cirka 560 till 790 Hz och faller till 500 Hz, genom
+    formantfilter som går från ett stängt "m" via "iaa" till "ow".
+  - `ho` är omgjord: mjukare röst (lågpassfiltrerad sågtand) med bredare formanter för
+    ett "o", ett tydligare andat "h" före varje stavelse och fallande tonhöjd 128 till
+    100 Hz.
+  - `door` är omgjord: i stället för en surrande ton är knarret ett tåg av små klick (som
+    när trä fastnar och släpper) som klingar i träets resonanser, först långsamt, sedan
+    snabbare och långsamt igen.
+  - Effekterna är kontrollerade genom att rendera dem till WAV och mäta tonhöjdskurvan,
+    men inte avlyssnade.
 
 ### Väder (milstolpe 10)
 
