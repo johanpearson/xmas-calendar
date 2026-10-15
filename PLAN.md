@@ -45,6 +45,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/melodies.js   melodier som data och logik för Blandat (milstolpe 11)
   js/scenes.js     dagsscener: register, SVG och cleanup (milstolpe 12)
   js/card.js       ren logik: kortets stycken och val av plan A eller B (milstolpe 13)
+  js/latency.js    dev: logg över ljudlatens per tryck (milstolpe 14)
   css/scenes.css   dagsscenernas animationer (milstolpe 12)
   content/days.json
   content/tomte.json
@@ -259,6 +260,17 @@ Skapa dessa med riktigt innehåll:
    - **Dev-läge:** väljaren "Prognos" (Riktig, Bra, Dålig, Okänd) styr även plan B.
    - **Tester:** `node --test` för valet av plan A eller B (bad, good, unknown, timeout, manuellt byte åt båda hållen) och reservvärdena för titel och vers. Playwright med mockad Open-Meteo och simulerat datum 2026-12-20 (dålig, bra och okänd prognos, knappen åt båda hållen, samma titel och vers), plus luckorna 2026-12-02 (tom `body`) och 2026-12-08 (tom rad i `body`). Skärmdumpar vid 360 px.
    - **PWA:** `js/card.js` precachas, `CACHE_VERSION` bumpas, `content/days.json` och `content/tomte.json` ligger kvar i precache med stale-while-revalidate.
+
+14. **Ljudfördröjning.** Ljudeffekterna kom märkbart för sent när en lucka öppnades på Android. Målet: ljudet startar inom cirka 50 ms efter trycket och ligger i synk med animationen. Klar när: punkterna nedan fungerar på 360 px, `tests/audio.test.js` och e2e-testerna är gröna, uppmätta värden före och efter står i PR-beskrivningen och `CACHE_VERSION` är bumpad med `js/latency.js` i precache.
+   - **Som tidigare:** ingen bundler, inga runtime-beroenden, inga ljudfiler i repot. Förrenderade buffertar skapas i webbläsaren vid körning och sparas aldrig.
+   - **Mät först (dev-läge):** `performance.now()` för `pointerdown` på luckan, när `sfx.play` anropas, ljudets schemalagda starttid (`AudioContext.currentTime`, `baseLatency`, `outputLatency`) och animationens första bildruta. Dev-panelen visar siffrorna under "Ljudlatens". Notera om fördröjningen bara gäller första luckan efter appstart, vissa effekter eller lucka 20 december (prognoshämtningen får aldrig blockera ljud eller animation).
+   - **Tryck:** ljud och öppnande triggas på `pointerdown`, inte på `click` eller efter animationens slut. Ljudet startas först, det tunga ritandet (öppna-animationen och DOM-uppdateringar) i nästa `requestAnimationFrame`. Tangentbordet (Enter, mellanslag) öppnar som förut via `click`. Blir trycket en scroll (`pointercancel`) avbryts öppnandet.
+   - **AudioContext:** skapas med `latencyHint: 'interactive'` vid första `pointerdown` var som helst i appen och väcks med en tyst buffert. Ingen `await ctx.resume()` när kontexten redan kör. Återupptas tidigt vid `visibilitychange`.
+   - **Förrendering:** effekterna renderas till `AudioBuffer` med `OfflineAudioContext` i vilolägen (`requestIdleCallback`, annars `setTimeout` i små steg) efter första trycket, så att uppspelning bara är en `AudioBufferSourceNode`. Idag och redan upplåsta luckors effekter först, buffertarna återanvänds, låg samplingsfrekvens (22050 Hz, 32000 Hz för bjällrorna) och tystnad i slutet kapas. Är bufferten inte klar spelas den direkt syntetiserade versionen som reserv. Tomtens jingel och temalåtarna förrenderas på samma sätt. Duckningen av bakgrundsmusiken har en ramp under 100 ms och fördröjer aldrig effekterna.
+   - **Schemaläggning:** effekter startar på ljudklockan med lookahead `ctx.currentTime + 0.005`, aldrig med `setTimeout`.
+   - **Finjustering:** överst i `js/audio.js` finns `SFX_LEAD_MS` och en tabell med offset per effekt (ms relativt animationens start, negativt = ljudet först). README beskriver var synken justeras. Dev-panelen har "Testa ljud med aktuell offset" per effekt.
+   - **Tester:** `node --test` för schemaläggningen (lookahead, ingen await på igång-kontext, reserv när bufferten inte är klar). Playwright med mockad `AudioContext`: `sfx.play` anropas på `pointerdown`, före scenritandet, och blockeras inte av väderanropet (långsamt mockat Open-Meteo-svar vid 2026-12-20).
+   - **PWA:** `js/latency.js` precachas och `CACHE_VERSION` bumpas.
 
 ## Datamodell: `content/tomte.json`
 
