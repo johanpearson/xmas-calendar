@@ -7,12 +7,20 @@ import {
   voiceSeconds,
   songToEvents,
   songSeconds,
-  JINGLE_BELLS,
+  JINGLE,
   EFFECTS,
   soundForAnimation,
+  soundForDoor,
+  fanfareFor,
+  FANFARE_DELAY,
+  isEffect,
+  EFFECT_LABELS,
+  sfx,
   parseToggle,
   mixFor,
   MASTER_GAIN,
+  MUSIC_GAIN,
+  duckFor,
 } from '../js/audio.js';
 import { ANIMATIONS, TYPE_ANIMATIONS } from '../js/themes.js';
 
@@ -70,35 +78,54 @@ test('songs merge their voices in time order', () => {
 });
 
 test('the jingle is a valid melody of 5 to 8 seconds', () => {
-  const events = songToEvents(JINGLE_BELLS);
+  const events = songToEvents(JINGLE);
   assert.ok(events.length > 20);
   for (const e of events) assert.ok(e.freq > 100 && e.freq < 2000, `${e.note} is out of range`);
-  const seconds = songSeconds(JINGLE_BELLS);
+  const seconds = songSeconds(JINGLE);
   assert.ok(seconds >= 5 && seconds <= 8, `the jingle is ${seconds} s`);
-  // Every voice is as long as the melody, so the accompaniment ends with it.
-  for (const voice of JINGLE_BELLS.voices) close(voiceSeconds(voice, JINGLE_BELLS.bpm), seconds);
-});
-
-test('the background music is the same melody, calmer', () => {
-  assert.ok(JINGLE_BELLS.calmBpm < JINGLE_BELLS.bpm);
-  assert.ok(songSeconds(JINGLE_BELLS, JINGLE_BELLS.calmBpm) > songSeconds(JINGLE_BELLS));
+  // Every voice is as long as the melody, so the bass ends with it.
+  for (const voice of JINGLE.voices) close(voiceSeconds(voice, JINGLE.bpm), seconds);
 });
 
 test('the jingle starts with "jingle bells" (E E E)', () => {
-  const melody = voiceToEvents(JINGLE_BELLS.voices[0], JINGLE_BELLS.bpm);
+  const melody = voiceToEvents(JINGLE.voices[0], JINGLE.bpm);
   assert.deepEqual(melody.slice(0, 3).map((e) => e.note), ['E5', 'E5', 'E5']);
   assert.equal(melody.at(-1).note, 'C5'); // ends on the tonic
 });
 
 test('every opening animation has a sound, unknown ones fall back', () => {
   for (const name of ANIMATIONS) assert.ok(EFFECTS.includes(soundForAnimation(name)), name);
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.uppdrag), 'sleighbells');
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.ledtrad), 'chime');
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.rim), 'chime');
-  assert.equal(soundForAnimation(TYPE_ANIMATIONS.litet), 'pop');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.uppdrag), 'bells');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.ledtrad), 'sparkle');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.rim), 'sparkle');
+  assert.equal(soundForAnimation(TYPE_ANIMATIONS.litet), 'gift');
   assert.equal(soundForAnimation(TYPE_ANIMATIONS.jakt), 'search');
-  assert.equal(soundForAnimation('nope'), 'chime');
-  assert.equal(soundForAnimation(undefined), 'chime');
+  assert.equal(soundForAnimation('nope'), 'sparkle');
+  assert.equal(soundForAnimation(undefined), 'sparkle');
+});
+
+test('a door\'s own "sound" wins over its type\'s, unknown names fall back', () => {
+  assert.equal(soundForDoor({ type: 'litet', sound: 'cat' }, 'gift'), 'cat');
+  assert.equal(soundForDoor({ type: 'litet' }, 'gift'), 'gift');
+  assert.equal(soundForDoor({ type: 'litet', sound: 'nope' }, 'gift'), 'gift');
+  assert.equal(soundForDoor(undefined, 'bells'), 'bells');
+});
+
+test('a treasure hunt gets a fanfare after its own sound', () => {
+  assert.equal(fanfareFor({ type: 'jakt' }), true);
+  assert.equal(fanfareFor({ type: 'litet' }), false);
+  assert.ok(FANFARE_DELAY > 0.5 && FANFARE_DELAY < 2);
+});
+
+test('the effects: every one asked for exists and has a Swedish label', () => {
+  const asked = ['ho', 'sleigh', 'knock', 'fanfare', 'door', 'bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
+  for (const name of asked) assert.ok(isEffect(name), name);
+  assert.equal(new Set(EFFECTS).size, EFFECTS.length);
+  for (const name of EFFECTS) assert.equal(typeof EFFECT_LABELS[name], 'string', name);
+  assert.deepEqual(Object.keys(EFFECT_LABELS).sort(), [...EFFECTS].sort());
+  assert.deepEqual(sfx.names, EFFECTS);
+  assert.equal(typeof sfx.play, 'function');
+  assert.equal(isEffect('locked'), false); // the old "tonk" is now "knock"
 });
 
 test('stored toggles: "on"/"off", anything else is the default', () => {
@@ -141,4 +168,15 @@ test('mixer: a hidden page suspends everything, showing it again resumes', () =>
   assert.equal(hidden.music, false);
   assert.equal(hidden.master, MASTER_GAIN); // the setting itself is untouched
   assert.equal(mixFor({ ...base, musicOn: true }).music, true);
+});
+
+test('ducking: the music steps aside while a theme song or the jingle plays', () => {
+  assert.deepEqual(duckFor(new Map(), 10), { level: MUSIC_GAIN, until: null });
+  const ducked = duckFor(new Map([['theme', 25]]), 10);
+  assert.ok(ducked.level < MUSIC_GAIN * 0.5);
+  assert.equal(ducked.until, 25);
+  // Both at once: the music comes back when the last one ends.
+  assert.equal(duckFor(new Map([['theme', 25], ['jingle', 18]]), 10).until, 25);
+  // Ended ones no longer count.
+  assert.deepEqual(duckFor(new Map([['jingle', 18]]), 20), { level: MUSIC_GAIN, until: null });
 });

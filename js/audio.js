@@ -4,6 +4,8 @@
 // The top of this file is pure logic (notes, melodies, the mixer rules) so node --test
 // can import it; nothing here touches window or AudioContext at import time.
 
+import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
+
 // --- Notes and melodies ---
 
 const SEMITONES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -53,62 +55,92 @@ export function songSeconds(song, bpm = song.bpm) {
   return Math.max(...song.voices.map((voice) => voiceSeconds(voice, bpm)));
 }
 
-// "Jingle Bells" (James Lord Pierpont, 1857, public domain): the chorus with its final
-// ending, in C major, written for a music box. Beats are quarter notes.
-export const JINGLE_BELLS = {
-  title: 'Jingle Bells',
-  bpm: 270, // the jingle: about 7 s
-  calmBpm: 132, // background music: a calmer music box, about 14.5 s per round
-  voices: [
-    // Melody: "Jingle bells, jingle bells, jingle all the way,
-    // oh what fun it is to ride in a one-horse open sleigh."
-    [
-      ['E5', 1], ['E5', 1], ['E5', 2],
-      ['E5', 1], ['E5', 1], ['E5', 2],
-      ['E5', 1], ['G5', 1], ['C5', 1.5], ['D5', 0.5],
-      ['E5', 4],
-      ['F5', 1], ['F5', 1], ['F5', 1.5], ['F5', 0.5],
-      ['F5', 1], ['E5', 1], ['E5', 1], ['E5', 0.5], ['E5', 0.5],
-      ['G5', 1], ['G5', 1], ['F5', 1], ['D5', 1],
-      ['C5', 4],
-    ],
-    // Accompaniment: root and fifth on the half notes (C C C C F C G C).
-    [
-      ['C4', 2], ['G4', 2],
-      ['C4', 2], ['G4', 2],
-      ['C4', 2], ['G4', 2],
-      ['C4', 2], ['G4', 2],
-      ['F4', 2], ['A4', 2],
-      ['C4', 2], ['G4', 2],
-      ['G3', 2], ['B3', 2],
-      ['C4', 4],
-    ],
-  ],
-};
+// Tomten's jingle (the melodies themselves are data in melodies.js).
+export const JINGLE = toSong(TOMTE_JINGLE);
+
+// The door's theme song plays once and never for longer than this (seconds).
+export const THEME_MAX_SECONDS = 20;
 
 // --- Effects ---
 
-// The opening animation (themes.js / the "animation" field in days.json) -> its sound.
-const ANIMATION_SOUNDS = {
-  sparkle: 'chime',
-  ribbon: 'chime',
-  gift: 'pop',
-  confetti: 'pop',
-  bells: 'sleighbells',
-  magnifier: 'search',
-  snowburst: 'chime',
+// Every effect with its name in the dev panel. The door effects are the ones made for
+// the "sound" field in days.json, the type effects are what doors without one get (from
+// their opening animation) and the global ones belong to the app's own events.
+export const EFFECT_LABELS = {
+  bells: 'Bjällror',
+  twinkle: 'Tindrande glitter',
+  cat: 'Katt som jamar',
+  sneak: 'Smygande staccato',
+  camera: 'Kamera med blixt',
+  paper: 'Pappersprassel',
+  candy: 'Godisklirr',
+  chime: 'Mjukt ding',
+  splat: 'Lågt plask',
+  pop: 'Korkpopp med bubblor',
+  mystery: 'Mystisk stigande ton',
+  popcorn: 'Popcorn',
+  glogg: 'Glögg som hälls upp',
+  bingo: 'Rasslande bingokulor',
+  unwrap: 'Paket som öppnas',
+  sparkle: 'Pling och arpeggio',
+  gift: 'Pop och glitter',
+  search: 'Sökarsvep och ding',
+  ho: 'Ho ho ho',
+  sleigh: 'Släde som sveper förbi',
+  knock: 'Knack (låst lucka)',
+  fanfare: 'Fanfar (jakt)',
+  door: 'Knarrande dörr (öppnad lucka)',
+  click: 'Klick (Nästa)',
 };
 
-export const EFFECTS = ['sleighbells', 'chime', 'pop', 'search', 'locked', 'click'];
+export const DOOR_EFFECTS = ['bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
+export const TYPE_EFFECTS = ['sparkle', 'gift', 'search'];
+export const GLOBAL_EFFECTS = ['ho', 'sleigh', 'knock', 'fanfare', 'door', 'click'];
+export const EFFECTS = [...DOOR_EFFECTS, ...TYPE_EFFECTS, ...GLOBAL_EFFECTS];
+
+export const isEffect = (name) => EFFECTS.includes(name);
+
+// The opening animation (themes.js / the "animation" field in days.json) -> its sound,
+// for doors without a "sound" of their own.
+const ANIMATION_SOUNDS = {
+  sparkle: 'sparkle',
+  ribbon: 'sparkle',
+  snowburst: 'sparkle',
+  gift: 'gift',
+  confetti: 'gift',
+  bells: 'bells',
+  magnifier: 'search',
+};
 
 export function soundForAnimation(animation) {
-  return ANIMATION_SOUNDS[animation] ?? 'chime';
+  return ANIMATION_SOUNDS[animation] ?? 'sparkle';
 }
+
+/** A door's opening sound: its own "sound" if that is a known effect, else its animation's. */
+export function soundForDoor(day, animation) {
+  return isEffect(day?.sound) ? day.sound : soundForAnimation(animation);
+}
+
+// A treasure hunt ends with a fanfare when its door opens, after the door's own sound.
+export const FANFARE_DELAY = 1.1;
+export const fanfareFor = (day) => day?.type === 'jakt';
 
 // --- Mixer rules ---
 
 export const MASTER_GAIN = 0.25;
 export const MUSIC_GAIN = 0.32; // relative to the master: the music sits well below the effects
+export const DUCK_LEVEL = 0.15; // the music under a theme song or Tomten's jingle
+
+/**
+ * Ducking: `ducks` maps what is ducking the music (a theme song, the jingle) to when it
+ * ends, on the AudioContext's clock. Returns the music's level now and, while ducked,
+ * when to bring it back: { level, until }.
+ */
+export function duckFor(ducks, now) {
+  const ends = [...ducks.values()].filter((end) => end > now);
+  if (ends.length === 0) return { level: MUSIC_GAIN, until: null };
+  return { level: MUSIC_GAIN * DUCK_LEVEL, until: Math.max(...ends) };
+}
 
 /** A stored on/off value ("on" | "off") to a boolean, `fallback` for anything else. */
 export function parseToggle(value, fallback) {
@@ -120,7 +152,7 @@ export function parseToggle(value, fallback) {
 /**
  * What the engine should do for a given state.
  *  soundOn   the sound button (off means completely silent, music included)
- *  musicOn   the music button
+ *  musicOn   the music menu is on something other than "Av"
  *  unlocked  a user gesture has allowed audio
  *  visible   the page is in the foreground
  * Returns { master, running, effects, music }: the master gain, whether the AudioContext
@@ -145,8 +177,9 @@ export function mixFor({ soundOn, musicOn, unlocked, visible }) {
 // the sound is on, suspended while the page is hidden or the sound is off, and every
 // entry point swallows errors: sound is a bonus and must never break the calendar.
 
-const MUSIC_GAP = 6; // seconds of silence between rounds of background music
-const JINGLE_DELAY = 0.35; // after the sleigh bells of Tomten's entrance
+const MUSIC_GAP = 6; // seconds of silence before one chosen song plays again (the mix: MIX_GAP)
+const HO_DELAY = 1.1; // Tomten's entrance: the sleigh passes by, he says "ho ho ho" ...
+const JINGLE_DELAY = 2.3; // ... and his jingle starts
 // Events that count as user activation (pointerup covers touch, click comes after a mouse press).
 const GESTURES = ['pointerup', 'touchend', 'click', 'keydown'];
 
@@ -158,12 +191,14 @@ const engine = {
   musicBus: null,
   noise: null,
   soundOn: true,
-  musicOn: false,
+  musicChoice: 'off', // the music menu: "off", "mix" or a melody key
   unlocked: false,
   visible: true,
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
-  jingle: null, // { gain, end }
-  music: { bus: null, until: 0, timer: null },
+  jingle: null, // { gain }
+  theme: null, // { key, gain, end, timer }
+  ducks: new Map(), // what ducks the music -> when it ends (see duckFor)
+  music: { bus: null, until: 0, timer: null, current: null, previous: null },
   listeners: new Set(),
 };
 
@@ -185,10 +220,14 @@ function safely(fn) {
 
 const state = () => ({
   soundOn: engine.soundOn,
-  musicOn: engine.musicOn,
+  musicOn: engine.musicChoice !== 'off',
   unlocked: engine.unlocked,
   visible: engine.visible,
 });
+
+const notify = () => {
+  for (const listener of engine.listeners) safely(listener);
+};
 
 function bus(gain, destination) {
   const node = engine.ctx.createGain();
@@ -204,7 +243,15 @@ function ensureContext() {
   if (!Ctor) return false;
   const ctx = new Ctor({ latencyHint: 'interactive' });
   engine.ctx = ctx;
-  engine.master = bus(MASTER_GAIN, ctx.destination); // only ever created with the sound on
+  // A limiter last in the chain, so overlapping sounds never clip.
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -6;
+  limiter.knee.value = 4;
+  limiter.ratio.value = 12;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.2;
+  limiter.connect(ctx.destination);
+  engine.master = bus(MASTER_GAIN, limiter); // only ever created with the sound on
   engine.fx = bus(1, engine.master);
   engine.musicBus = bus(MUSIC_GAIN, engine.master);
   // Older iOS only unlocks output once something has played inside the gesture.
@@ -236,11 +283,11 @@ function apply() {
     else if (!mix.running && ctx.state === 'running') ctx.suspend().catch(() => {});
     else if (mix.running) flushPending();
   }
-  if (engine.soundOn && engine.musicOn && engine.unlocked) {
+  if (engine.soundOn && engine.musicChoice !== 'off' && engine.unlocked) {
     if (mix.music) startMusic();
     else clearTimeout(engine.music.timer); // hidden: the suspended context holds the music
   } else stopMusic();
-  for (const listener of engine.listeners) safely(listener);
+  notify();
 }
 
 function flushPending() {
@@ -259,12 +306,15 @@ function unlock() {
   apply();
 }
 
-/** Starts the sound system with the saved settings: { getSoundOn, setSoundOn, getMusicOn, setMusicOn }. */
+/**
+ * Starts the sound system with the saved settings and today's date (for the mix):
+ * { getSoundOn, setSoundOn, getMusicChoice, setMusicChoice, today }.
+ */
 export function initAudio(prefs) {
   safely(() => {
     engine.prefs = prefs;
     engine.soundOn = prefs.getSoundOn();
-    engine.musicOn = prefs.getMusicOn();
+    engine.musicChoice = parseMusicChoice(prefs.getMusicChoice());
     engine.visible = document.visibilityState !== 'hidden';
     if (!audioSupported()) return;
     const onGesture = (e) => {
@@ -287,12 +337,27 @@ export function onAudioChange(listener) {
 }
 
 export const isSoundOn = () => engine.soundOn;
-export const isMusicOn = () => engine.musicOn;
+export const getMusicChoice = () => engine.musicChoice;
+export const isMusicOn = () => engine.musicChoice !== 'off';
+
+/** The title of the song playing (or last played, in the pause between songs), or null. */
+export function nowPlaying() {
+  const key = engine.music.bus ? engine.music.current : null;
+  return key ? MELODIES[key].title : null;
+}
+
+/** The music menu: "Av", "Blandat" and every melody, as { choice, label }. */
+export const MUSIC_MENU = [
+  { choice: 'off', label: 'Av' },
+  { choice: 'mix', label: 'Blandat' },
+  ...MELODY_KEYS.map((key) => ({ choice: key, label: MELODIES[key].title })),
+];
 
 // Turning the sound off silences everything at once, also sounds already playing.
 function silence() {
   engine.pendingJingle = false;
   stopJingle(0.05);
+  stopTheme(0.05);
   stopMusic(0.05);
   if (engine.ctx) {
     engine.fx.disconnect();
@@ -313,17 +378,34 @@ export function setSound(on) {
   });
 }
 
-/** The music button. Turning music on turns the sound on too (music needs it). */
-export function setMusic(on) {
+/**
+ * The music menu: "off", "mix" or a melody key (saved). Picking music turns the sound
+ * on too (music needs it). A new choice starts at once, also the same one again.
+ */
+export function setMusicChoice(choice) {
   safely(() => {
-    engine.musicOn = Boolean(on);
-    engine.prefs?.setMusicOn(engine.musicOn);
-    if (engine.musicOn && !engine.soundOn) {
-      engine.soundOn = true;
-      engine.prefs?.setSoundOn(true);
+    engine.musicChoice = parseMusicChoice(choice);
+    engine.prefs?.setMusicChoice(engine.musicChoice);
+    stopMusic(0.3);
+    if (engine.musicChoice !== 'off') {
+      if (!engine.soundOn) {
+        engine.soundOn = true;
+        engine.prefs?.setSoundOn(true);
+      }
+      unlock();
     }
-    if (engine.musicOn) unlock();
     apply();
+  });
+}
+
+/** "Nästa låt": another song from the mix, or the next one in the list. */
+export function nextSong() {
+  safely(() => {
+    if (engine.musicChoice === 'off') return;
+    if (engine.musicChoice === 'mix') {
+      stopMusic(0.3);
+      apply();
+    } else setMusicChoice(nextChoice(engine.musicChoice));
   });
 }
 
@@ -428,13 +510,14 @@ function bellBank() {
   return engine.bells;
 }
 
-// One bell from the bank at time t, with a level (0-1) and a stereo position (-1 to 1).
-function jingleHit(dest, t, level, pan) {
+// One bell from the bank at time t, with a level (0-1), a stereo position (-1 to 1) and
+// a playback speed (higher is brighter).
+function jingleHit(dest, t, level, pan, rate = rand(0.94, 1.08)) {
   const { ctx } = engine;
   const bells = bellBank();
   const src = ctx.createBufferSource();
   src.buffer = bells[Math.floor(Math.random() * bells.length)];
-  src.playbackRate.value = rand(0.94, 1.08);
+  src.playbackRate.value = rate;
   const gain = ctx.createGain();
   gain.gain.value = 0.11 * level;
   src.connect(gain);
@@ -463,26 +546,136 @@ function glitter(dest, t, { count = 8, over = 0.6, peak = 0.035 } = {}) {
   }
 }
 
-// A music box tine: a triangle with a soft attack and a long ring, plus a quiet octave.
+// A celesta / music box tine: a triangle and a sine an octave up with a bell-like decay,
+// plus a faint inharmonic partial that dies fast, like a struck metal bar.
 function musicBoxNote(dest, t, freq, { peak = 0.16, ring = 1.1 } = {}) {
-  tone(dest, { t, freq, dur: ring, type: 'triangle', peak, attack: 0.012 });
-  tone(dest, { t, freq: freq * 2, dur: ring * 0.45, peak: peak * 0.22, attack: 0.008 });
+  tone(dest, { t, freq, dur: ring, type: 'triangle', peak, attack: 0.006 });
+  tone(dest, { t, freq: freq * 2, dur: ring * 0.5, peak: peak * 0.3, attack: 0.004 });
+  tone(dest, { t, freq: freq * 4.2, dur: 0.12, peak: peak * 0.07, attack: 0.002 });
 }
 
-// Schedules a whole song on `dest` from time t. Returns its length in seconds.
-function playSong(dest, t, song, bpm, { peak = 0.16 } = {}) {
+// The quiet bass note on a bar's first beat: a warm sine with a soft decay.
+function bassNote(dest, t, freq, { peak = 0.07, dur = 1.2 } = {}) {
+  tone(dest, { t, freq, dur, peak, attack: 0.02 });
+  tone(dest, { t, freq: freq * 2, dur: dur * 0.4, type: 'triangle', peak: peak * 0.25, attack: 0.015 });
+}
+
+// Schedules a whole song on `dest` from time t: the melody on the music box, the bass
+// note of each bar and, unless the song says otherwise, a soft sleigh bell on the beats
+// after the first in each bar. Returns its length in seconds.
+function playSong(dest, t, song, bpm = song.bpm, { peak = 0.16 } = {}) {
+  const beat = 60 / bpm;
   for (const e of songToEvents(song, bpm)) {
-    const ring = Math.min(1.4, Math.max(0.5, e.duration * 2.2));
-    musicBoxNote(dest, t + e.time, e.freq, { peak: e.voice === 0 ? peak : peak * 0.5, ring });
+    if (e.voice === 0) {
+      const ring = Math.min(1.6, Math.max(0.6, e.duration * 2.4));
+      musicBoxNote(dest, t + e.time, e.freq, { peak, ring });
+    } else bassNote(dest, t + e.time, e.freq, { peak: peak * 0.45, dur: Math.min(1.8, Math.max(0.5, e.duration)) });
+  }
+  if (song.bells && song.barStarts) {
+    const length = songSeconds(song, bpm);
+    for (const start of song.barStarts) {
+      for (let b = 1; b < (song.meter ?? 4); b++) {
+        const at = t + (start + b) * beat;
+        if (at - t >= length - 0.05) break;
+        jingleHit(dest, at + rand(0, 0.012), rand(0.12, 0.2), rand(-0.4, 0.4));
+      }
+    }
   }
   return songSeconds(song, bpm);
 }
 
-// --- The effects. Each takes the destination and a start time; all end within 1.5 s. ---
+// --- More building blocks for the effects ---
+
+// A stereo position for whatever is connected to the returned node (-1 left, 1 right).
+function pannedTo(dest, pan) {
+  const { ctx } = engine;
+  if (!ctx.createStereoPanner) return dest;
+  const panner = ctx.createStereoPanner();
+  panner.pan.value = Math.max(-1, Math.min(1, pan));
+  panner.connect(dest);
+  return panner;
+}
+
+// A gain that rises to `peak`, holds and then fades out: for sounds that sustain.
+function sustained(t, dur, peak, attack, release) {
+  const gain = engine.ctx.createGain();
+  gain.gain.value = 0;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.linearRampToValueAtTime(peak, t + attack);
+  gain.gain.setValueAtTime(peak, t + Math.max(attack, dur - release));
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  return gain;
+}
+
+// An oscillator into `into` (usually an envelope), with a pitch path (a list of
+// [time offset, frequency]) and an optional vibrato ({ rate, depth } in Hz).
+function voice(into, { t, dur, type = 'sine', path, vibrato = null }) {
+  const { ctx } = engine;
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.value = path[0][1];
+  osc.frequency.setValueAtTime(path[0][1], t);
+  for (const [offset, f] of path.slice(1)) osc.frequency.exponentialRampToValueAtTime(f, t + offset);
+  const stops = [osc];
+  if (vibrato) {
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = vibrato.rate;
+    const depth = ctx.createGain();
+    depth.gain.value = vibrato.depth;
+    lfo.connect(depth).connect(osc.frequency);
+    stops.push(lfo);
+  }
+  osc.connect(into);
+  for (const node of stops) {
+    node.start(t);
+    node.stop(t + dur + 0.05);
+  }
+  osc.onended = () => osc.disconnect();
+}
+
+// A biquad filter at a frequency (set right away, see noise()) with an optional sweep.
+function filter(type, freq, q, t, sweep = []) {
+  const biquad = engine.ctx.createBiquadFilter();
+  biquad.type = type;
+  biquad.Q.value = q;
+  biquad.frequency.value = freq;
+  biquad.frequency.setValueAtTime(freq, t);
+  for (const [offset, f] of sweep) biquad.frequency.exponentialRampToValueAtTime(f, t + offset);
+  return biquad;
+}
+
+// Paper rustling: many short bursts of band-passed noise at random pitches.
+function rustle(dest, t, { over = 0.8, count = 16, peak = 0.12 } = {}) {
+  for (let i = 0; i < count; i++) {
+    const at = t + (over * i) / count + rand(0, over / count);
+    noise(pannedTo(dest, rand(-0.4, 0.4)), {
+      t: at,
+      dur: rand(0.02, 0.08),
+      peak: peak * rand(0.4, 1),
+      attack: 0.002,
+      freq: rand(2500, 7000),
+      q: rand(0.8, 2),
+    });
+  }
+}
+
+// A brass note for the fanfare: two slightly detuned sawtooths through a low-pass filter
+// that opens with the attack, like a lip buzz.
+function brass(dest, t, freq, dur, peak) {
+  const lowpass = filter('lowpass', freq * 1.5, 1.2, t, [[0.04, freq * 6], [dur, freq * 3]]);
+  lowpass.connect(dest);
+  const gain = sustained(t, dur, peak, 0.025, dur * 0.5);
+  gain.connect(lowpass);
+  for (const detune of [1, 1.004]) {
+    voice(gain, { t, dur, type: 'sawtooth', path: [[0, freq * detune * 0.98], [0.03, freq * detune]] });
+  }
+}
+
+// --- The effects. Each takes the destination and a start time; all end within 2 s. ---
 
 const SOUNDS = {
   // Sleigh bells: four humanised shakes of many small bells, then a few settling.
-  sleighbells(dest, t) {
+  bells(dest, t) {
     const accents = [0.7, 0.5, 0.65, 1];
     let shake = 0;
     accents.forEach((accent, i) => {
@@ -504,8 +697,97 @@ const SOUNDS = {
     }
   },
 
-  // A pling, then a glittering arpeggio upwards.
-  chime(dest, t) {
+  // A sleigh passing by from left to right: shakes that swell and fade, a touch higher
+  // on the way in and lower on the way out, over the hiss of the runners in the snow.
+  sleigh(dest, t) {
+    const shakes = 11;
+    for (let i = 0; i < shakes; i++) {
+      const k = i / (shakes - 1);
+      const at = t + i * 0.12 + rand(0, 0.015);
+      const pan = -0.9 + 1.8 * k;
+      const level = 0.3 + 0.7 * Math.sin(Math.PI * k);
+      const rate = 1.07 - 0.14 * k;
+      for (let j = 0; j < 7; j++) {
+        jingleHit(dest, at + 0.05 * Math.random() ** 1.5, level * rand(0.4, 1), pan + rand(-0.15, 0.15), rate * rand(0.97, 1.03));
+      }
+    }
+    const runners = pannedTo(dest, -0.9);
+    runners.pan?.linearRampToValueAtTime(0.9, t + 1.4);
+    noise(runners, { t, dur: 1.5, peak: 0.035, attack: 0.6, freq: 2200, q: 0.6 });
+  },
+
+  // Tomten's "ho ho ho": a deep sawtooth with a vibrato through the two formants of an
+  // "o" (about 450 and 800 Hz), three syllables falling in pitch, each with a breathy "h".
+  ho(dest, t) {
+    const { ctx } = engine;
+    [[0, 120, 0.26], [0.32, 113, 0.26], [0.64, 102, 0.55]].forEach(([offset, f0, dur]) => {
+      const at = t + offset;
+      noise(dest, { t: at, dur: 0.07, peak: 0.035, attack: 0.01, filter: 'highpass', freq: 1200, q: 0.5 });
+      const mouth = ctx.createGain();
+      mouth.connect(dest);
+      const formants = [[450, 5, 1.6], [800, 7, 0.8], [250, 1, 0.35]].map(([freq, q, level]) => {
+        const bp = filter('bandpass', freq, q, at);
+        const g = ctx.createGain();
+        g.gain.value = level;
+        bp.connect(g).connect(mouth);
+        return bp;
+      });
+      const gain = sustained(at + 0.03, dur, 0.32, 0.05, dur * 0.6);
+      for (const bp of formants) gain.connect(bp);
+      voice(gain, {
+        t: at + 0.03,
+        dur,
+        type: 'sawtooth',
+        path: [[0, f0 * 1.05], [0.06, f0], [dur, f0 * 0.88]],
+        vibrato: { rate: 5.5, depth: f0 * 0.025 },
+      });
+    });
+  },
+
+  // Two dull knocks: the door is locked.
+  knock(dest, t) {
+    [0, 0.17].forEach((offset, i) => {
+      const at = t + offset;
+      tone(dest, { t: at, freq: 190, freqTo: 90, dur: 0.16, peak: 0.45 - i * 0.08, attack: 0.002 });
+      tone(dest, { t: at, freq: 430, freqTo: 300, dur: 0.05, type: 'triangle', peak: 0.1, attack: 0.001 });
+      noise(dest, { t: at, dur: 0.035, peak: 0.14, filter: 'lowpass', freq: 700 });
+    });
+  },
+
+  // A short fanfare: G C E and a long G, the last one with its chord.
+  fanfare(dest, t) {
+    [['G4', 0, 0.12], ['C5', 0.12, 0.12], ['E5', 0.24, 0.12], ['G5', 0.36, 0.75]].forEach(([note, offset, dur]) =>
+      brass(dest, t + offset, noteToFrequency(note), dur, 0.09),
+    );
+    for (const note of ['C5', 'E5']) brass(dest, t + 0.36, noteToFrequency(note), 0.75, 0.04);
+    glitter(dest, t + 0.4, { count: 6, over: 0.5, peak: 0.03 });
+  },
+
+  // A creaking door: a slow, wobbling sawtooth (stick and slip) through two narrow
+  // resonances that move as the door swings.
+  door(dest, t) {
+    const dur = 1.1;
+    const low = filter('bandpass', 700, 12, t, [[0.6, 1300], [dur, 900]]);
+    const high = filter('bandpass', 1900, 10, t, [[0.5, 2600], [dur, 2100]]);
+    const out = engine.ctx.createGain();
+    out.gain.value = 6; // the narrow filters pass little of the buzz
+    low.connect(out);
+    high.connect(out);
+    out.connect(dest);
+    const gain = sustained(t, dur, 0.12, 0.08, 0.3);
+    gain.connect(low);
+    gain.connect(high);
+    voice(gain, {
+      t,
+      dur,
+      type: 'sawtooth',
+      path: [[0, 34], [0.25, 52], [0.5, 31], [0.8, 58], [dur, 42]],
+      vibrato: { rate: 13, depth: 7 },
+    });
+  },
+
+  // A pling, then a glittering arpeggio upwards (ledtrad, rim).
+  sparkle(dest, t) {
     bell(dest, t, noteToFrequency('C6'), { peak: 0.16, dur: 0.9 });
     ['C6', 'E6', 'G6', 'C7', 'E7', 'G7'].forEach((note, i) =>
       tone(dest, { t: t + 0.14 + i * 0.065, freq: noteToFrequency(note), dur: 0.45, type: 'triangle', peak: 0.09 - i * 0.008, attack: 0.004 }),
@@ -513,32 +795,169 @@ const SOUNDS = {
     glitter(dest, t + 0.45, { count: 7, over: 0.6 });
   },
 
-  // A soft pop (a quick downward blip), then glitter.
-  pop(dest, t) {
+  // A soft pop (a quick downward blip), then glitter (litet).
+  gift(dest, t) {
     tone(dest, { t, freq: 620, freqTo: 150, dur: 0.12, peak: 0.3, attack: 0.003 });
     noise(dest, { t, dur: 0.05, peak: 0.08, filter: 'lowpass', freq: 1800 });
     glitter(dest, t + 0.1, { count: 9, over: 0.7, peak: 0.04 });
   },
 
-  // A searching whoosh, zigzagging like the magnifier, then a ding: found it!
+  // A searching whoosh, zigzagging like the magnifier, then a ding: found it! (jakt)
   search(dest, t) {
-    noise(dest, {
-      t,
-      dur: 0.78,
-      peak: 0.16,
-      attack: 0.12,
-      q: 5,
-      freq: 500,
-      sweep: [[0.24, 2200], [0.46, 800], [0.7, 2600]],
-    });
+    noise(dest, { t, dur: 0.78, peak: 0.16, attack: 0.12, q: 5, freq: 500, sweep: [[0.24, 2200], [0.46, 800], [0.7, 2600]] });
     bell(dest, t + 0.8, noteToFrequency('E6'), { peak: 0.18, dur: 0.62 });
   },
 
-  // A low, dull "tonk": the door won't budge.
-  locked(dest, t) {
-    tone(dest, { t, freq: 150, freqTo: 110, dur: 0.3, peak: 0.42, attack: 0.003 });
-    tone(dest, { t, freq: 310, freqTo: 240, dur: 0.12, type: 'triangle', peak: 0.12, attack: 0.002 });
-    noise(dest, { t, dur: 0.04, peak: 0.12, filter: 'lowpass', freq: 900 });
+  // Twinkling stars: quick high notes rising, each with a tremble, over a faint shimmer.
+  twinkle(dest, t) {
+    ['E6', 'B6', 'G6', 'D7', 'B6', 'E7', 'G7'].forEach((note, i) => {
+      const at = t + i * 0.09 + rand(0, 0.02);
+      const freq = noteToFrequency(note);
+      tone(pannedTo(dest, rand(-0.6, 0.6)), { t: at, freq, dur: 0.5, peak: 0.07, attack: 0.003 });
+      tone(dest, { t: at, freq: freq * 1.006, dur: 0.35, type: 'triangle', peak: 0.025, attack: 0.003 });
+    });
+    tone(dest, { t, freq: 4186, dur: 1.1, peak: 0.012, attack: 0.3 });
+    tone(dest, { t, freq: 4197, dur: 1.1, peak: 0.012, attack: 0.3 });
+    glitter(dest, t + 0.6, { count: 6, over: 0.6, peak: 0.03 });
+  },
+
+  // A meow: a sine (and a little sawtooth for the nose) gliding up and down through a
+  // band-pass filter that follows, "m-iaa-ow".
+  cat(dest, t) {
+    const dur = 0.8;
+    const path = [[0, 470], [0.22, 830], [0.45, 720], [dur, 410]];
+    const mouth = filter('bandpass', 900, 2, t, [[0.22, 1700], [0.45, 1300], [dur, 700]]);
+    mouth.connect(dest);
+    const gain = sustained(t, dur, 0.25, 0.07, 0.35);
+    gain.connect(mouth);
+    voice(gain, { t, dur, path, vibrato: { rate: 6, depth: 9 } });
+    const nose = engine.ctx.createGain();
+    nose.gain.value = 0.25;
+    nose.connect(gain);
+    voice(nose, { t, dur, type: 'sawtooth', path, vibrato: { rate: 6, depth: 9 } });
+  },
+
+  // Tiptoeing: quiet staccato plucks in a minor key, each with a soft footstep.
+  sneak(dest, t) {
+    ['A3', 'C4', 'E4', 'C4', 'A3', 'R', 'E4', 'D#4'].forEach((note, i) => {
+      if (note === 'R') return;
+      const at = t + i * 0.15;
+      const freq = noteToFrequency(note);
+      tone(dest, { t: at, freq, dur: 0.09, type: 'triangle', peak: 0.22, attack: 0.003 });
+      tone(dest, { t: at, freq: freq * 2, dur: 0.05, peak: 0.05, attack: 0.002 });
+      noise(dest, { t: at, dur: 0.03, peak: 0.04, filter: 'lowpass', freq: 600 });
+    });
+  },
+
+  // A camera: the shutter's click-clack and a flash pling, then the flash recharging.
+  camera(dest, t) {
+    noise(dest, { t, dur: 0.02, peak: 0.4, filter: 'highpass', freq: 2500, attack: 0.001 });
+    tone(dest, { t, freq: 1400, freqTo: 900, dur: 0.03, type: 'square', peak: 0.04, attack: 0.001 });
+    noise(dest, { t: t + 0.07, dur: 0.03, peak: 0.3, q: 1.5, freq: 1800, attack: 0.001 });
+    bell(dest, t + 0.12, noteToFrequency('E7'), { peak: 0.06, dur: 0.4 });
+    tone(dest, { t: t + 0.3, freq: 1500, freqTo: 7000, dur: 1.1, peak: 0.02, attack: 0.5 });
+  },
+
+  // Rustling paper: unfolding a letter.
+  paper(dest, t) {
+    rustle(dest, t, { over: 0.9, count: 18, peak: 0.24 });
+    noise(dest, { t, dur: 1, peak: 0.03, attack: 0.2, filter: 'highpass', freq: 3000, q: 0.5 });
+  },
+
+  // Lots of little clinks: sweets in a bowl.
+  candy(dest, t) {
+    for (let i = 0; i < 14; i++) {
+      const at = t + 0.85 * (i / 14) ** 1.3 + rand(0, 0.03);
+      const freq = rand(2600, 4200);
+      const out = pannedTo(dest, rand(-0.7, 0.7));
+      tone(out, { t: at, freq, dur: rand(0.07, 0.16), peak: rand(0.07, 0.13), attack: 0.001 });
+      tone(out, { t: at, freq: freq * 2.7, dur: 0.05, peak: 0.02, attack: 0.001 });
+    }
+  },
+
+  // A soft ding, like a little bell on the table.
+  chime(dest, t) {
+    bell(dest, t, noteToFrequency('A5'), { peak: 0.13, dur: 1.7 });
+    tone(dest, { t, freq: noteToFrequency('A4'), dur: 1.2, peak: 0.04, attack: 0.01 });
+    bell(dest, t + 0.02, noteToFrequency('E6'), { peak: 0.035, dur: 1.2 });
+  },
+
+  // A low splash: noise through a low-pass filter sweeping down, a thump, then drips.
+  splat(dest, t) {
+    noise(dest, { t, dur: 0.45, peak: 0.35, attack: 0.004, filter: 'lowpass', freq: 4000, q: 1.5, sweep: [[0.06, 1200], [0.42, 180]] });
+    tone(dest, { t, freq: 140, freqTo: 50, dur: 0.25, peak: 0.35, attack: 0.003 });
+    [0.5, 0.72, 0.9].forEach((offset, i) =>
+      tone(dest, { t: t + offset, freq: 700 + i * 150, freqTo: 1300 + i * 200, dur: 0.06, peak: 0.05, attack: 0.002 }),
+    );
+  },
+
+  // A cork popping, then fizzing bubbles.
+  pop(dest, t) {
+    noise(dest, { t, dur: 0.03, peak: 0.4, freq: 1500, q: 1, attack: 0.001 });
+    tone(dest, { t, freq: 900, freqTo: 250, dur: 0.07, peak: 0.3, attack: 0.001 });
+    noise(dest, { t: t + 0.05, dur: 1.3, peak: 0.07, attack: 0.05, filter: 'highpass', freq: 5000, q: 0.7 });
+    for (let i = 0; i < 16; i++) {
+      const freq = rand(1800, 3500);
+      tone(pannedTo(dest, rand(-0.5, 0.5)), { t: t + 0.1 + rand(0, 1.1) * (i / 16), freq, freqTo: freq * 1.5, dur: 0.03, peak: 0.05, attack: 0.002 });
+    }
+  },
+
+  // A mysterious rising tone: two voices gliding up with a growing vibrato through an
+  // opening filter, and a whole-tone scale twinkling above.
+  mystery(dest, t) {
+    const dur = 1.7;
+    const lowpass = filter('lowpass', 500, 2, t, [[1.4, 3000]]);
+    lowpass.connect(dest);
+    const path = [[0, 220], [1.5, 659]];
+    const sine = sustained(t, dur, 0.08, 0.4, 0.4);
+    const triangle = sustained(t, dur, 0.045, 0.5, 0.4);
+    sine.connect(lowpass);
+    triangle.connect(lowpass);
+    voice(sine, { t, dur, path, vibrato: { rate: 5, depth: 6 } });
+    voice(triangle, { t, dur, type: 'triangle', path: path.map(([o, f]) => [o, f * 1.008]) });
+    ['C6', 'D6', 'E6', 'F#6', 'G#6', 'A#6'].forEach((note, i) =>
+      tone(dest, { t: t + 0.3 + i * 0.2, freq: noteToFrequency(note), dur: 0.4, type: 'triangle', peak: 0.03, attack: 0.004 }),
+    );
+  },
+
+  // Popcorn: pops at random, sparse, then many, then a few late ones.
+  popcorn(dest, t) {
+    const times = Array.from({ length: 13 }, () => 1.4 * Math.sin((Math.PI / 2) * Math.random()) ** 1.5).sort((a, b) => a - b);
+    for (const offset of times) {
+      const at = t + offset;
+      const out = pannedTo(dest, rand(-0.7, 0.7));
+      noise(out, { t: at, dur: 0.025, peak: rand(0.15, 0.3), freq: rand(800, 2500), q: 2, attack: 0.001 });
+      const freq = rand(300, 700);
+      tone(out, { t: at, freq, freqTo: freq * 0.5, dur: 0.035, peak: 0.12, attack: 0.001 });
+    }
+  },
+
+  // Mulled wine poured into a cup (a filling, rising gurgle) with bubbles gliding up.
+  glogg(dest, t) {
+    noise(dest, { t, dur: 1.05, peak: 0.2, attack: 0.08, q: 3, freq: 500, sweep: [[0.3, 900], [0.95, 1400]] });
+    for (let i = 0; i < 14; i++) {
+      const freq = rand(250, 500);
+      tone(dest, { t: t + 0.1 + (1.2 * i) / 14 + rand(0, 0.05), freq, freqTo: freq * 2.2, dur: rand(0.04, 0.09), peak: 0.12, attack: 0.003 });
+    }
+  },
+
+  // Bingo balls rattling in the drum, then a ding.
+  bingo(dest, t) {
+    for (let i = 0; i < 28; i++) {
+      const at = t + rand(0, 1.05);
+      const out = pannedTo(dest, rand(-0.5, 0.5));
+      noise(out, { t: at, dur: 0.015, peak: rand(0.05, 0.15), freq: rand(1800, 4000), q: 4, attack: 0.001 });
+      tone(out, { t: at, freq: rand(900, 1600), dur: 0.03, type: 'triangle', peak: 0.04, attack: 0.001 });
+    }
+    bell(dest, t + 1.15, noteToFrequency('G6'), { peak: 0.12, dur: 0.6 });
+  },
+
+  // Unwrapping a present: rustling paper, then a pling.
+  unwrap(dest, t) {
+    rustle(dest, t, { over: 0.6, count: 12, peak: 0.22 });
+    bell(dest, t + 0.7, noteToFrequency('E6'), { peak: 0.12, dur: 0.8 });
+    bell(dest, t + 0.82, noteToFrequency('G6'), { peak: 0.1, dur: 0.8 });
+    glitter(dest, t + 0.85, { count: 6, over: 0.5, peak: 0.03 });
   },
 
   // A tiny click for "Nästa".
@@ -550,28 +969,65 @@ const SOUNDS = {
 
 const ready = () => engine.ctx && mixFor(state()).effects;
 
-/** Plays one of EFFECTS. Silent (and harmless) before the first tap, while hidden or when off. */
-export function playEffect(name) {
+/** Plays one of EFFECTS, after `delay` seconds. Silent (and harmless) before the first tap, while hidden or when off. */
+export function playEffect(name, delay = 0) {
   safely(() => {
     if (!ready() || !SOUNDS[name]) return;
-    SOUNDS[name](engine.fx, engine.ctx.currentTime + 0.01);
+    SOUNDS[name](engine.fx, engine.ctx.currentTime + 0.01 + delay);
   });
 }
+
+/** The sound effects by name: sfx.play('cat'). */
+export const sfx = { play: playEffect, names: EFFECTS, labels: EFFECT_LABELS };
 
 /** The sound that goes with an opening animation (see soundForAnimation). */
 export function playForAnimation(animation) {
   playEffect(soundForAnimation(animation));
 }
 
+/** A door opens: its own sound or its animation's, and a fanfare for a treasure hunt. */
+export function playForDoor(day, animation) {
+  playEffect(soundForDoor(day, animation));
+  if (fanfareFor(day)) playEffect('fanfare', FANFARE_DELAY);
+}
+
 // --- Tomten's jingle ---
+
+// --- Ducking: the music steps aside for a theme song or Tomten's jingle ---
+
+function applyDuck() {
+  const { ctx } = engine;
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const { level, until } = duckFor(engine.ducks, now);
+  const gain = engine.musicBus.gain;
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(gain.value, now);
+  gain.setTargetAtTime(level, now, until ? 0.1 : 0.25);
+  if (until) gain.setTargetAtTime(MUSIC_GAIN, until, 0.4);
+}
+
+function duck(name, end) {
+  engine.ducks.set(name, end);
+  applyDuck();
+}
+
+function unduck(name) {
+  if (engine.ducks.delete(name)) applyDuck();
+}
+
+// Fades out a song's own gain and lets it go.
+function release(node, fade) {
+  setGain(node, 0, fade);
+  setTimeout(() => safely(() => node.disconnect()), (fade + 0.1) * 1000);
+}
 
 function stopJingle(fade = 0.25) {
   const { jingle } = engine;
   if (!jingle) return;
   engine.jingle = null;
-  setGain(jingle.gain, 0, fade);
-  setTimeout(() => safely(() => jingle.gain.disconnect()), (fade + 0.1) * 1000);
-  setGain(engine.musicBus, MUSIC_GAIN, 0.6);
+  release(jingle.gain, fade);
+  unduck('jingle');
 }
 
 /** Plays Tomten's jingle (Jingle Bells on a music box, about 7 s). Ducks the music meanwhile. */
@@ -581,21 +1037,68 @@ export function playJingle(delay = 0) {
     stopJingle(0.05);
     const t = engine.ctx.currentTime + 0.03 + delay;
     const gain = bus(1, engine.master);
-    const length = playSong(gain, t, JINGLE_BELLS, JINGLE_BELLS.bpm);
+    const length = playSong(gain, t, JINGLE);
     engine.jingle = { gain };
-    // Duck the background music under the jingle, then bring it back.
-    const music = engine.musicBus.gain;
-    music.cancelScheduledValues(engine.ctx.currentTime);
-    music.setTargetAtTime(MUSIC_GAIN * 0.15, engine.ctx.currentTime, 0.1);
-    music.setTargetAtTime(MUSIC_GAIN, t + length + 0.5, 0.4);
+    duck('jingle', t + length + 0.5);
   });
 }
 
-/** Tomten pops up: sleigh bells and his jingle. Before the first tap both wait for it. */
+// --- A door's theme song ---
+
+const THEME_DELAY = 1; // after the door's own sound has had its moment
+
+function stopTheme(fade = 0.4) {
+  const { theme } = engine;
+  if (!theme) return;
+  engine.theme = null;
+  clearTimeout(theme.timer);
+  release(theme.gain, fade);
+  unduck('theme');
+}
+
+/**
+ * Plays a melody from melodies.js once: its theme excerpt, cut at THEME_MAX_SECONDS
+ * with a fade, or with { full: true } (dev mode) all of it. The background music ducks
+ * meanwhile. Unknown keys, and the same song while it is still playing, do nothing.
+ */
+export function playTheme(key, { full = false, delay = THEME_DELAY } = {}) {
+  safely(() => {
+    const melody = MELODIES[key];
+    if (!ready() || !melody) return;
+    const now = engine.ctx.currentTime;
+    if (engine.theme?.key === key && engine.theme.full === full && engine.theme.end > now) return;
+    stopTheme(0.1);
+    const t = now + 0.03 + delay;
+    const gain = bus(1, engine.master);
+    const length = playSong(gain, t, full ? toSong(melody) : themeSong(melody));
+    let end = t + length;
+    if (!full && length > THEME_MAX_SECONDS) {
+      end = t + THEME_MAX_SECONDS;
+      gain.gain.setValueAtTime(1, end - 1.5);
+      gain.gain.linearRampToValueAtTime(0, end);
+    }
+    const timer = setTimeout(() => safely(() => engine.theme?.gain === gain && stopTheme(0.1)), (end - now + 1.6) * 1000);
+    engine.theme = { key, full, gain, end, timer };
+    duck('theme', end + 0.6);
+  });
+}
+
+/** The door's "music", if it has one. */
+export function playThemeFor(day) {
+  if (day?.music) playTheme(day.music);
+}
+
+/** Stops a theme song (dev mode). */
+export function stopThemeSong() {
+  safely(() => stopTheme());
+}
+
+/** Tomten pops up: his sleigh, "ho ho ho" and his jingle. Before the first tap the jingle waits for it. */
 export function tomteArrives() {
   safely(() => {
     if (ready()) {
-      playEffect('sleighbells');
+      playEffect('sleigh');
+      playEffect('ho', HO_DELAY);
       playJingle(JINGLE_DELAY);
     } else if (engine.soundOn) engine.pendingJingle = true;
   });
@@ -609,7 +1112,7 @@ export function tomteLeaves() {
   });
 }
 
-// --- Background music: the jingle's melody, calmer, with a pause between rounds ---
+// --- Background music: the menu's choice on the music box, with a pause between songs ---
 
 function startMusic() {
   const { music } = engine;
@@ -628,9 +1131,15 @@ function musicTick() {
     const { music, ctx } = engine;
     if (!music.bus) return;
     if (ctx.state === 'running' && mixFor(state()).music && ctx.currentTime >= music.until - 1.5) {
-      const start = Math.max(ctx.currentTime + 0.15, music.until);
-      const length = playSong(music.bus, start, JINGLE_BELLS, JINGLE_BELLS.calmBpm, { peak: 0.14 });
-      music.until = start + length + MUSIC_GAP;
+      const key = songFor(engine.musicChoice, music.previous, engine.prefs?.today?.() ?? '');
+      if (key) {
+        const start = Math.max(ctx.currentTime + 0.15, music.until);
+        const length = playSong(music.bus, start, toSong(MELODIES[key]), undefined, { peak: 0.14 });
+        music.until = start + length + (engine.musicChoice === 'mix' ? MIX_GAP : MUSIC_GAP);
+        music.current = key;
+        music.previous = key;
+        notify();
+      }
     }
     music.timer = setTimeout(musicTick, 1000);
   });
@@ -642,18 +1151,18 @@ function stopMusic(fade = 0.5) {
   if (!music.bus) return;
   const old = music.bus;
   music.bus = null;
-  setGain(old, 0, fade);
-  setTimeout(() => safely(() => old.disconnect()), (fade + 0.1) * 1000);
+  music.current = null;
+  release(old, fade);
 }
 
 // --- Dev mode ---
 
-/** Plays every effect in turn, 1.6 s apart. Calls onEach(name) as each one starts. */
+/** Plays every effect in turn, 2.2 s apart. Calls onEach(name) as each one starts. */
 export function playAllEffects(onEach = () => {}) {
   EFFECTS.forEach((name, i) =>
     setTimeout(() => {
       onEach(name);
       playEffect(name);
-    }, i * 1600),
+    }, i * 2200),
   );
 }

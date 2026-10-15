@@ -74,10 +74,10 @@ test('sound buttons: on by default, music off, in sync with Tomten, saved', asyn
   await page.clock.setFixedTime(at('2026-10-14'));
   await gotoApp(page);
   const speaker = header(page).getByRole('button', { name: 'Ljud' });
-  const music = header(page).getByRole('button', { name: 'Musik' });
+  const music = header(page).getByRole('button', { name: 'Musik', exact: true });
   const bubbleSpeaker = tomte(page).getByRole('button', { name: 'Ljud' });
   await expect(speaker).toHaveAttribute('aria-pressed', 'true');
-  await expect(music).toHaveAttribute('aria-pressed', 'false');
+  await expect(music).not.toHaveClass(/is-on/);
   await expect(bubbleSpeaker).toHaveAttribute('aria-pressed', 'true');
 
   await bubbleSpeaker.click();
@@ -127,16 +127,69 @@ test('opening a door plays its sound', async ({ page }) => {
   await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before + 2);
 });
 
-test('music: off by default, the button starts it, a hidden page suspends it', async ({ page }) => {
+test('a door with "music" plays its theme song, one without does not', async ({ page }) => {
   await skipTomte(page);
   await spyOnAudio(page);
   await page.clock.setFixedTime(at('2026-12-05'));
   await gotoApp(page);
-  const music = header(page).getByRole('button', { name: 'Musik' });
+  await page.locator('body').click({ position: { x: 5, y: 5 } }); // unlocks audio, silently
+  await expect.poll(async () => (await audio(page)).state).toBe('running');
+
+  // 3 December has no music: only its sound.
+  let before = (await audio(page)).oscillators;
+  await page.locator('.door[data-date="2026-12-03"]').click();
+  await page.waitForTimeout(1500);
+  const effectOnly = (await audio(page)).oscillators - before;
+  expect(effectOnly).toBeGreaterThan(2);
+  expect(effectOnly).toBeLessThan(30);
+  await page.keyboard.press('Escape');
+
+  // 1:a advent has "tusen-juleljus": its sound and a whole song.
+  before = (await audio(page)).oscillators;
+  await page.locator('.door[data-date="2026-11-29"]').click();
+  // The first eight bars on the celesta with their bass: about 60 oscillators.
+  await expect.poll(async () => (await audio(page)).oscillators - before).toBeGreaterThan(45);
+});
+
+test('music menu: off by default, Blandat starts it, a hidden page suspends it', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  const music = header(page).getByRole('button', { name: 'Musik', exact: true });
+  const menu = page.locator('#music-menu');
+  await expect(menu).toBeHidden();
   await music.click();
-  await expect(music).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(60);
-  expect(await page.evaluate(() => localStorage.getItem('advent.music'))).toBe('on');
+  await expect(music).toHaveAttribute('aria-expanded', 'true');
+  await expect(menu).toBeVisible();
+  await expect(menu.locator('.music-now')).toHaveText('Ingen musik');
+  await expect(menu.getByRole('button', { name: 'Av' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(menu.getByRole('button', { name: 'Nästa låt' })).toBeDisabled();
+  // Av, Blandat and the seven songs.
+  await expect(menu.locator('.music-option')).toHaveCount(9);
+
+  await menu.getByRole('button', { name: 'Blandat' }).click();
+  await expect(music).toHaveClass(/is-on/);
+  await expect(menu.getByRole('button', { name: 'Blandat' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(menu.locator('.music-now')).toHaveText(/^Nu spelas: /);
+  // Before Lucia the mix never plays Santa Lucia.
+  await expect(menu.locator('.music-now')).not.toHaveText('Nu spelas: Santa Lucia');
+  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(40);
+  expect(await page.evaluate(() => localStorage.getItem('advent.music'))).toBe('mix');
+
+  // "Nästa låt" picks another song.
+  const first = await menu.locator('.music-now').textContent();
+  await menu.getByRole('button', { name: 'Nästa låt' }).click();
+  await expect(menu.locator('.music-now')).not.toHaveText(first);
+  await expect(menu.locator('.music-now')).toHaveText(/^Nu spelas: /);
+
+  // A tap outside closes the menu; Escape too.
+  await page.locator('#title').click();
+  await expect(menu).toBeHidden();
+  await music.click();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(music).toBeFocused();
 
   // Pretend the app went to the background, then came back.
   const setVisibility = (state) =>
@@ -148,6 +201,41 @@ test('music: off by default, the button starts it, a hidden page suspends it', a
   await expect.poll(async () => (await audio(page)).state).toBe('suspended');
   await setVisibility('visible');
   await expect.poll(async () => (await audio(page)).state).toBe('running');
+});
+
+test('music menu: one song, saved, "Nästa låt" goes down the list, Av stops it', async ({ page }) => {
+  await skipTomte(page);
+  await spyOnAudio(page);
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  const music = header(page).getByRole('button', { name: 'Musik', exact: true });
+  const menu = page.locator('#music-menu');
+  await music.click();
+  await menu.getByRole('button', { name: 'Stilla natt' }).click();
+  await expect(menu.locator('.music-now')).toHaveText('Nu spelas: Stilla natt');
+  expect(await page.evaluate(() => localStorage.getItem('advent.music'))).toBe('stilla-natt');
+  await menu.getByRole('button', { name: 'Nästa låt' }).click();
+  await expect(menu.locator('.music-now')).toHaveText('Nu spelas: Santa Lucia');
+  await expect(menu.getByRole('button', { name: 'Santa Lucia' })).toHaveAttribute('aria-pressed', 'true');
+
+  // Saved: after a reload the choice is still there (it starts on the first tap).
+  await page.reload();
+  await music.click();
+  await expect(menu.getByRole('button', { name: 'Santa Lucia' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(menu.locator('.music-now')).toHaveText('Nu spelas: Santa Lucia');
+  await menu.getByRole('button', { name: 'Av' }).click();
+  await expect(menu.locator('.music-now')).toHaveText('Ingen musik');
+  await expect(music).not.toHaveClass(/is-on/);
+  expect(await page.evaluate(() => localStorage.getItem('advent.music'))).toBe('off');
+});
+
+test('music menu: the old saved "on" means Blandat', async ({ page }) => {
+  await skipTomte(page);
+  await page.addInitScript(() => localStorage.setItem('advent.music', 'on'));
+  await page.clock.setFixedTime(at('2026-12-05'));
+  await gotoApp(page);
+  await header(page).getByRole('button', { name: 'Musik', exact: true }).click();
+  await expect(page.locator('#music-menu').getByRole('button', { name: 'Blandat' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('without Web Audio: no sound buttons and no errors', async ({ page }) => {
@@ -164,14 +252,33 @@ test('without Web Audio: no sound buttons and no errors', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('dev panel: "Spela alla ljud" and "Testa jingle"', async ({ page }) => {
+test('dev panel: every melody and effect with "Spela", who uses it, all effects in a row', async ({ page }) => {
   await skipTomte(page);
   await spyOnAudio(page);
   await page.clock.setFixedTime(at('2026-12-05'));
   await page.goto('./?dev=on');
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
-  await page.getByRole('button', { name: 'Testa jingle' }).click();
+  const panel = page.locator('#dev-panel');
+  await panel.getByRole('button', { name: 'Testa jingle' }).click();
   await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(60);
-  await page.getByRole('button', { name: 'Spela alla ljud' }).click();
+
+  await panel.getByText('Melodier (7)').click();
+  const lucia = panel.locator('.dev-sound-item', { hasText: 'santa-lucia' });
+  await expect(lucia).toContainText('Används av: Lucka 13, 3:e advent');
+  await expect(lucia).toContainText('I Blandat från 12-13');
+  let before = (await audio(page)).oscillators;
+  await panel.getByRole('button', { name: 'Spela Stilla natt' }).click();
+  await expect.poll(async () => (await audio(page)).oscillators - before).toBeGreaterThan(150); // the whole song, not just its theme (about 60)
+  await panel.getByRole('button', { name: 'Stoppa melodi' }).click();
+
+  await panel.getByText(/^Effekter \(\d+\)$/).click();
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Katt som jamar' })).toContainText('Används av: Lucka 4');
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Fanfar' })).toContainText('Lucka 5 (standard)');
+  await expect(panel.locator('.dev-sound-item', { hasText: 'Knarrande dörr' })).toContainText('Används inte av någon lucka');
+  before = (await audio(page)).oscillators;
+  await panel.getByRole('button', { name: 'Spela Katt som jamar' }).click();
+  await expect.poll(async () => (await audio(page)).oscillators).toBeGreaterThan(before);
+
+  await panel.getByRole('button', { name: 'Spela alla effekter i följd' }).click();
   await expect(page.locator('#toast')).toHaveText('Bjällror');
 });

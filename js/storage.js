@@ -3,6 +3,7 @@
 
 import { isValidDateKey } from './dates.js';
 import { parseToggle } from './audio.js';
+import { parseMusicChoice } from './melodies.js';
 
 const KEY_OPENED = 'advent.opened';
 const KEY_DEV = 'advent.dev';
@@ -144,7 +145,8 @@ export function clearTomte() {
 
 // --- Sound ---
 
-// Sound is on unless turned off; background music is off unless turned on.
+// Sound is on unless turned off. The music menu is "off" unless something else was picked
+// ("mix" or a melody key; the old "on" from before the menu means "mix").
 export function getSoundOn() {
   return parseToggle(read(KEY_SOUND), true);
 }
@@ -153,10 +155,10 @@ export function setSoundOn(on) {
   write(KEY_SOUND, on ? 'on' : 'off');
 }
 
-export function getMusicOn() {
-  return parseToggle(read(KEY_MUSIC), false);
+export function getMusicChoice() {
+  return parseMusicChoice(read(KEY_MUSIC));
 }
 
-export function setMusicOn(on) {
-  write(KEY_MUSIC, on ? 'on' : 'off');
+export function setMusicChoice(choice) {
+  write(KEY_MUSIC, parseMusicChoice(choice));
 }

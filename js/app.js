@@ -25,8 +25,8 @@ import {
   setForecastOverride,
   getSoundOn,
   setSoundOn,
-  getMusicOn,
-  setMusicOn,
+  getMusicChoice,
+  setMusicChoice,
 } from './storage.js';
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
@@ -36,7 +36,19 @@ import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
 import { icon, typeIcon, adventCandles } from './icons.js';
-import { initAudio, playEffect, playForAnimation, playAllEffects, playJingle, isSoundOn } from './audio.js';
+import {
+  initAudio,
+  playEffect,
+  playForDoor,
+  playThemeFor,
+  playTheme,
+  stopThemeSong,
+  playAllEffects,
+  playJingle,
+  isSoundOn,
+  soundForDoor,
+  fanfareFor,
+} from './audio.js';
 import { audioControls } from './audio-ui.js';
 
 const CONTENT_URL = './content/days.json';
@@ -242,7 +254,7 @@ function onDoorClick(id) {
     btn.classList.remove('is-shaking');
     void btn.offsetWidth; // restart the animation on repeated taps
     btn.classList.add('is-shaking');
-    playEffect('locked');
+    playEffect('knock');
     showToast(`Den här luckan öppnas ${formatDate(day.date)}`);
     return;
   }
@@ -250,11 +262,13 @@ function onDoorClick(id) {
   const firstTime = !btn.classList.contains('is-opened');
   markOpened(day.id);
   updateDoors();
+  playThemeFor(day); // the door's own song, opened before or not
 
   if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
   else {
-    // Reduced motion skips the animation but not its sound.
-    if (firstTime) playForAnimation(animationFor(day));
+    // Reduced motion skips the animation but not its sound. An opened door just creaks.
+    if (firstTime) playForDoor(day, animationFor(day));
+    else playEffect('door');
     showCard(day, firstTime ? 'fade' : null);
   }
 }
@@ -262,7 +276,7 @@ function onDoorClick(id) {
 // Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
 async function playThenShow(day, btn, animation, { haptics = true } = {}) {
   state.busy = true;
-  playForAnimation(animation);
+  playForDoor(day, animation);
   try {
     const { skipped } = await playOpening(btn, animation, { haptics });
     showCard(day, skipped ? 'fade' : revealFor(animation));
@@ -399,10 +413,11 @@ async function startDevMode() {
     async playAnimation(id, animation) {
       const entry = state.doors.get(id);
       if (!entry || state.busy) return;
+      playThemeFor(entry.day);
       if (els.card.open) els.card.close();
       entry.btn.scrollIntoView({ block: 'center' });
       if (prefersReducedMotion()) {
-        playForAnimation(animation ?? animationFor(entry.day));
+        playForDoor(entry.day, animation ?? animationFor(entry.day));
         showCard(entry.day, 'fade');
       } else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false });
     },
@@ -415,9 +430,28 @@ async function startDevMode() {
       isOn: isSoundOn,
       playAll: (onEach) => playAllEffects(onEach),
       playJingle: () => playJingle(),
+      playEffect: (name) => playEffect(name),
+      playMelody: (key) => playTheme(key, { full: true, delay: 0 }),
+      stopMelody: () => stopThemeSong(),
+      usage: soundUsage(),
     },
     toast: showToast,
   });
+}
+
+// Which doors use which effect and melody, for the dev panel: { effects, melodies },
+// each a Map from name to [{ door, own }] (own: set in days.json, not the type's default).
+function soundUsage() {
+  const effects = new Map();
+  const melodies = new Map();
+  const add = (map, name, entry) => map.set(name, [...(map.get(name) ?? []), entry]);
+  for (const day of state.days) {
+    const door = doorName(day);
+    add(effects, soundForDoor(day, animationFor(day)), { door, own: Boolean(day.sound) && soundForDoor(day) === day.sound });
+    if (fanfareFor(day)) add(effects, 'fanfare', { door, own: false });
+    if (day.music) add(melodies, day.music, { door, own: true });
+  }
+  return { effects, melodies };
 }
 
 // --- Tomten ---
@@ -501,7 +535,7 @@ async function init() {
   registerServiceWorker();
   mountScene();
   // Sound is a bonus: audio.js never throws, and stays silent until the first tap.
-  initAudio({ getSoundOn, setSoundOn, getMusicOn, setMusicOn });
+  initAudio({ getSoundOn, setSoundOn, getMusicChoice, setMusicChoice, today: currentToday });
   const controls = audioControls();
   if (controls) els.header.append(controls);
   setupInstall({ container: els.header });

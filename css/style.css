@@ -804,7 +804,11 @@ body {
 .dev-toggle:focus-visible, .dev-btn:focus-visible, .dev-input:focus-visible { outline: 3px solid #0b1a33; outline-offset: 2px; }
 .dev-tomte { gap: 8px; }
 .dev-tomte-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.dev-tomte-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; }
+.dev-tomte-item,
+.dev-sound-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; }
+.dev-sounds { margin-top: 8px; }
+.dev-sounds > summary { cursor: pointer; font-weight: 800; padding: 6px 0; }
+.dev-sounds > .dev-tomte-list { margin-top: 4px; }
 .dev-tomte-item.is-current { background: #ffd23f66; outline: 2px solid #1a1300; }
 .dev-tomte-text { display: grid; flex: 1; min-width: 0; font-size: .8rem; line-height: 1.3; }
 .dev-tomte-name { font-weight: 800; overflow-wrap: anywhere; }
@@ -959,10 +963,58 @@ body {
   border-radius: 999px;
   cursor: pointer;
 }
-.audio-btn[aria-pressed="true"] { color: var(--gold-strong); border-color: var(--gold); background: #e8c36a1f; }
+.audio-btn[aria-pressed="true"],
+.audio-btn.is-on { color: var(--gold-strong); border-color: var(--gold); background: #e8c36a1f; }
 .audio-btn:hover { background: #e8c36a2e; }
 .audio-btn:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 2px; }
 .audio-icon { width: 20px; height: 20px; flex: none; pointer-events: none; }
+/* The music menu, under the "Musik" button. */
+.music-wrap { position: relative; }
+.music-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(260px, calc(100vw - 32px));
+  padding: 10px;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px #0009;
+}
+.music-menu[hidden] { display: none; }
+.music-now { margin: 2px 4px 8px; font-size: .85rem; color: var(--gold-strong); min-height: 1.3em; }
+.music-options { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.music-option,
+.music-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: .9rem;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.music-option::before { content: ""; width: 1em; flex: none; text-align: center; color: var(--gold-strong); }
+.music-option[aria-pressed="true"]::before { content: "✓"; }
+.music-option[aria-pressed="true"] { color: var(--gold-strong); }
+.music-option:hover,
+.music-next:hover:not(:disabled) { background: #e8c36a24; }
+.music-option:focus-visible,
+.music-next:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: -3px; }
+.music-next { justify-content: center; margin-top: 6px; border: 1px solid #f6efe266; border-radius: 999px; }
+.music-next:disabled { opacity: .45; cursor: default; }
+
 /* In Tomten's bubble: a round speaker in the top right corner, on paper. */
 .tomte-bubble .audio-btn {
   position: absolute;
