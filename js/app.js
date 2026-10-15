@@ -317,12 +317,16 @@ function onDoorClick(id) {
 }
 
 // Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
+// The door's sound starts with the opening animation, or, for a door with a scene, together
+// with the scene's entrance when the card appears.
 async function playThenShow(day, btn, animation, { haptics = true } = {}) {
   state.busy = true;
-  playForDoor(day, animation);
+  const withScene = isScene(day.scene);
+  if (!withScene) playForDoor(day, animation);
   try {
     const { skipped } = await playOpening(btn, animation, { haptics });
     showCard(day, skipped ? 'fade' : revealFor(animation));
+    if (withScene) playForDoor(day, animation);
   } finally {
     state.busy = false;
   }
