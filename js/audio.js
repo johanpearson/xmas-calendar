@@ -4,7 +4,7 @@
 // The top of this file is pure logic (notes, melodies, the mixer rules) so node --test
 // can import it; nothing here touches window or AudioContext at import time.
 
-import { TOMTE_JINGLE, MELODIES, toSong, themeSong } from './melodies.js';
+import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
 
 // --- Notes and melodies ---
 
@@ -152,7 +152,7 @@ export function parseToggle(value, fallback) {
 /**
  * What the engine should do for a given state.
  *  soundOn   the sound button (off means completely silent, music included)
- *  musicOn   the music button
+ *  musicOn   the music menu is on something other than "Av"
  *  unlocked  a user gesture has allowed audio
  *  visible   the page is in the foreground
  * Returns { master, running, effects, music }: the master gain, whether the AudioContext
@@ -177,7 +177,7 @@ export function mixFor({ soundOn, musicOn, unlocked, visible }) {
 // the sound is on, suspended while the page is hidden or the sound is off, and every
 // entry point swallows errors: sound is a bonus and must never break the calendar.
 
-const MUSIC_GAP = 6; // seconds of silence between rounds of background music
+const MUSIC_GAP = 6; // seconds of silence before one chosen song plays again (the mix: MIX_GAP)
 const HO_DELAY = 1.1; // Tomten's entrance: the sleigh passes by, he says "ho ho ho" ...
 const JINGLE_DELAY = 2.3; // ... and his jingle starts
 // Events that count as user activation (pointerup covers touch, click comes after a mouse press).
@@ -191,14 +191,14 @@ const engine = {
   musicBus: null,
   noise: null,
   soundOn: true,
-  musicOn: false,
+  musicChoice: 'off', // the music menu: "off", "mix" or a melody key
   unlocked: false,
   visible: true,
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
   jingle: null, // { gain }
   theme: null, // { key, gain, end, timer }
   ducks: new Map(), // what ducks the music -> when it ends (see duckFor)
-  music: { bus: null, until: 0, timer: null },
+  music: { bus: null, until: 0, timer: null, current: null, previous: null },
   listeners: new Set(),
 };
 
@@ -220,10 +220,14 @@ function safely(fn) {
 
 const state = () => ({
   soundOn: engine.soundOn,
-  musicOn: engine.musicOn,
+  musicOn: engine.musicChoice !== 'off',
   unlocked: engine.unlocked,
   visible: engine.visible,
 });
+
+const notify = () => {
+  for (const listener of engine.listeners) safely(listener);
+};
 
 function bus(gain, destination) {
   const node = engine.ctx.createGain();
@@ -279,11 +283,11 @@ function apply() {
     else if (!mix.running && ctx.state === 'running') ctx.suspend().catch(() => {});
     else if (mix.running) flushPending();
   }
-  if (engine.soundOn && engine.musicOn && engine.unlocked) {
+  if (engine.soundOn && engine.musicChoice !== 'off' && engine.unlocked) {
     if (mix.music) startMusic();
     else clearTimeout(engine.music.timer); // hidden: the suspended context holds the music
   } else stopMusic();
-  for (const listener of engine.listeners) safely(listener);
+  notify();
 }
 
 function flushPending() {
@@ -302,12 +306,15 @@ function unlock() {
   apply();
 }
 
-/** Starts the sound system with the saved settings: { getSoundOn, setSoundOn, getMusicOn, setMusicOn }. */
+/**
+ * Starts the sound system with the saved settings and today's date (for the mix):
+ * { getSoundOn, setSoundOn, getMusicChoice, setMusicChoice, today }.
+ */
 export function initAudio(prefs) {
   safely(() => {
     engine.prefs = prefs;
     engine.soundOn = prefs.getSoundOn();
-    engine.musicOn = prefs.getMusicOn();
+    engine.musicChoice = parseMusicChoice(prefs.getMusicChoice());
     engine.visible = document.visibilityState !== 'hidden';
     if (!audioSupported()) return;
     const onGesture = (e) => {
@@ -330,7 +337,21 @@ export function onAudioChange(listener) {
 }
 
 export const isSoundOn = () => engine.soundOn;
-export const isMusicOn = () => engine.musicOn;
+export const getMusicChoice = () => engine.musicChoice;
+export const isMusicOn = () => engine.musicChoice !== 'off';
+
+/** The title of the song playing (or last played, in the pause between songs), or null. */
+export function nowPlaying() {
+  const key = engine.music.bus ? engine.music.current : null;
+  return key ? MELODIES[key].title : null;
+}
+
+/** The music menu: "Av", "Blandat" and every melody, as { choice, label }. */
+export const MUSIC_MENU = [
+  { choice: 'off', label: 'Av' },
+  { choice: 'mix', label: 'Blandat' },
+  ...MELODY_KEYS.map((key) => ({ choice: key, label: MELODIES[key].title })),
+];
 
 // Turning the sound off silences everything at once, also sounds already playing.
 function silence() {
@@ -357,17 +378,34 @@ export function setSound(on) {
   });
 }
 
-/** The music button. Turning music on turns the sound on too (music needs it). */
-export function setMusic(on) {
+/**
+ * The music menu: "off", "mix" or a melody key (saved). Picking music turns the sound
+ * on too (music needs it). A new choice starts at once, also the same one again.
+ */
+export function setMusicChoice(choice) {
   safely(() => {
-    engine.musicOn = Boolean(on);
-    engine.prefs?.setMusicOn(engine.musicOn);
-    if (engine.musicOn && !engine.soundOn) {
-      engine.soundOn = true;
-      engine.prefs?.setSoundOn(true);
+    engine.musicChoice = parseMusicChoice(choice);
+    engine.prefs?.setMusicChoice(engine.musicChoice);
+    stopMusic(0.3);
+    if (engine.musicChoice !== 'off') {
+      if (!engine.soundOn) {
+        engine.soundOn = true;
+        engine.prefs?.setSoundOn(true);
+      }
+      unlock();
     }
-    if (engine.musicOn) unlock();
     apply();
+  });
+}
+
+/** "Nästa låt": another song from the mix, or the next one in the list. */
+export function nextSong() {
+  safely(() => {
+    if (engine.musicChoice === 'off') return;
+    if (engine.musicChoice === 'mix') {
+      stopMusic(0.3);
+      apply();
+    } else setMusicChoice(nextChoice(engine.musicChoice));
   });
 }
 
@@ -1074,7 +1112,7 @@ export function tomteLeaves() {
   });
 }
 
-// --- Background music: Jingle Bells on the music box, with a pause between rounds ---
+// --- Background music: the menu's choice on the music box, with a pause between songs ---
 
 function startMusic() {
   const { music } = engine;
@@ -1093,9 +1131,15 @@ function musicTick() {
     const { music, ctx } = engine;
     if (!music.bus) return;
     if (ctx.state === 'running' && mixFor(state()).music && ctx.currentTime >= music.until - 1.5) {
-      const start = Math.max(ctx.currentTime + 0.15, music.until);
-      const length = playSong(music.bus, start, toSong(MELODIES['jingle-bells']), undefined, { peak: 0.14 });
-      music.until = start + length + MUSIC_GAP;
+      const key = songFor(engine.musicChoice, music.previous, engine.prefs?.today?.() ?? '');
+      if (key) {
+        const start = Math.max(ctx.currentTime + 0.15, music.until);
+        const length = playSong(music.bus, start, toSong(MELODIES[key]), undefined, { peak: 0.14 });
+        music.until = start + length + (engine.musicChoice === 'mix' ? MIX_GAP : MUSIC_GAP);
+        music.current = key;
+        music.previous = key;
+        notify();
+      }
     }
     music.timer = setTimeout(musicTick, 1000);
   });
@@ -1107,8 +1151,8 @@ function stopMusic(fade = 0.5) {
   if (!music.bus) return;
   const old = music.bus;
   music.bus = null;
-  setGain(old, 0, fade);
-  setTimeout(() => safely(() => old.disconnect()), (fade + 0.1) * 1000);
+  music.current = null;
+  release(old, fade);
 }
 
 // --- Dev mode ---

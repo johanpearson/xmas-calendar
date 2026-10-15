@@ -25,8 +25,8 @@ import {
   setForecastOverride,
   getSoundOn,
   setSoundOn,
-  getMusicOn,
-  setMusicOn,
+  getMusicChoice,
+  setMusicChoice,
 } from './storage.js';
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
@@ -504,7 +504,7 @@ async function init() {
   registerServiceWorker();
   mountScene();
   // Sound is a bonus: audio.js never throws, and stays silent until the first tap.
-  initAudio({ getSoundOn, setSoundOn, getMusicOn, setMusicOn });
+  initAudio({ getSoundOn, setSoundOn, getMusicChoice, setMusicChoice, today: currentToday });
   const controls = audioControls();
   if (controls) els.header.append(controls);
   setupInstall({ container: els.header });

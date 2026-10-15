@@ -217,6 +217,18 @@ export function nextInMix(pool, previous, random = Math.random) {
 
 // --- The menu choice ---
 
+/** What the music plays next for a menu choice: a song from the mix, the chosen song, or null. */
+export function songFor(choice, previous, todayKey, random = Math.random) {
+  if (choice === 'mix') return nextInMix(mixPool(todayKey), previous, random);
+  return MELODIES[choice] ? choice : null;
+}
+
+/** "Nästa låt" with one song chosen: the next song in the list (and round again). */
+export function nextChoice(choice) {
+  const i = MELODY_KEYS.indexOf(choice);
+  return i < 0 ? choice : MELODY_KEYS[(i + 1) % MELODY_KEYS.length];
+}
+
 /** A stored music choice: "off", "mix" or a melody key. The old "on" means "mix". */
 export function parseMusicChoice(value) {
   if (value === 'on' || value === 'mix') return 'mix';

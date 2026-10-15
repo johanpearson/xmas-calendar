@@ -13,6 +13,8 @@ import {
   mixPool,
   nextInMix,
   parseMusicChoice,
+  songFor,
+  nextChoice,
 } from '../js/melodies.js';
 import { noteToFrequency, songSeconds, songToEvents, THEME_MAX_SECONDS } from '../js/audio.js';
 
@@ -164,4 +166,24 @@ test('the stored music choice: off, mix or a melody; the old "on" is the mix', (
   assert.equal(parseMusicChoice('on'), 'mix');
   assert.equal(parseMusicChoice('stilla-natt'), 'stilla-natt');
   for (const value of ['off', null, undefined, '', 'nope', 'ON']) assert.equal(parseMusicChoice(value), 'off');
+});
+
+test('what plays for a menu choice: the mix (respecting the date), one song, or nothing', () => {
+  assert.equal(songFor('off', null, '2026-12-13'), null);
+  assert.equal(songFor('stilla-natt', 'stilla-natt', '2026-12-01'), 'stilla-natt'); // a chosen song repeats
+  assert.equal(songFor('santa-lucia', null, '2026-12-01'), 'santa-lucia'); // picked by hand: any day
+  for (let i = 0; i < 300; i++) {
+    const early = songFor('mix', 'jingle-bells', '2026-12-12');
+    assert.notEqual(early, 'santa-lucia');
+    assert.notEqual(early, 'jingle-bells');
+  }
+  // From Lucia the mix can reach it.
+  assert.equal(songFor('mix', null, '2026-12-13', () => 0.9999), 'santa-lucia');
+  assert.equal(songFor('nope', null, '2026-12-13'), null);
+});
+
+test('"Nästa låt" with one song chosen moves down the list and round again', () => {
+  assert.equal(nextChoice('jingle-bells'), 'tusen-juleljus');
+  assert.equal(nextChoice(MELODY_KEYS.at(-1)), MELODY_KEYS[0]);
+  assert.equal(nextChoice('mix'), 'mix');
 });
