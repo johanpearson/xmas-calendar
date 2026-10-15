@@ -358,6 +358,7 @@ export function playOpening(door, name, { haptics = true, signal = null } = {}) 
       done = true;
       clearTimeout(timer);
       layer.removeEventListener('click', onSkip);
+      layer.removeEventListener('pointerdown', onPress);
       document.removeEventListener('keydown', onKey, true);
       signal?.removeEventListener('abort', onAbort);
       for (const a of layer.getAnimations({ subtree: true })) a.cancel();
@@ -367,8 +368,14 @@ export function playOpening(door, name, { haptics = true, signal = null } = {}) 
     };
     const onAbort = () => finish(true, true);
     // Skip on click, not pointerdown: the rest of the tap must land on the overlay,
-    // or its click would hit the card's backdrop and close the card at once.
-    const onSkip = () => finish(true);
+    // or its click would hit the card's backdrop and close the card at once. Only a tap
+    // that starts on the overlay skips: the door opens on pointerdown, so the click of
+    // that same tap often lands on the overlay too and must not skip the animation.
+    let pressed = false;
+    const onPress = () => (pressed = true);
+    const onSkip = () => {
+      if (pressed) finish(true);
+    };
     const onKey = (e) => {
       // Swallow the key so Enter/Space doesn't re-activate the focused door.
       e.preventDefault();
@@ -376,6 +383,7 @@ export function playOpening(door, name, { haptics = true, signal = null } = {}) 
       finish(true);
     };
     const timer = setTimeout(() => finish(false), total);
+    layer.addEventListener('pointerdown', onPress);
     layer.addEventListener('click', onSkip);
     document.addEventListener('keydown', onKey, true);
     signal?.addEventListener('abort', onAbort);
