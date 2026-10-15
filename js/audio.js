@@ -298,13 +298,12 @@ export const MAX_THEME_BUFFERS = 2; // theme songs are long (up to 20 s): only t
 export function prerenderOrder(doors, today) {
   const unlocked = doors.filter((d) => d.date <= today).sort((a, b) => b.date.localeCompare(a.date));
   const todays = unlocked.filter((d) => d.date === today);
-  const effectsOf = (d) => [d.effect, d.fanfare && 'fanfare'].filter(Boolean).map((name) => `effect:${name}`);
   const keys = [
-    ...todays.flatMap(effectsOf),
+    ...todays.flatMap(doorEffectKeys),
     'effect:knock',
     'effect:chime',
     'effect:click',
-    ...unlocked.flatMap(effectsOf),
+    ...unlocked.flatMap(doorEffectKeys),
     'effect:sleigh',
     'jingle',
     ...unlocked.filter((d) => d.music).map((d) => `theme:${d.music}`),
@@ -318,8 +317,12 @@ export function prerenderOrder(doors, today) {
  * synthesised during the tap. (An offline context needs no user gesture.)
  */
 export function startupKeys(doors, today) {
-  return prerenderOrder(doors.filter((d) => d.date === today), today).filter((key) => key.startsWith('effect:') && !['effect:knock', 'effect:chime', 'effect:click'].includes(key));
+  const todays = doors.filter((d) => d.date === today);
+  return [...new Set(todays.flatMap(doorEffectKeys))];
 }
+
+// A door's effects as prerender keys: its sound, and a treasure hunt's fanfare.
+const doorEffectKeys = (d) => [d.effect, d.fanfare && 'fanfare'].filter(Boolean).map((name) => `effect:${name}`);
 
 // --- The engine (browser only) ---
 //
