@@ -221,6 +221,30 @@ test('music menu: the background music pauses for a door\'s theme song', async (
   await expect(music).toHaveClass(/is-on/); // still chosen, just waiting
 });
 
+test('music menu: the background music stays paused for as long as Tomten is on screen', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('advent.tomte.introSeen', '1');
+    localStorage.setItem('advent.tomte.welcomeSeen', '1');
+    localStorage.setItem('advent.music', 'mix');
+  });
+  await page.clock.install({ time: at('2026-12-04') }); // a scene is due
+  await gotoApp(page);
+  await expect(tomte(page)).toBeVisible();
+  const state = () =>
+    page.evaluate(async () => {
+      const m = await import('./js/audio.js');
+      return { paused: m.isMusicPaused(), playing: m.nowPlaying() };
+    });
+  await tomte(page).getByRole('button', { name: 'Nästa' }).click(); // the first tap
+  await expect.poll(state).toEqual({ paused: true, playing: null });
+  // Long after his jingle (about 9 s with the sleigh) he is still talking: still quiet.
+  await page.waitForTimeout(11000);
+  expect(await state()).toEqual({ paused: true, playing: null });
+  await page.keyboard.press('Escape');
+  await expect(tomte(page)).toBeHidden();
+  await expect.poll(async () => (await state()).playing, { timeout: 6000 }).not.toBeNull();
+});
+
 test('music menu: one song, saved, "Nästa låt" goes down the list, Av stops it', async ({ page }) => {
   await skipTomte(page);
   await spyOnAudio(page);

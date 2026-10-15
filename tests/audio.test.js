@@ -179,5 +179,7 @@ test('pausing: the music waits while a theme song or Tomten plays, then a moment
   assert.equal(pausedUntil(new Map([['theme', 25], ['jingle', 18]]), 10), 25 + RESUME_GAP);
   // Ended ones no longer count.
   assert.equal(pausedUntil(new Map([['jingle', 18]]), 20), null);
+  // Tomten pauses it until he leaves, however long that takes.
+  assert.equal(pausedUntil(new Map([['tomte', Infinity], ['jingle', 18]]), 30), Infinity);
   assert.ok(RESUME_GAP > 0 && RESUME_GAP <= 3);
 });
