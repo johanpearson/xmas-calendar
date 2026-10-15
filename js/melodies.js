@@ -30,31 +30,36 @@ export const MELODIES = {
     theme: [9, 16],
   },
 
+  // From Johan's sheet music (Emmy Köhler), in F major, an octave up like a celesta.
   'tusen-juleljus': {
     title: 'Nu tändas tusen juleljus',
-    bpm: 108,
+    bpm: 104,
+    meter: 4,
+    melody: `
+      C5 |
+      A5 A5 G5 G5 | F5 D5 C5:1.5 C5:0.5 | D5 D5 G5 E5 | C5:2 R C5 |
+      C6 C6 Bb5 Bb5 | A5 F5 D5:1.5 D5:0.5 | E5 E5 G5 G5 | F5:2 R C5 |
+      A5 A5 G5 G5 | F5 D5 C5:1.5 C5:0.5 | D5 D5 G5 E5 | C5:2 R C5 |
+      C6 C6 Bb5 Bb5 | A5 F5 D5:1.5 D5:0.5 | E5 E5 G5 G5 | F5:2 R`,
+    bass: 'R  F2 Bb2 Bb2 C3  F2 F2 C3 F2  F2 Bb2 Bb2 C3  F2 F2 C3 F2',
+    theme: [1, 9],
+  },
+
+
+  // From Johan's sheet music (traditional), in C major, an octave up like a celesta.
+  'hej-tomtegubbar': {
+    title: 'Hej tomtegubbar',
+    bpm: 116,
     meter: 3,
     melody: `
-      G4 |
-      C5:2 D5 | E5:2 E5 | F5 E5 D5 | E5:2 G4 |
-      C5:2 D5 | E5:2 D5 | C5:3 | R:2 G4 |
-      E5:2 F5 | G5:2 G5 | A5 G5 F5 | E5:2 E5 |
-      D5:2 E5 | F5:2 D5 | C5:2`,
-    bass: 'R  C3 C3 F2 C3  F2 G2 C3 C3  C3 C3 F2 C3  G2 G2 C3',
+      C6 G5:0.75 A5:0.25 G5:0.75 F5:0.25 | E5:0.75 F5:0.25 G5 C6:0.75 C6:0.25 | B5:0.75 C6:0.25 D6 C6:0.75 B5:0.25 | C6 C6 R |
+      C6 G5:0.75 A5:0.25 G5:0.75 F5:0.25 | E5:0.75 F5:0.25 G5 C6:0.75 C6:0.25 | B5:0.75 C6:0.25 D6 C6:0.75 B5:0.25 | C6 C6 R:0.5 B5:0.5 |
+      C6:0.75 E6:0.25 D6:1.5 B5:0.5 | C6:0.75 E6:0.25 D6:1.5 B5:0.5 | C6:0.75 E6:0.25 D6 D6:0.75 C6:0.25 | B5:0.75 A5:0.25 G5 R |
+      C6 G5:0.75 A5:0.25 G5:0.75 F5:0.25 | E5:0.75 F5:0.25 G5 C6:0.75 C6:0.25 | B5:0.75 C6:0.25 D6 C6:0.75 B5:0.25 | C6 C6 R`,
+    bass: 'C3 C3 G2 C3  C3 C3 G2 C3  C3 C3 G2 G2  C3 C3 G2 C3',
     theme: [1, 8],
   },
 
-  'hej-tomtegubbar': {
-    title: 'Hej tomtegubbar',
-    bpm: 168,
-    meter: 2,
-    melody: `
-      C5 C5:0.5 C5:0.5 | E5 C5 | D5 D5:0.5 D5:0.5 | F5 D5 |
-      E5:0.5 E5:0.5 G5:0.5 G5:0.5 | F5:0.5 F5:0.5 D5:0.5 B4:0.5 | C5 E5 | C5:2 |
-      C5 C5:0.5 C5:0.5 | E5 C5 | D5 D5:0.5 D5:0.5 | F5 D5 |
-      E5:0.5 E5:0.5 G5:0.5 G5:0.5 | F5:0.5 F5:0.5 D5:0.5 B4:0.5 | C5 E5 | C5:2`,
-    bass: 'C3 C3 G2 G2  C3 G2 C3 C3  C3 C3 G2 G2  C3 G2 C3 C3',
-  },
 
   'deck-the-halls': {
     title: 'Deck the Halls',
@@ -98,18 +103,24 @@ export const MELODIES = {
     theme: [17, 23],
   },
 
+  // From Johan's sheet music (traditional), in C major, an octave up like a celesta. The
+  // repeat is written out: bars 9-16 with the first ending, then 17-24 with the second.
+  // The bass is the sheet's own.
   'santa-lucia': {
     title: 'Santa Lucia',
-    bpm: 112,
+    bpm: 108,
     meter: 3,
     melody: `
-      G4 G4 C5 | C5:1.5 B4:0.5 B4 | A4 A4 D5 | D5:2 C5 |
-      C5 C5 E5 | E5:1.5 D5:0.5 D5 | F5 E5 D5 | C5:3 |
-      G5:1.5 F5:0.5 E5 | E5:2 D5 | F5:1.5 E5:0.5 D5 | D5:2 C5 |
-      C5:2 A4 | G4:2 E5 | D5:2 B4 | C5:3`,
-    bass: 'C3 G2 F2 G2  C3 G2 G2 C3  C3 G2 G2 C3  F2 C3 G2 C3',
-    theme: [1, 8],
+      G5 G5 C6 | C6:0.5 B5:0.5 B5:2 | F5 F5 A5 | A5 G5:2 |
+      E5 A5 G5 | G5:0.5 F#5:0.5 F5:2 | F5 E5 D5 | A5 G5:2 |
+      E6 D6 C6 | B5:0.5 A5:0.5 D6:2 | D6 C6 A5 | F#5:0.5 G5:0.5 C6:2 |
+      E6:0.5 C6:0.5 C6:0.5 G5:0.5 G5:0.5 E5:0.5 | F5:0.5 D6:0.5 D6:2 | D6 A5:1.5 B5:0.5 | D6 C6:2 |
+      E6 D6 C6 | B5:0.5 A5:0.5 D6:2 | D6 C6 A5 | F#5:0.5 G5:0.5 C6:2 |
+      E6:0.5 C6:0.5 C6:0.5 G5:0.5 G5:0.5 E5:0.5 | F5:0.5 D6:0.5 D6:2 | D6 E6:1.5 D6:0.5 | D6 C6:2`,
+    bass: 'C3 G3 D3 C3  A2 D3 G3 C3  C3 D3 G3 C4  C3 D3 G3 C3  C3 D3 G3 C4  C3 D3 G3 C3',
+    theme: [9, 16],
   },
+
 };
 
 // Tomten's jingle: the chorus of Jingle Bells with its final ending, fast (about 7 s).
@@ -165,6 +176,15 @@ export function barsOf(melody) {
   return { bars, beats: start };
 }
 
+// An excerpt that stops mid-song leaves out a pickup into the next phrase: notes after
+// the last rest of its final bar become rest ("va-ra! En" -> "va-ra!").
+function withoutPickup(notes) {
+  const lastRest = notes.findLastIndex(([note]) => note === 'R');
+  if (lastRest < 0 || lastRest === notes.length - 1) return notes;
+  const tail = notes.slice(lastRest).reduce((total, [, beats]) => total + beats, 0);
+  return [...notes.slice(0, lastRest), ['R', tail]];
+}
+
 /**
  * A melody (or an excerpt of bars [from, to], 1-based) as a song for the player:
  * { title, bpm, meter, bells, voices: [melody, bass], barStarts }, where a voice is
@@ -174,7 +194,9 @@ export function toSong(melody, range = null) {
   const { bars } = barsOf(melody);
   const bass = parseBass(melody.bass ?? '');
   const [from, to] = range ?? [1, bars.length];
-  const picked = bars.slice(from - 1, to);
+  const picked = bars.slice(from - 1, to).map((bar, i, all) =>
+    i === all.length - 1 && to < bars.length ? { ...bar, notes: withoutPickup(bar.notes) } : bar,
+  );
   const offset = picked[0]?.start ?? 0;
   return {
     title: melody.title,

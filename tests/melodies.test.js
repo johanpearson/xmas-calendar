@@ -187,3 +187,11 @@ test('"Nästa låt" with one song chosen moves down the list and round again', (
   assert.equal(nextChoice(MELODY_KEYS.at(-1)), MELODY_KEYS[0]);
   assert.equal(nextChoice('mix'), 'mix');
 });
+
+test('an excerpt that stops mid-song leaves out the pickup into the next phrase', () => {
+  const melody = { bpm: 60, meter: 3, melody: 'C5 C5 C5 | E5:2 R:0.5 B4:0.5 | C5:3', bass: 'C3 C3 C3' };
+  assert.deepEqual(toSong(melody, [1, 2]).voices[0].slice(-2), [['E5', 2], ['R', 1]]);
+  // The whole melody, or an excerpt to the end, keeps every note.
+  assert.deepEqual(toSong(melody).voices[0][5], ['B4', 0.5]);
+  assert.deepEqual(toSong(melody, [2, 3]).voices[0][2], ['B4', 0.5]);
+});

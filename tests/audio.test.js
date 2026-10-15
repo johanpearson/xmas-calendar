@@ -19,8 +19,8 @@ import {
   parseToggle,
   mixFor,
   MASTER_GAIN,
-  MUSIC_GAIN,
-  duckFor,
+  pausedUntil,
+  RESUME_GAP,
 } from '../js/audio.js';
 import { ANIMATIONS, TYPE_ANIMATIONS } from '../js/themes.js';
 
@@ -118,7 +118,7 @@ test('a treasure hunt gets a fanfare after its own sound', () => {
 });
 
 test('the effects: every one asked for exists and has a Swedish label', () => {
-  const asked = ['ho', 'sleigh', 'knock', 'fanfare', 'door', 'bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
+  const asked = ['sleigh', 'knock', 'fanfare', 'bells', 'twinkle', 'cat', 'sneak', 'camera', 'paper', 'candy', 'chime', 'splat', 'pop', 'mystery', 'popcorn', 'glogg', 'bingo', 'unwrap'];
   for (const name of asked) assert.ok(isEffect(name), name);
   assert.equal(new Set(EFFECTS).size, EFFECTS.length);
   for (const name of EFFECTS) assert.equal(typeof EFFECT_LABELS[name], 'string', name);
@@ -126,6 +126,8 @@ test('the effects: every one asked for exists and has a Swedish label', () => {
   assert.deepEqual(sfx.names, EFFECTS);
   assert.equal(typeof sfx.play, 'function');
   assert.equal(isEffect('locked'), false); // the old "tonk" is now "knock"
+  assert.equal(isEffect('ho'), false); // removed: neither a synthetic voice nor a horn sounded right
+  assert.equal(isEffect('door'), false);
 });
 
 test('stored toggles: "on"/"off", anything else is the default', () => {
@@ -170,13 +172,12 @@ test('mixer: a hidden page suspends everything, showing it again resumes', () =>
   assert.equal(mixFor({ ...base, musicOn: true }).music, true);
 });
 
-test('ducking: the music steps aside while a theme song or the jingle plays', () => {
-  assert.deepEqual(duckFor(new Map(), 10), { level: MUSIC_GAIN, until: null });
-  const ducked = duckFor(new Map([['theme', 25]]), 10);
-  assert.ok(ducked.level < MUSIC_GAIN * 0.5);
-  assert.equal(ducked.until, 25);
-  // Both at once: the music comes back when the last one ends.
-  assert.equal(duckFor(new Map([['theme', 25], ['jingle', 18]]), 10).until, 25);
+test('pausing: the music waits while a theme song or Tomten plays, then a moment more', () => {
+  assert.equal(pausedUntil(new Map(), 10), null);
+  assert.equal(pausedUntil(new Map([['theme', 25]]), 10), 25 + RESUME_GAP);
+  // Both at once: the music comes back after the last one.
+  assert.equal(pausedUntil(new Map([['theme', 25], ['jingle', 18]]), 10), 25 + RESUME_GAP);
   // Ended ones no longer count.
-  assert.deepEqual(duckFor(new Map([['jingle', 18]]), 20), { level: MUSIC_GAIN, until: null });
+  assert.equal(pausedUntil(new Map([['jingle', 18]]), 20), null);
+  assert.ok(RESUME_GAP > 0 && RESUME_GAP <= 3);
 });

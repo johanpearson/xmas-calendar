@@ -355,8 +355,11 @@ ljudfiler och inga beroenden.
   - **En låt** i listan spelas om och om igen med 6 s paus. "Nästa låt" går då vidare
     till nästa låt i listan, med Blandat till en annan slumpad låt.
 - **Temalåt:** en lucka med `music` spelar den melodin en gång (högst 20 s) när den
-  öppnas, även om musikmenyn står på Av. Bakgrundsmusiken sänks medan temalåten eller
-  tomtens jingel spelar och kommer tillbaka efteråt.
+  öppnas, även om musikmenyn står på Av.
+- **Paus:** bakgrundsmusiken pausas medan en temalåt spelar och medan tomten dyker upp
+  (släde och jingel). Låten som spelade tonas ut, och 1,5 s efter att
+  temalåten eller jingeln är klar börjar musiken igen: nästa låt i Blandat, eller den
+  valda låten från början. Under tiden står "Musiken är pausad en stund" i menyn.
 - Inget ljud spelas före första trycket i appen (webbläsarnas autoplay-regler). För en ny
   användare är det tomtens första "Nästa", och då börjar hans jingel.
 - Ljudet pausas när appen eller fliken hamnar i bakgrunden och fortsätter när den visas.
@@ -368,10 +371,10 @@ Alla är syntetiska och kortare än 2 s. I koden: `sfx.play('cat')` (eller `play
 
 | Händelse | Effekt |
 |---|---|
-| tomten dyker upp | `sleigh` (släde med bjällror som sveper förbi från vänster till höger), `ho` ("ho ho ho") och jingeln |
+| tomten dyker upp | `sleigh` (släde med bjällror som sveper förbi från vänster till höger) och jingeln |
 | låst lucka | `knock` (två dova knackningar) |
 | jakt-lucka öppnas | luckans ljud, sedan `fanfare` |
-| redan öppnad lucka öppnas igen | `door` (knarrande dörr) |
+| redan öppnad lucka öppnas igen | `chime` (mjukt ding) |
 | "Nästa" hos tomten | `click` |
 
 Luckans eget ljud väljs med `sound` i `days.json`:
@@ -486,17 +489,20 @@ och bumpa sedan `CACHE_VERSION`.
 
 ### Mer musik och roligare ljud (milstolpe 11)
 
-- **Noterna är skrivna ur minnet** (miljön där det byggdes kom inte åt noter på nätet).
-  Jingle Bells, Deck the Halls, We Wish You a Merry Christmas och Stilla natt bör stämma.
-  **Nu tändas tusen juleljus, Hej tomtegubbar och Santa Lucia är ungefärliga** och
-  behöver rättas efter gehör. Ackorden i basen är enkla gissningar, en ton per takt.
-- Alla melodier ligger i C-dur (eller nära), så att de låter bra ihop i Blandat och på
-  speldosan. Stilla natt skrivs i 6/8 med åttondelar som taktslag.
+- Jingle Bells, Deck the Halls, We Wish You a Merry Christmas och Stilla natt är skrivna
+  ur minnet. Nu tändas tusen juleljus, Hej tomtegubbar och Santa Lucia är avskrivna från
+  noter som Johan skickade (Nu tändas i F-dur och 4/4, Hej tomtegubbar i 3/4 med
+  punkterad rytm, Santa Lucia med repristecknet utskrivet och notbladets egen bas).
+  Melodierna spelas en oktav högre än noterna, som en celesta. Basen i de andra är
+  enkla ackordgrundtoner, en ton per takt.
+- Melodierna ligger i C-dur, utom Nu tändas tusen juleljus (F-dur, som noterna).
+  Stilla natt skrivs i 6/8 med åttondelar som taktslag.
 - Temalåten är ett utdrag (`theme`) när hela melodin är längre än cirka 20 s: Jingle Bells
-  andra halvan av refrängen, Deck the Halls och Santa Lucia första halvan, Nu tändas
-  tusen juleljus de första fraserna och Stilla natt de sista raderna ("sov i himmelsk ro").
-  We Wish You och Hej tomtegubbar spelas hela. Blir en temalåt ändå längre än 20 s tonas
-  den ut.
+  andra halvan av refrängen, Deck the Halls och Hej tomtegubbar första halvan, Nu tändas
+  tusen juleljus första versen, Santa Lucia refrängen ("Sankta Lucia") och Stilla natt de
+  sista raderna ("sov i himmelsk ro"). We Wish You spelas hel. Slutar ett utdrag mitt i
+  låten utelämnas en upptakt in i nästa fras ("va-ra! En" blir "va-ra!"). Blir en temalåt
+  ändå längre än 20 s tonas den ut.
 - Temalåten spelas varje gång luckan öppnas, även en redan öppnad lucka, men startar inte
   om om samma låt redan spelar. Den startar 1 s efter luckans ljud. En ny temalåt avbryter
   den förra, och ljudknappen av tystar den direkt.
@@ -510,9 +516,9 @@ och bumpa sedan `CACHE_VERSION`.
 - I Blandat visas den senast startade låten även under pausen mellan två låtar.
 - Bjällerlagret i musiken är ett svagt bjällerslag på varje taktslag utom det första i
   takten.
-- Tomtens entré är nu släden (`sleigh`), "ho ho ho" efter 1,1 s och jingeln efter 2,3 s.
-  Före första trycket spelas bara jingeln (som tidigare), inte släden eller "ho ho ho".
-- `door` (knarrande dörr) används när en redan öppnad lucka öppnas igen. Tidigare var det
+- Tomtens entré är nu släden (`sleigh`) och jingeln efter 1,4 s.
+  Före första trycket spelas bara jingeln (som tidigare), inte släden.
+- En redan öppnad lucka som öppnas igen ger ett mjukt ding (`chime`). Tidigare var det
   tyst då. Jakt-luckor får sitt eget ljud (`sneak` i årets innehåll) och fanfaren 1,1 s
   senare.
 - `sound` får vara vilken effekt som helst i `EFFECTS`, även typernas standardljud
@@ -527,6 +533,23 @@ och bumpa sedan `CACHE_VERSION`.
 - Dev-panelens "Spela" för en melodi spelar hela melodin (inte bara temat), så att den
   går att rätta. "Stoppa melodi" stoppar den.
 - `js/melodies.js` ligger i precache och `CACHE_VERSION` är `v9`.
+- Efter första lyssningen (`CACHE_VERSION` `v10`):
+  - Bakgrundsmusiken **pausas** nu i stället för att sänkas när en temalåt eller tomten
+    spelar, och fortsätter med en ny låt (eller samma låt från början) efteråt. Att
+    fortsätta mitt i en låt går inte, eftersom hela låten schemaläggs när den startar.
+  - `cat` renderas sampel för sampel i `js/voice.js` av en liten röstsyntes:
+    glottispulser vars tonhöjd och styrka vinglar lite från period till period,
+    andningsbrus och resonatorer för munhålan (formanter) som glider mjukt från "m" via
+    "iaa" till "ow". Varje uppspelning blir lite olika, och en renderas i förväg så att den
+    inte fördröjs. Den följer inte längre önskemålet om en ren sinusvåg genom
+    bandpassfilter, som lät som en vissling.
+  - `ho` (tomtens "ho ho ho") och `door` (knarrande dörr) är borttagna. Varken en
+    syntetisk röst och ett syntetiskt knarr eller tecknade versioner (horn, träklonk)
+    lät rätt, och inspelade CC0-ljud gick inte att hämta (Freesound blockerar servern).
+    Tomten får släden och jingeln, och en redan öppnad lucka får `chime`.
+  - Bakgrundsmusiken är 2,5 gånger så stark som förut (`MUSIC_GAIN` 0,8 i stället för
+    0,32), så att den hörs utan full volym på telefonen. Effekter och temalåter är
+    oförändrade.
 
 ### Väder (milstolpe 10)
 

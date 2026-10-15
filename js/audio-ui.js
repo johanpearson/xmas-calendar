@@ -10,6 +10,7 @@ import {
   setMusicChoice,
   nextSong,
   nowPlaying,
+  isMusicPaused,
   MUSIC_MENU,
   onAudioChange,
 } from './audio.js';
@@ -48,6 +49,7 @@ export function soundButton(className = 'audio-btn') {
 function nowPlayingText() {
   if (!isMusicOn()) return 'Ingen musik';
   if (!isSoundOn()) return 'Ljudet är avstängt';
+  if (isMusicPaused()) return 'Musiken är pausad en stund';
   const title = nowPlaying();
   return title ? `Nu spelas: ${title}` : 'Musiken startar …';
 }
