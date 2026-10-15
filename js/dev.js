@@ -310,8 +310,9 @@ function scenesSection(scenes, closePanel, toast, effectiveToday) {
 function tomteSection(tomte, closePanel, toast) {
   const node = el('fieldset', 'dev-preview dev-tomte');
   node.append(el('legend', null, 'Tomten'));
-  // "Prognos": the real forecast, or a forced variant for weather scenes (saved, and used
-  // by "Spela upp" and by scenes at app start alike).
+  // "Prognos": the real forecast, or a forced variant for weather scenes and for plan B
+  // in doors with an "alternative" (saved, and used by "Spela upp", scenes at app start
+  // and opened doors alike).
   const weatherSelect = el('select', 'dev-input');
   weatherSelect.id = 'dev-forecast';
   for (const [value, label] of FORECAST_CHOICES) {
@@ -344,7 +345,8 @@ function tomteSection(tomte, closePanel, toast) {
       refresh();
     }
   });
-  node.append(weatherField, lastInfo, testButton);
+  const weatherHint = el('p', 'dev-info', 'Styr tomtens väderscener och plan B i luckor med reservplan.');
+  node.append(weatherField, weatherHint, lastInfo, testButton);
   const list = el('ul', 'dev-tomte-list');
   const rows = tomte.items.map((item) => {
     const row = el('li', 'dev-tomte-item');

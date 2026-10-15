@@ -60,6 +60,9 @@ klocka: klassningens gränsvärden (precis under och på gränsen), cachereglern
 gammal men tillåten vid nätverksfel, för gammal), timeout, felsvar och saknad data (se "Väder").
 `tests/scenes.test.js` kontrollerar att varje `scene` i `content/days.json` finns i
 scenregistret och vilka scener som visas på huvudskärmen (se "Dagsscener").
+`tests/card.test.js` testar kortets rena logik i `js/card.js`: stycken och tomma rader,
+valet av plan A eller B (dålig, bra och okänd prognos, timeout, byte för hand åt båda
+hållen) och att plan B faller tillbaka på luckans titel och vers (se "Plan B").
 
 ### E2e (Playwright)
 
@@ -89,8 +92,15 @@ timers eller lyssnare, scenen ligger bakom texten i kortet, loopen pausas när f
 dold, reducerad rörelse ger en stilla bild, huvudskärmens scen tar inga tryck och ändrar
 inte layouten, och dev-panelens förhandsvisning. Den tar också skärmdumpar vid 360 px
 (se "Dagsscener").
+`tests/e2e/planb.spec.js` mockar Open-Meteo vid simulerat datum 2026-12-20: dålig prognos
+ger plan B direkt med tomtens rad, bra och okänd ger huvudtexten, knappen växlar åt båda
+hållen med samma titel och vers, en sen prognos byter mjukt men aldrig efter ett byte för
+hand, och dev-panelens **Prognos** styr plan B. Den kontrollerar också luckorna 2026-12-02
+(bara vers, tom `body`) och 2026-12-08 (tom rad i `body`) och tar skärmdumpar vid 360 px
+(se "Plan B").
 De andra e2e-testerna markerar alla tomtescener som sedda (`tests/e2e/helpers.js`), så att
-tomten inte står i vägen.
+tomten inte står i vägen, och svarar på alla väderanrop med ett fel, så att inget test
+når riktiga Open-Meteo.
 
 Playwright startar själv en liten testserver (`tests/e2e/serve.mjs`) på port 4173.
 
@@ -145,8 +155,9 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     och välkomst).
   - **Prognos**: *Riktig* (standard) hämtar prognosen från Open-Meteo. *Bra*, *Dålig* och
     *Okänd* tvingar väderreplikerna `good`, `bad` eller `unknown` utan att fråga någon
-    källa. Valet sparas och gäller både **Spela upp** och scener vid appstart (även efter
-    omladdning) tills du byter tillbaka till *Riktig* eller stänger av dev-läget. Under
+    källa. Valet sparas och gäller både **Spela upp**, scener vid appstart och plan B
+    när en lucka med `alternative` öppnas (även efter omladdning) tills du byter tillbaka
+    till *Riktig* eller stänger av dev-läget. Under
     väljaren visas senast hämtade prognos: tidpunkt, vilket datum den gäller, nederbörd
     och vind. **Testa hämtning (imorgon)** hämtar direkt (utan cache) en riktig prognos
     för morgondagen enligt det riktiga datumet, inte det simulerade, och visar resultatet
@@ -158,8 +169,29 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
 
 ## Lägga till och ändra luckor
 
-Allt innehåll ligger i `content/days.json`. Varje lucka styrs av sitt `date`
-(`YYYY-MM-DD`, lokalt datum), inte av sin position i listan. Se datamodellen i `PLAN.md`.
+Allt innehåll ligger i `content/days.json` (och tomtens repliker i `content/tomte.json`).
+Varje lucka styrs av sitt `date` (`YYYY-MM-DD`, lokalt datum), inte av sin position i
+listan. Se datamodellen i `PLAN.md`.
+
+### Redigera i Excel
+
+Innehållet redigeras i Excel och konverteras sedan till `content/days.json` och
+`content/tomte.json`. Själva Excel-filen och konverteringen ligger utanför repot. Efter
+konverteringen:
+
+1. Ersätt `content/days.json` och `content/tomte.json` med de nya filerna.
+2. Kör `npm test`. Valideringen fångar det som brukar gå snett i en konvertering: okända
+   fält, fel `type`, datum i fel ordning, tom `body` utan `verse`, en `scene`, `sound`
+   eller `music` som inte finns i koden, och fel i tomtens scener.
+3. Öppna appen lokalt med `?dev=on` och titta på ändrade luckor med **Simulerat datum**.
+4. Pusha till `main`. Ingen `CACHE_VERSION`-bump behövs.
+
+Tänk på i konverteringen: `\n` är radbrytning, en tom rad blir `\n\n`, tomma celler ska
+inte bli fält (utelämna `verse`, `label`, `sound` och så vidare hellre än att skriva
+`""`), utom `body` som får vara `""` när luckan har `verse`. `id` ska vara samma som förut
+för luckor och tomtescener som redan finns.
+
+### Fälten
 
 En lucka ser ut så här:
 
@@ -172,7 +204,11 @@ En lucka ser ut så här:
   "title": "När andra ljuset brinner",
   "verse": "då är Lucia här\nhon bjuder oss på kaffe",
   "body": "Första stycket.\nAndra stycket.",
-  "alternative": { "title": "Plan B", "body": "Valfri reservplan" }
+  "alternative": {
+    "title": "När andra ljuset brinner",
+    "verse": "då är Lucia här\nhon bjuder oss på kaffe",
+    "body": "Reservplanen vid dåligt väder."
+  }
 }
 ```
 
@@ -199,13 +235,19 @@ En lucka ser ut så här:
   `"music": "stilla-natt"`. Se "Melodier" nedan.
 - `scene` är valfri: en liten animerad scen bakom texten i kortet, t.ex. `"scene": "snow"`.
   Se "Dagsscener" nedan.
-- `label` och `alternative` är valfria. `\n` i `body` delar upp texten i stycken.
+- `label` är valfri. `\n` i `body` delar upp texten i stycken, och en tom rad (`\n\n`)
+  ger extra avstånd före nästa stycke. `body` får vara tom (`""`) om luckan har `verse`:
+  kortet visar då bara titel och vers.
+- `alternative` är valfri: plan B vid dåligt väder, med `body` och valfria `title` och
+  `verse` (saknas de används luckans egna). Se "Plan B" nedan.
 - `verse` är valfri: en vers som visas i kursiv stil direkt under titeln, före `body`
   (även i specialrutan). `\n` ger en ny rad. Ingen HTML, texten visas precis som den står.
   Plan B visar samma vers, om inte `alternative` har en egen `verse`.
 - `npm test` kontrollerar filen: giltig JSON, unika datum i stigande ordning, unika `id`,
-  att `type` är en av de fem ovan, att `sound`, `music` och `scene` är kända namn och att luckan
-  inte har några okända fält (fångar stavfel som `"sonud"`). Kör det efter varje ändring.
+  att `type` är en av de fem ovan, att `sound`, `music` och `scene` är kända namn, att `body`
+  bara är tom när luckan har `verse`, att `alternative` har `body` och bara `title`, `verse`
+  och `body`, och att luckan inte har några okända fält (fångar stavfel som `"sonud"`).
+  Kör det efter varje ändring.
 - Luckor med datum före 1 december visas som en stor specialruta överst.
 - Nästa år: byt bara ut `content/days.json` (titel, datum och innehåll).
 
@@ -351,6 +393,53 @@ bumpa `CACHE_VERSION` och kontrollera att källan tillåter CORS.
   `fetch('https://api.open-meteo.com/v1/forecast?latitude=55.94&longitude=13.54&daily=precipitation_sum,wind_speed_10m_max,temperature_2m_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&start_date=2026-12-20&end_date=2026-12-20').then((r) => r.json()).then(console.log)`.
   Ett svar med `daily` (eller `error`/`reason` om datumet ligger för långt fram) betyder
   att CORS fungerar; ett CORS-fel syns i konsolen.
+
+## Plan B
+
+Varje lucka med `alternative` i `content/days.json` får plan B automatiskt när vädret är
+dåligt. Reglerna gäller alla sådana luckor, inte bara 4:e advent, och ligger i `js/card.js`
+(ren logik) och `showCard()` i `js/app.js`.
+
+- **När luckan öppnas** frågar appen efter prognosen för *luckans eget datum* med
+  `getWeatherVariant([datum])` i `js/weather.js`: samma funktion, samma klassning och samma
+  cache som tomtens väderscener, så de bedömer vädret likadant.
+  - `bad`: plan B visas direkt, med raden "Tomten har tittat på vädret och det ser blött
+    eller blåsigt ut, så det blir plan B." ovanför texten och knappen **Visa plan A**.
+  - `good` eller `unknown`: huvudtexten med knappen **Dåligt väder? Visa plan B**.
+  - Knappen fungerar alltid åt båda hållen, oavsett prognos. Tomtens rad syns bara när
+    plan B visas på grund av dålig prognos.
+- **Plan B:s innehåll:** `alternative.title` och `alternative.verse` om de finns, annars
+  luckans egna, och `alternative.body`. Titel och vers ser likadana ut i båda lägena.
+- **Väntan:** kortet väntar på prognosen högst 800 ms (`FORECAST_WAIT_MS`) räknat från
+  trycket, parallellt med öppna-animationen (som brukar vara längre). Med färsk cache kommer
+  svaret direkt. Hinner den inte öppnas luckan med huvudtexten, och blir svaret sedan `bad`
+  byts kortet till plan B med en mjuk övergång. Har Elin redan bytt plan för hand, eller
+  stängt kortet, händer ingenting.
+- **Aktuell prognos gäller:** skiljer sig prognosen på luckans dag från vad tomten sa
+  tidigare i veckan (t.ex. "Plan A gäller!" på fredagen och regn på söndagen) är det
+  luckans aktuella prognos som avgör. Tomtens scen och luckan läser samma cache, så en
+  prognos som hämtats inom 3 timmar ger samma svar på båda ställena.
+- Luckor utan `alternative` frågar aldrig efter någon prognos.
+
+### Testa plan B
+
+- **I dev-läget:** sätt **Simulerat datum** till 2026-12-20 (eller luckans datum) och välj
+  *Dålig* under **Prognos** (i tomtens del av panelen). Öppna luckan: plan B med tomtens rad.
+  *Bra* och *Okänd* ger huvudtexten, *Riktig* frågar Open-Meteo (som bara har prognos cirka
+  16 dagar fram från det riktiga datumet, annars blir det `unknown`). Knappen i kortet
+  växlar åt båda hållen oavsett val. **Spela upp animation** och scenernas **Spela upp**
+  följer samma val.
+- **Automatiskt:** `node --test tests/card.test.js` och
+  `npx playwright test tests/e2e/planb.spec.js`.
+
+### Skärmdumpar
+
+```sh
+PLANB_SCREENSHOTS=1 npx playwright test tests/e2e/planb.spec.js
+```
+
+skriver 2026-12-20 i plan A och plan B, 2026-12-02 (bara vers) och 2026-12-08 (tom rad i
+texten) vid 360 px till `docs/screenshots/planb/`.
 
 ## Ljud
 
@@ -556,6 +645,35 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Innehållsuppdatering och automatisk plan B (milstolpe 13)
+
+- Kortet väntar på prognosen högst 800 ms räknat från trycket, inte från när kortet visas.
+  Öppna-animationen tar cirka 1,2 s, så första öppningen väntar i praktiken aldrig extra.
+  Utan animation (redan öppnad lucka eller reducerad rörelse) kan kortet komma upp till
+  800 ms senare än förut, men bara för luckor med `alternative` och bara när prognosen
+  inte redan ligger i cachen.
+- Tomtens rad syns bara när plan B visas för att prognosen är dålig. Byter Elin till plan B
+  för hand vid bra eller okänd prognos visas plan B utan raden.
+- Raden står mellan versen och texten, så titel och vers ser exakt likadana ut i plan A och B.
+- Knappen för att gå tillbaka heter alltid **Visa plan A** (förut "Tillbaka till
+  ursprungsplanen"), oavsett om plan B kom från prognosen eller från ett tryck.
+- En sen prognos (efter 800 ms) räknas bara om kortet fortfarande visar samma lucka och
+  ingen bytt plan för hand. Bara den första prognosen per öppning räknas.
+- Prognosen gäller luckans eget datum (`[day.date]`), inte tomtens `forecastFor`. För
+  4:e advent är det samma dag (2026-12-20), så tomten och luckan frågar om samma datum och
+  delar cache.
+- Den mjuka övergången är en kort uttoning in av raden och texten (600 ms). Reducerad
+  rörelse byter direkt.
+- Dev-panelens **Prognos** ligger kvar i tomtens del av panelen och styr nu även plan B.
+  Startar inte tomten (trasig `tomte.json`) finns väljaren inte, och plan B följer den
+  riktiga prognosen.
+- Excel-filen och konverteringen till JSON ligger utanför repot. README beskriver bara
+  vad som ska gälla för de konverterade filerna.
+- `body` måste vara en sträng (även tom), och `alternative` måste ha en `body`, så att en
+  tom cell i Excel inte i tysthet ger ett tomt kort.
+- De e2e-tester som läste tomtens repliker ordagrant läser dem nu från `content/tomte.json`,
+  så att nya repliker från Excel inte bryter testerna.
 
 ### Dagsscener (milstolpe 12)
 
@@ -834,6 +952,7 @@ och bumpa sedan `CACHE_VERSION`.
   (Ersatta av SVG-ikoner i milstolpe 7.)
 - Plan B-knappen växlar: "Dåligt väder? Visa plan B" och tillbaka med
   "Tillbaka till ursprungsplanen". Kortet visar alltid ursprungsplanen när det öppnas.
+  (Ersatt i milstolpe 13: plan B väljs efter prognosen och knappen heter "Visa plan A".)
 - Kortet stängs med "Stäng", Esc eller tryck utanför kortet.
 - Låsning går alltid före "öppnad": en lucka som sparats som öppnad men vars datum inte
   är nått (kan hända efter att man bytt datum i dev-läget) visas som låst.

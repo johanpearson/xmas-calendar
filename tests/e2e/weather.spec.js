@@ -123,7 +123,7 @@ test('scenes without weather never ask for a forecast or show the attribution', 
   const requests = await mockOpenMeteo(page, fine);
   await start(page, '2026-12-08');
 
-  await expect(bubbleText(page)).toHaveText('God måndag, Elin!');
+  await expect(bubbleText(page)).toHaveText(/Ny vecka/);
   await expect(credit(page)).toBeHidden();
   expect(requests).toHaveLength(0);
 });

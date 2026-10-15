@@ -1,5 +1,10 @@
 // Tomten (milestone 8): intro, welcome, scenes, questions and the dev panel.
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+// Lines are read from the content, so edits in content/tomte.json don't break the tests.
+const content = JSON.parse(readFileSync(new URL('../../content/tomte.json', import.meta.url), 'utf8'));
+const firstLine = (id) => content.scenes.find((s) => s.id === id).lines[0];
 
 const at = (date) => new Date(`${date}T10:00:00+01:00`);
 
@@ -32,7 +37,7 @@ test('intro: shown once in a browser tab, then the install help and "Nu kör vi"
   await gotoApp(page);
   await expect(tomte(page)).toBeVisible();
   await expect(tomte(page).locator('#tomte-name')).toHaveText('Tomten');
-  await expect(bubbleText(page)).toHaveText('Ho ho ho! Hej Elin, det är jag, tomten.');
+  await expect(bubbleText(page)).toHaveText(content.intro.lines[0]);
   await expect(tomte(page).locator('.tomte-svg .hat-ball')).toHaveCount(1); // the title's hat
   for (let i = 0; i < 4; i++) await tomte(page).getByRole('button', { name: 'Nästa' }).click();
   await expect(bubbleText(page)).toHaveText(/ingen idé att tjuvtitta/);
@@ -93,7 +98,7 @@ test('a scene shows within its dates, once, and never before from', async ({ pag
 
   await page.clock.setFixedTime(at('2026-11-30'));
   await page.reload();
-  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+  await expect(bubbleText(page)).toHaveText(firstLine('v1-stamning'));
   await tomte(page).getByRole('button', { name: 'Stäng' }).click(); // the × closes early
   await expect(tomte(page)).toBeHidden();
 
@@ -160,7 +165,7 @@ test('dev: play any scene, the date override picks the current one, reset scenes
   await panel.getByLabel('Simulerat datum').fill('2026-12-08');
   await expect(panel.locator('.dev-tomte-item.is-current')).toContainText('v2-sten-ake');
   await page.reload();
-  await expect(bubbleText(page)).toHaveText('God måndag, Elin!');
+  await expect(bubbleText(page)).toHaveText(firstLine('v2-sten-ake'));
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
 
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
@@ -184,20 +189,20 @@ test('Tomten works offline after the first visit', async ({ page, context }) => 
   await context.setOffline(true);
   await page.clock.setFixedTime(at('2026-11-30'));
   await page.reload();
-  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+  await expect(bubbleText(page)).toHaveText(firstLine('v1-stamning'));
 });
 
 test('resuming on a new day shows that day\'s scene, after a conversation left open', async ({ page }) => {
   await markSeen(page);
   await page.clock.setFixedTime(at('2026-11-30'));
   await gotoApp(page);
-  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+  await expect(bubbleText(page)).toHaveText(firstLine('v1-stamning'));
 
   // The app sat in the background for days with Tomten still open, then comes back.
   await page.clock.setFixedTime(at('2026-12-03'));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForTimeout(300);
-  await expect(bubbleText(page)).toHaveText('Ho ho ho! God måndag, Elin.');
+  await expect(bubbleText(page)).toHaveText(firstLine('v1-stamning'));
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
   await expect(bubbleText(page)).toHaveText('Hej igen, Elin! Jag har en snabb koll inför julen.');
 });

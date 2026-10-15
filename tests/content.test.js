@@ -54,6 +54,28 @@ test('verse is a string when present', () => {
   }
 });
 
+const isText = (value) => typeof value === 'string' && value.trim() !== '';
+
+test('body is a text, and may only be empty when the door has a verse', () => {
+  for (const d of days) {
+    assert.equal(typeof d.body, 'string', `${d.date}: body must be a string`);
+    assert.ok(isText(d.body) || isText(d.verse), `${d.date}: body is empty and there is no verse`);
+  }
+});
+
+test('alternative has a body and only title, verse and body', () => {
+  for (const d of days) {
+    if (!('alternative' in d)) continue;
+    const alt = d.alternative;
+    assert.ok(alt && typeof alt === 'object' && !Array.isArray(alt), `${d.date}: alternative must be an object`);
+    assert.ok(isText(alt.body), `${d.date}: alternative.body must be a text`);
+    for (const key of Object.keys(alt)) {
+      assert.ok(['title', 'verse', 'body'].includes(key), `${d.date}: unknown field "alternative.${key}"`);
+    }
+    if ('title' in alt) assert.equal(typeof alt.title, 'string', `${d.date}: alternative.title must be a string`);
+  }
+});
+
 test('sound is a known effect and music a known melody, when present', () => {
   for (const d of days) {
     if ('sound' in d) assert.ok(isEffect(d.sound), `${d.date}: unknown sound ${JSON.stringify(d.sound)} (see EFFECTS in js/audio.js)`);

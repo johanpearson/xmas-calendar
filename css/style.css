@@ -713,7 +713,25 @@ body {
   line-height: 1.4;
 }
 .card-verse p { margin: 0; }
+/* A door that is all verse: no empty body below it, so no extra space either. */
+.card-verse:has(+ .card-note[hidden] + .card-body[hidden]) { margin-bottom: 0; }
 .card-body p { margin: 0 0 .8em; }
+/* A blank line in the text: extra space before the next paragraph. */
+.card-body p.is-spaced { margin-top: 1.4em; }
+/* Plan B because of the weather: Tomten's line above the text. */
+.card-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--gold-strong);
+  border-radius: 6px;
+  background: #f3c94d2e;
+  font-size: .95rem;
+  line-height: 1.4;
+}
+/* A late forecast switched the open card to plan B: the new text fades in. */
+.card.is-replanned .card-note,
+.card.is-replanned .card-body { animation: card-replan 600ms ease-out both; }
+@keyframes card-replan { from { opacity: 0; transform: translateY(4px); } }
 .card-actions {
   display: flex;
   flex-wrap: wrap;

@@ -31,7 +31,7 @@ import {
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
-import { lastFetch, testFetch } from './weather.js';
+import { lastFetch, testFetch, getWeatherVariant } from './weather.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
 import { playOpening, revealFor } from './effects.js';
@@ -51,6 +51,18 @@ import {
 } from './audio.js';
 import { audioControls } from './audio-ui.js';
 import { SCENES, SCENE_KEYS, isScene, homeSceneFor } from './scenes.js';
+import {
+  paragraphs,
+  hasAlternative,
+  planContent,
+  initialChoice,
+  withForecast,
+  toggled,
+  showsWeatherNote,
+  toggleLabel,
+  waitForForecast,
+  WEATHER_NOTE,
+} from './card.js';
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
@@ -72,6 +84,7 @@ const els = {
   cardDate: $('card-date'),
   cardTitle: $('card-title'),
   cardVerse: $('card-verse'),
+  cardNote: $('card-note'),
   cardBody: $('card-body'),
   cardInner: document.querySelector('#card .card-inner'),
   cardAlt: $('card-alt'),
@@ -89,6 +102,7 @@ const state = {
   tomte: null, // { content, ui } once content/tomte.json has loaded
   tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
   cardScene: null, // cleanup for the scene in the open card
+  cardToken: null, // the card showing now, so a late forecast never reaches another one
   home: { key: null, date: null, cleanup: null }, // the small scene on the main screen
   homePreview: null, // dev: show the main-screen scene of this date instead of today's
 };
@@ -307,72 +321,123 @@ function onDoorClick(id) {
   markOpened(day.id);
   updateDoors();
   playThemeFor(day); // the door's own song, opened before or not
+  const forecast = forecastFor(day); // asked at once, while the door opens
 
-  if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day));
+  if (firstTime && !prefersReducedMotion()) playThenShow(day, btn, animationFor(day), { forecast });
   else {
     // Reduced motion skips the animation but not its sound. An opened door gets a soft ding.
     if (firstTime) playForDoor(day, animationFor(day));
     else playEffect('chime');
-    showCard(day, firstTime ? 'fade' : null);
+    openCard(day, firstTime ? 'fade' : null, forecast);
+  }
+}
+
+// Plan B: a door with an alternative asks for the forecast of its own date, through the
+// same function and cache as Tomten's weather scenes, so both judge the weather alike.
+// Dev mode's "Prognos" forces a variant here too. Never rejects; null without a plan B.
+function forecastFor(day) {
+  if (!hasAlternative(day)) return null;
+  const override = isDevEnabled() ? getForecastOverride() : null;
+  return getWeatherVariant([day.date], { override });
+}
+
+// Shows the card once the forecast is in, but waits at most FORECAST_WAIT_MS from now:
+// a later answer can still switch the open card to plan B (see showCard).
+async function openCard(day, reveal, forecast) {
+  state.busy = true;
+  try {
+    const variant = await waitForForecast(forecast);
+    showCard(day, reveal, { variant, forecast });
+  } finally {
+    state.busy = false;
   }
 }
 
 // Plays an opening animation, then shows the card. A skipped animation gets a plain fade.
 // The door's sound starts with the opening animation, or, for a door with a scene, together
-// with the scene's entrance when the card appears.
-async function playThenShow(day, btn, animation, { haptics = true } = {}) {
+// with the scene's entrance when the card appears. The forecast wait runs alongside the
+// animation, which usually outlasts it.
+async function playThenShow(day, btn, animation, { haptics = true, forecast = null } = {}) {
   state.busy = true;
   const withScene = isScene(day.scene);
   if (!withScene) playForDoor(day, animation);
   try {
-    const { skipped } = await playOpening(btn, animation, { haptics });
-    showCard(day, skipped ? 'fade' : revealFor(animation));
+    const ready = waitForForecast(forecast);
+    const [{ skipped }, variant] = await Promise.all([playOpening(btn, animation, { haptics }), ready]);
+    showCard(day, skipped ? 'fade' : revealFor(animation), { variant, forecast });
     if (withScene) playForDoor(day, animation);
   } finally {
     state.busy = false;
   }
 }
 
-// Plain text to one element per line, never innerHTML.
+// Plain text to one element per line, never innerHTML. A blank line in the text gives the
+// next line extra space before it (.is-spaced) instead of disappearing.
 function lines(text, tag) {
-  return String(text ?? '')
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((line) => el(tag, null, line));
+  return paragraphs(text).map(({ text: line, gapBefore }) => el(tag, gapBefore ? 'is-spaced' : null, line));
 }
 
-function setCardContent(title, verse, body) {
+function setCardContent({ title, verse, body }) {
   els.cardTitle.textContent = title ?? '';
   // Verse: one line per line break, shown in italics between title and body.
   const verseLines = lines(verse, 'p');
   els.cardVerse.replaceChildren(...verseLines);
   els.cardVerse.hidden = verseLines.length === 0;
-  // Body: one paragraph per line.
-  els.cardBody.replaceChildren(...lines(body, 'p'));
+  // Body: one paragraph per line. An empty body (a door that is all verse) takes no space.
+  const bodyLines = lines(body, 'p');
+  els.cardBody.replaceChildren(...bodyLines);
+  els.cardBody.hidden = bodyLines.length === 0;
+}
+
+// Plan A or B in the card, Tomten's weather line and the button's text. smooth: the plan
+// changed under an open card (a late forecast), so the new text fades in.
+function showPlan(day, choice, { smooth = false } = {}) {
+  setCardContent(planContent(day, choice.plan));
+  els.cardNote.hidden = !showsWeatherNote(choice);
+  els.cardAlt.textContent = toggleLabel(choice);
+  els.cardAlt.dataset.plan = choice.plan;
+  els.card.classList.remove('is-replanned');
+  if (smooth) {
+    void els.card.offsetWidth; // restart the fade on a second switch
+    els.card.classList.add('is-replanned');
+  }
 }
 
 // reveal: how the card enters (see .card[data-reveal] in style.css), null for the default.
-function showCard(day, reveal = null) {
+// variant: the forecast if it came in time (null otherwise); forecast: the pending lookup,
+// which may still switch the card to plan B when it comes later.
+function showCard(day, reveal = null, { variant = null, forecast = null } = {}) {
+  const token = {};
+  state.cardToken = token;
   els.card.className = `card type-${day.type ?? 'unknown'}`;
   if (reveal) els.card.dataset.reveal = reveal;
   else delete els.card.dataset.reveal;
   els.cardIcon.replaceChildren(typeIcon(day.type));
   els.cardDate.textContent = day.label ? `${day.label} · ${formatDate(day.date)}` : formatDate(day.date);
-  setCardContent(day.title, day.verse, day.body);
 
-  const alt = day.alternative;
-  if (alt && (alt.title || alt.body)) {
-    let showingAlt = false;
+  if (hasAlternative(day)) {
+    // The button always switches, whatever the forecast said.
+    let choice = variant === null ? initialChoice() : withForecast(initialChoice(), variant);
+    showPlan(day, choice);
     els.cardAlt.hidden = false;
-    els.cardAlt.textContent = 'Dåligt väder? Visa plan B';
     els.cardAlt.onclick = () => {
-      showingAlt = !showingAlt;
-      if (showingAlt) setCardContent(alt.title ?? day.title, alt.verse ?? day.verse, alt.body);
-      else setCardContent(day.title, day.verse, day.body);
-      els.cardAlt.textContent = showingAlt ? 'Tillbaka till ursprungsplanen' : 'Dåligt väder? Visa plan B';
+      choice = toggled(choice);
+      showPlan(day, choice);
     };
+    // Too late for the opening: a bad forecast still switches to plan B, unless the plan
+    // was already switched by hand (withForecast keeps it then) or the card has moved on.
+    if (variant === null && forecast) {
+      forecast.then((late) => {
+        if (state.cardToken !== token) return;
+        const next = withForecast(choice, late);
+        const changed = next.plan !== choice.plan;
+        choice = next;
+        if (changed) showPlan(day, choice, { smooth: !prefersReducedMotion() });
+      });
+    }
   } else {
+    setCardContent(planContent(day, 'A'));
+    els.cardNote.hidden = true;
     els.cardAlt.hidden = true;
     els.cardAlt.onclick = null;
   }
@@ -386,7 +451,11 @@ function showCard(day, reveal = null) {
 els.card.addEventListener('click', (e) => {
   if (e.target === els.card) els.card.close();
 });
-els.card.addEventListener('close', clearCardScene);
+els.card.addEventListener('close', () => {
+  state.cardToken = null;
+  clearCardScene();
+});
+els.cardNote.textContent = WEATHER_NOTE;
 
 // --- Keeping "today" fresh while the app stays open ---
 
@@ -467,10 +536,11 @@ async function startDevMode() {
       playThemeFor(entry.day);
       if (els.card.open) els.card.close();
       entry.btn.scrollIntoView({ block: 'center' });
+      const forecast = forecastFor(entry.day);
       if (prefersReducedMotion()) {
         playForDoor(entry.day, animation ?? animationFor(entry.day));
-        showCard(entry.day, 'fade');
-      } else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false });
+        await openCard(entry.day, 'fade', forecast);
+      } else await playThenShow(entry.day, entry.btn, animation ?? animationFor(entry.day), { haptics: false, forecast });
     },
     disable() {
       setDevEnabled(false);
@@ -522,7 +592,7 @@ function devScenes() {
       const day = door
         ? { ...door, scene: key }
         : { id: `scene-${key}`, date: state.todayKey, type: 'ledtrad', title: SCENES[key].label, body: 'Förhandsvisning av scenen.', scene: key };
-      showCard(day, 'fade');
+      showCard(day, 'fade', { forecast: forecastFor(day) });
       playForDoor(day, animationFor(day)); // together with the entrance, as when a door opens
     },
     // Shows the main-screen scene of dateKey (until the simulated date changes). Returns its key or null.
