@@ -221,9 +221,9 @@
     {
       "id": "d-2026-12-22",
       "date": "2026-12-22",
-      "type": "ledtrad",
-      "title": "Två nätter kvar",
-      "body": "Två nätter kvar till julafton.\nIdag räcker det med att andas, ta det lugnt och låta julen komma ikapp.",
+      "type": "litet",
+      "title": "Vila upp oss",
+      "body": "Två nätter kvar till julafton.\nIkväll blir det varm choklad och fotmassage när Saga har lagt sig.\nImorgon är det uppesittarkväll, så ikväll vilar vi upp oss.",
       "scene": "countdown",
       "sound": "twinkle"
     },
@@ -232,7 +232,7 @@
       "date": "2026-12-23",
       "type": "litet",
       "title": "Uppesittarkväll",
-      "body": "Idag är det uppesittarkväll med din familj.\nBingolotto, godis och trevligt sällskap.",
+      "body": "Idag är det uppesittarkväll!\nÄntligen får vi träffa dina syskon och din mamma.\nOch så Bingolotto, förstås. Jag har en bra känsla i år!",
       "scene": "bingo",
       "sound": "bingo"
     },
