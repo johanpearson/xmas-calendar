@@ -7,7 +7,7 @@ import {
   voiceSeconds,
   songToEvents,
   songSeconds,
-  JINGLE_BELLS,
+  JINGLE,
   EFFECTS,
   soundForAnimation,
   parseToggle,
@@ -70,22 +70,17 @@ test('songs merge their voices in time order', () => {
 });
 
 test('the jingle is a valid melody of 5 to 8 seconds', () => {
-  const events = songToEvents(JINGLE_BELLS);
+  const events = songToEvents(JINGLE);
   assert.ok(events.length > 20);
   for (const e of events) assert.ok(e.freq > 100 && e.freq < 2000, `${e.note} is out of range`);
-  const seconds = songSeconds(JINGLE_BELLS);
+  const seconds = songSeconds(JINGLE);
   assert.ok(seconds >= 5 && seconds <= 8, `the jingle is ${seconds} s`);
-  // Every voice is as long as the melody, so the accompaniment ends with it.
-  for (const voice of JINGLE_BELLS.voices) close(voiceSeconds(voice, JINGLE_BELLS.bpm), seconds);
-});
-
-test('the background music is the same melody, calmer', () => {
-  assert.ok(JINGLE_BELLS.calmBpm < JINGLE_BELLS.bpm);
-  assert.ok(songSeconds(JINGLE_BELLS, JINGLE_BELLS.calmBpm) > songSeconds(JINGLE_BELLS));
+  // Every voice is as long as the melody, so the bass ends with it.
+  for (const voice of JINGLE.voices) close(voiceSeconds(voice, JINGLE.bpm), seconds);
 });
 
 test('the jingle starts with "jingle bells" (E E E)', () => {
-  const melody = voiceToEvents(JINGLE_BELLS.voices[0], JINGLE_BELLS.bpm);
+  const melody = voiceToEvents(JINGLE.voices[0], JINGLE.bpm);
   assert.deepEqual(melody.slice(0, 3).map((e) => e.note), ['E5', 'E5', 'E5']);
   assert.equal(melody.at(-1).note, 'C5'); // ends on the tonic
 });

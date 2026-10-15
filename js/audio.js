@@ -4,6 +4,8 @@
 // The top of this file is pure logic (notes, melodies, the mixer rules) so node --test
 // can import it; nothing here touches window or AudioContext at import time.
 
+import { TOMTE_JINGLE, MELODIES, toSong } from './melodies.js';
+
 // --- Notes and melodies ---
 
 const SEMITONES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -53,38 +55,11 @@ export function songSeconds(song, bpm = song.bpm) {
   return Math.max(...song.voices.map((voice) => voiceSeconds(voice, bpm)));
 }
 
-// "Jingle Bells" (James Lord Pierpont, 1857, public domain): the chorus with its final
-// ending, in C major, written for a music box. Beats are quarter notes.
-export const JINGLE_BELLS = {
-  title: 'Jingle Bells',
-  bpm: 270, // the jingle: about 7 s
-  calmBpm: 132, // background music: a calmer music box, about 14.5 s per round
-  voices: [
-    // Melody: "Jingle bells, jingle bells, jingle all the way,
-    // oh what fun it is to ride in a one-horse open sleigh."
-    [
-      ['E5', 1], ['E5', 1], ['E5', 2],
-      ['E5', 1], ['E5', 1], ['E5', 2],
-      ['E5', 1], ['G5', 1], ['C5', 1.5], ['D5', 0.5],
-      ['E5', 4],
-      ['F5', 1], ['F5', 1], ['F5', 1.5], ['F5', 0.5],
-      ['F5', 1], ['E5', 1], ['E5', 1], ['E5', 0.5], ['E5', 0.5],
-      ['G5', 1], ['G5', 1], ['F5', 1], ['D5', 1],
-      ['C5', 4],
-    ],
-    // Accompaniment: root and fifth on the half notes (C C C C F C G C).
-    [
-      ['C4', 2], ['G4', 2],
-      ['C4', 2], ['G4', 2],
-      ['C4', 2], ['G4', 2],
-      ['C4', 2], ['G4', 2],
-      ['F4', 2], ['A4', 2],
-      ['C4', 2], ['G4', 2],
-      ['G3', 2], ['B3', 2],
-      ['C4', 4],
-    ],
-  ],
-};
+// Tomten's jingle (the melodies themselves are data in melodies.js).
+export const JINGLE = toSong(TOMTE_JINGLE);
+
+// The door's theme song plays once and never for longer than this (seconds).
+export const THEME_MAX_SECONDS = 20;
 
 // --- Effects ---
 
@@ -463,17 +438,40 @@ function glitter(dest, t, { count = 8, over = 0.6, peak = 0.035 } = {}) {
   }
 }
 
-// A music box tine: a triangle with a soft attack and a long ring, plus a quiet octave.
+// A celesta / music box tine: a triangle and a sine an octave up with a bell-like decay,
+// plus a faint inharmonic partial that dies fast, like a struck metal bar.
 function musicBoxNote(dest, t, freq, { peak = 0.16, ring = 1.1 } = {}) {
-  tone(dest, { t, freq, dur: ring, type: 'triangle', peak, attack: 0.012 });
-  tone(dest, { t, freq: freq * 2, dur: ring * 0.45, peak: peak * 0.22, attack: 0.008 });
+  tone(dest, { t, freq, dur: ring, type: 'triangle', peak, attack: 0.006 });
+  tone(dest, { t, freq: freq * 2, dur: ring * 0.5, peak: peak * 0.3, attack: 0.004 });
+  tone(dest, { t, freq: freq * 4.2, dur: 0.12, peak: peak * 0.07, attack: 0.002 });
 }
 
-// Schedules a whole song on `dest` from time t. Returns its length in seconds.
-function playSong(dest, t, song, bpm, { peak = 0.16 } = {}) {
+// The quiet bass note on a bar's first beat: a warm sine with a soft decay.
+function bassNote(dest, t, freq, { peak = 0.07, dur = 1.2 } = {}) {
+  tone(dest, { t, freq, dur, peak, attack: 0.02 });
+  tone(dest, { t, freq: freq * 2, dur: dur * 0.4, type: 'triangle', peak: peak * 0.25, attack: 0.015 });
+}
+
+// Schedules a whole song on `dest` from time t: the melody on the music box, the bass
+// note of each bar and, unless the song says otherwise, a soft sleigh bell on the beats
+// after the first in each bar. Returns its length in seconds.
+function playSong(dest, t, song, bpm = song.bpm, { peak = 0.16 } = {}) {
+  const beat = 60 / bpm;
   for (const e of songToEvents(song, bpm)) {
-    const ring = Math.min(1.4, Math.max(0.5, e.duration * 2.2));
-    musicBoxNote(dest, t + e.time, e.freq, { peak: e.voice === 0 ? peak : peak * 0.5, ring });
+    if (e.voice === 0) {
+      const ring = Math.min(1.6, Math.max(0.6, e.duration * 2.4));
+      musicBoxNote(dest, t + e.time, e.freq, { peak, ring });
+    } else bassNote(dest, t + e.time, e.freq, { peak: peak * 0.45, dur: Math.min(1.8, Math.max(0.5, e.duration)) });
+  }
+  if (song.bells && song.barStarts) {
+    const length = songSeconds(song, bpm);
+    for (const start of song.barStarts) {
+      for (let b = 1; b < (song.meter ?? 4); b++) {
+        const at = t + (start + b) * beat;
+        if (at - t >= length - 0.05) break;
+        jingleHit(dest, at + rand(0, 0.012), rand(0.12, 0.2), rand(-0.4, 0.4));
+      }
+    }
   }
   return songSeconds(song, bpm);
 }
@@ -581,7 +579,7 @@ export function playJingle(delay = 0) {
     stopJingle(0.05);
     const t = engine.ctx.currentTime + 0.03 + delay;
     const gain = bus(1, engine.master);
-    const length = playSong(gain, t, JINGLE_BELLS, JINGLE_BELLS.bpm);
+    const length = playSong(gain, t, JINGLE);
     engine.jingle = { gain };
     // Duck the background music under the jingle, then bring it back.
     const music = engine.musicBus.gain;
@@ -609,7 +607,7 @@ export function tomteLeaves() {
   });
 }
 
-// --- Background music: the jingle's melody, calmer, with a pause between rounds ---
+// --- Background music: Jingle Bells on the music box, with a pause between rounds ---
 
 function startMusic() {
   const { music } = engine;
@@ -629,7 +627,7 @@ function musicTick() {
     if (!music.bus) return;
     if (ctx.state === 'running' && mixFor(state()).music && ctx.currentTime >= music.until - 1.5) {
       const start = Math.max(ctx.currentTime + 0.15, music.until);
-      const length = playSong(music.bus, start, JINGLE_BELLS, JINGLE_BELLS.calmBpm, { peak: 0.14 });
+      const length = playSong(music.bus, start, toSong(MELODIES['jingle-bells']), undefined, { peak: 0.14 });
       music.until = start + length + MUSIC_GAP;
     }
     music.timer = setTimeout(musicTick, 1000);
