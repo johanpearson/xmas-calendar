@@ -63,8 +63,8 @@ test('each type plays its animation, then the card shows and the overlay is gone
   }
   expect(await page.evaluate(() => window.__vibrations)).toBe(6);
 
-  // Opening an already opened door shows the card at once, without an animation.
-  await door(page, '2026-12-02').click();
+  // Opening an already opened door (a double tap) shows the card at once, without an animation.
+  await door(page, '2026-12-02').dblclick();
   await expect(card).toBeVisible();
   await expect(page.locator('.fx')).toHaveCount(0);
   await expect(card).not.toHaveAttribute('data-reveal');

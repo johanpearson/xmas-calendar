@@ -224,8 +224,30 @@ test('an opened door touched at the start of a scroll does not show its card', a
   });
   await page.waitForTimeout(500);
   await expect(page.locator('#card')).toBeHidden();
-  // A plain tap still opens it.
+  // A double tap opens it again.
+  await door.dblclick();
+  await expect(page.locator('#card')).toBeVisible();
+});
+
+test('an opened door needs a double tap: one tap only shows a hint', async ({ page }) => {
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await page.addInitScript(() => localStorage.setItem('advent.opened', JSON.stringify(['d-2026-12-04'])));
+  await start(page, '2026-12-05');
+  const door = page.locator('.door[data-date="2026-12-04"]');
   await door.click();
+  await expect(page.locator('#toast')).toHaveText('Tryck två gånger för att öppna luckan igen');
+  await expect(page.locator('#card')).toBeHidden();
+  expect((await audioLog(page)).starts).toEqual([]); // not even the chime
+  await door.dblclick();
+  await expect(page.locator('#card')).toBeVisible();
+});
+
+test('Enter on an opened door opens it again at once', async ({ page }) => {
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await page.addInitScript(() => localStorage.setItem('advent.opened', JSON.stringify(['d-2026-12-04'])));
+  await start(page, '2026-12-05');
+  await page.locator('.door[data-date="2026-12-04"]').focus();
+  await page.keyboard.press('Enter');
   await expect(page.locator('#card')).toBeVisible();
 });
 

@@ -219,7 +219,7 @@ test.describe('reduced motion', () => {
       await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
       await panel.getByLabel('Prognos').selectOption({ label });
       await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
-      await door(page, DATE).click();
+      await door(page, DATE).dblclick(); // opened after the first time: a double tap
       await expect(card(page)).toBeVisible();
     };
     await choose('Dålig');

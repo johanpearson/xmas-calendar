@@ -495,7 +495,7 @@ Alla är syntetiska och kortare än 2 s. I koden: `sfx.play('cat')` (eller `play
 | tomten dyker upp | `sleigh` (släde med bjällror som sveper förbi från vänster till höger) och jingeln |
 | låst lucka | `knock` (två dova knackningar) |
 | jakt-lucka öppnas | luckans ljud, sedan `fanfare` |
-| redan öppnad lucka öppnas igen | `chime` (mjukt ding) |
+| redan öppnad lucka öppnas igen (dubbeltryck) | `chime` (mjukt ding) |
 | "Nästa" hos tomten | `click` |
 
 Luckans eget ljud väljs med `sound` i `days.json`:
