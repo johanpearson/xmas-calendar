@@ -225,6 +225,10 @@ function audioSection(audio, toast) {
   actions.append(
     button('Spela alla effekter i följd', whenOn(() => audio.playAll((name) => toast(EFFECT_LABELS[name] ?? name)))),
     button('Testa jingle', whenOn(() => audio.playJingle())),
+    button('Spela ho ho ho (fil)', whenOn(() => {
+      if (!audio.playHo('file')) toast('Filen är inte inläst (saknas eller går inte att avkoda)');
+    })),
+    button('Spela ho ho ho (syntes)', whenOn(() => audio.playHo('synth'))),
     button('Stoppa melodi', () => audio.stopMelody()),
   );
 

@@ -8,6 +8,17 @@ import { renderVoice, catSpec } from './voice.js';
 import { TOMTE_JINGLE, MELODIES, MELODY_KEYS, MIX_GAP, toSong, themeSong, songFor, nextChoice, parseMusicChoice } from './melodies.js';
 import { noteSfx } from './latency.js';
 
+// --- Tomten's "ho ho ho" (milestone 15): Johan's own recording ---
+//
+// HO_GAIN scales the recording against the other effects (1 = as measured in the README;
+// 0.8 is about -2 dB). It goes through the effects bus like every other effect, so the
+// sound button, the master gain and the music pausing apply as usual.
+export const HO_GAIN = 0.28;
+// Relative to this file (js/), so the site works under /<repo>/ on GitHub Pages.
+export const HO_URL = new URL('../audio/sfx/hohoho.mp3', import.meta.url).href;
+// How long Tomten may wait for a recording that is still loading before it is skipped (ms).
+export const HO_LATE_MS = 1000;
+
 // --- Sync with the animations: adjust here (milestone 14) ---
 //
 // When an effect is heard, in ms relative to the start of the animation it belongs to
@@ -45,6 +56,8 @@ export const SFX_OFFSETS_MS = {
   knock: 0, // the locked door's shake
   fanfare: 0, // FANFARE_DELAY after a treasure hunt's door
   click: 0,
+  // Tomten's "ho ho ho": the first ho lands on the first "Ho!" floating up (250 ms).
+  ho: 230,
 };
 
 // --- Notes and melodies ---
@@ -222,6 +235,28 @@ export function planPlayback({ state, hasBuffer }) {
   return { resume: state !== 'running', source: hasBuffer ? 'buffer' : 'live' };
 }
 
+/**
+ * Which "ho ho ho" to play: the recording when it has been loaded and decoded, else the
+ * synthesised one. Returns 'file' or 'synth'.
+ */
+export const chooseHo = (buffer) => (buffer ? 'file' : 'synth');
+
+/**
+ * Fetches and decodes the recording. Resolves to the AudioBuffer, or null when the file
+ * is missing, the request fails or the data cannot be decoded: never rejects, never logs.
+ * decode(arrayBuffer) is the context's decodeAudioData.
+ */
+export async function loadHoBuffer({ fetchFn, decode, url = HO_URL }) {
+  try {
+    const response = await fetchFn(url);
+    if (!response?.ok) return null;
+    const data = await response.arrayBuffer();
+    return (await decode(data)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // The animation's first frame comes about one frame after the tap that started it (the
 // sound starts in the event handler, the drawing in the next requestAnimationFrame).
 export const ANIMATION_FRAME_MS = 16;
@@ -352,6 +387,10 @@ const engine = {
   musicChoice: 'off', // the music menu: "off", "mix" or a melody key
   unlocked: false,
   visible: true,
+  ho: 'idle', // the recording: 'idle' | 'loading' | 'ready' | 'failed'
+  hoHandle: null, // the "ho ho ho" playing, for stop()
+  hoWaitSince: null, // when a Tomten started waiting for the recording to load
+  tomteSince: null, // performance.now() when Tomten popped up (and is still on screen)
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
   jingle: null, // { gain }
   theme: null, // { key, gain, end, timer }
@@ -429,6 +468,7 @@ function ensureContext() {
   blip.connect(ctx.destination);
   blip.start(0);
   pumpRenders(); // prerender in idle moments from now on
+  loadHo(); // Johan's "ho ho ho", fetched and decoded in an idle moment
   ctx.addEventListener?.('statechange', () => {
     if (ctx.state === 'running') flushPending();
   });
@@ -463,6 +503,9 @@ function flushPending() {
   if (!engine.pendingJingle || !mixFor(state()).effects) return;
   engine.pendingJingle = false;
   playJingle();
+  // The first tap of a new visit is Tomten's intro: the recording is still loading, so it
+  // follows (HO_LATE_MS) once it is ready.
+  if (engine.tomteSince !== null) tomteHo();
 }
 
 // Allows audio after a user gesture. Does nothing while the sound is off, so a muted
@@ -1443,6 +1486,86 @@ export function stopThemeSong() {
   safely(() => stopTheme());
 }
 
+// --- Tomten's "ho ho ho" ---
+
+// Fetches and decodes the recording once, in an idle moment after the first tap. A file that
+// is missing or cannot be decoded just leaves engine.ho at 'failed': the synthesis plays.
+function loadHo() {
+  if (engine.ho !== 'idle' || !engine.ctx || typeof fetch !== 'function') return;
+  engine.ho = 'loading';
+  idle(async () => {
+    const { ctx } = engine;
+    const decode = (data) =>
+      new Promise((resolve, reject) => {
+        const promise = ctx.decodeAudioData(data, resolve, reject); // old Safari: callbacks only
+        promise?.then?.(resolve, reject);
+      });
+    const buffer = await loadHoBuffer({ fetchFn: (url) => fetch(url), decode });
+    if (buffer) {
+      engine.buffers.set('ho', buffer);
+      engine.ho = 'ready';
+    } else engine.ho = 'failed';
+    // Tomten popped up while it was loading: play what we have now (the recording, or the synthesis).
+    const waited = engine.hoWaitSince;
+    engine.hoWaitSince = null;
+    if (waited !== null && engine.tomteSince !== null && performance.now() - waited < HO_LATE_MS) safely(() => playHo());
+  });
+}
+
+// Tomten's "ho ho ho" as he pops up. While the recording is still loading nothing is
+// played (the synthesis would double up with the recording): loadHo plays it when done.
+function tomteHo() {
+  if (engine.ho === 'loading') engine.hoWaitSince = performance.now();
+  else playHo();
+}
+
+// Three low, round "ho"s (a sawtooth through a low-pass, a puff of breath on each), at the
+// recording's rhythm. The fallback when the recording is missing or cannot be decoded.
+function hoSynth(dest, t) {
+  const ctx = ac();
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = 650;
+  lowpass.Q.value = 2;
+  lowpass.connect(dest);
+  [[0, 135, 0.32], [0.5, 125, 0.32], [0.97, 110, 0.4]].forEach(([offset, freq, dur]) => {
+    const at = t + offset;
+    tone(lowpass, { t: at, freq, freqTo: freq * 0.8, dur, type: 'sawtooth', peak: 0.3, attack: 0.03 });
+    noise(lowpass, { t: at, dur: 0.12, peak: 0.12, freq: 700, q: 1.5, attack: 0.01 });
+  });
+}
+
+/**
+ * Plays Tomten's "ho ho ho": the recording when it is ready, else hoSynth. `delay`
+ * seconds from now on the audio clock plus HO's offset. Silent before the first tap,
+ * while hidden or when off. Returns a handle with stop(), or null.
+ */
+export function playHo(delay = 0, { force = null } = {}) {
+  return (
+    safely(() => {
+      if (!ready()) return null;
+      const { ctx } = engine;
+      const buffer = force === 'synth' ? null : (engine.buffers.get('ho') ?? null);
+      if (force === 'file' && !buffer) return null;
+      const level = ctx.createGain();
+      level.gain.value = HO_GAIN;
+      level.connect(engine.fx);
+      engine.hoHandle?.stop(0.05); // never two at once (the dev buttons, a quick second Tomten)
+      engine.hoHandle = startEffect(ctx, {
+        buffer: chooseHo(buffer) === 'file' ? buffer : null,
+        dest: level,
+        delay,
+        offsetMs: effectOffsetMs('ho'),
+        live: (dest, at) => hoSynth(dest, at),
+      });
+      return engine.hoHandle;
+    }) ?? null
+  );
+}
+
+/** True when the recording is loaded and decoded (dev panel). */
+export const hoFileReady = () => engine.buffers.has('ho');
+
 /**
  * Tomten pops up: his sleigh and his jingle. Before the first tap the jingle waits for
  * it. The background music pauses for as long as he is on screen, not just the jingle.
@@ -1450,8 +1573,10 @@ export function stopThemeSong() {
 export function tomteArrives() {
   safely(() => {
     pauseMusic('tomte', Infinity);
+    engine.tomteSince = performance.now();
     if (ready()) {
       playEffect('sleigh');
+      tomteHo();
       playJingle(JINGLE_DELAY);
     } else if (engine.soundOn) engine.pendingJingle = true;
   });
@@ -1460,6 +1585,9 @@ export function tomteArrives() {
 /** Tomten leaves: the jingle fades out and the background music comes back. */
 export function tomteLeaves() {
   safely(() => {
+    engine.tomteSince = null;
+    engine.hoWaitSince = null;
+    engine.hoHandle?.stop(0.15);
     engine.pendingJingle = false;
     stopJingle();
     resumeMusic('tomte');

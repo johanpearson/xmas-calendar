@@ -17,6 +17,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
 - UI-språk: svenska. Kod och kommentarer: engelska.
 - Alla sökvägar är relativa. Sajten serveras under `/<repo-namn>/` på GitHub Pages, så `/foo` (rot-absolut) är förbjudet.
 - Inga push-notiser (utanför scope).
+- Inga ljudfiler i repot, med ett undantag: `audio/sfx/hohoho.mp3`, Johans egen inspelning av tomtens "ho ho ho" (milstolpe 15). Allt annat ljud genereras med Web Audio.
 - Repot blir publikt på ett gratiskonto. Innehållet går att läsa i källan, det är accepterat.
 - I år finns en specialluckan för 29 november (1:a advent) ovanför de 24 vanliga luckorna 1-24 dec. Nästa år börjar kalendern 1 december, utan specialruta.
 - Kalendern ska kunna återanvändas nästa år. Ingen årsspecifik logik i koden: titel, datum och innehåll kommer enbart från `content/days.json` (och tomtens från `content/tomte.json`). Nästa år byts bara de filerna.
@@ -46,6 +47,9 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/scenes.js     dagsscener: register, SVG och cleanup (milstolpe 12)
   js/card.js       ren logik: kortets stycken och val av plan A eller B (milstolpe 13)
   js/latency.js    dev: logg över ljudlatens per tryck (milstolpe 14)
+  audio/sfx/hohoho.mp3  tomtens "ho ho ho", Johans röst (milstolpe 15)
+  audio/raw/       råinspelningen att bearbeta, tas bort efter bearbetning (milstolpe 15)
+  scripts/process-hohoho.sh  ffmpeg: råfil till audio/sfx/hohoho.mp3 (milstolpe 15)
   css/scenes.css   dagsscenernas animationer (milstolpe 12)
   content/days.json
   content/tomte.json
@@ -59,6 +63,7 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/melodies.test.js js/melodies.js: notdata och blandningslogik
   tests/scenes.test.js   js/scenes.js: registret och kopplingen till days.json
   tests/card.test.js     js/card.js: stycken, plan A/B och reservvärden (milstolpe 13)
+  tests/hoho.test.js     val fil/syntes, reservval och själva ljudfilen (milstolpe 15)
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -271,6 +276,14 @@ Skapa dessa med riktigt innehåll:
    - **Finjustering:** överst i `js/audio.js` finns `SFX_LEAD_MS` och en tabell med offset per effekt (ms relativt animationens start, negativt = ljudet först). README beskriver var synken justeras. Dev-panelen har "Testa ljud med aktuell offset" per effekt.
    - **Tester:** `node --test` för schemaläggningen (lookahead, ingen await på igång-kontext, reserv när bufferten inte är klar). Playwright med mockad `AudioContext`: `sfx.play` anropas på `pointerdown`, före scenritandet, och blockeras inte av väderanropet (långsamt mockat Open-Meteo-svar vid 2026-12-20).
    - **PWA:** `js/latency.js` precachas och `CACHE_VERSION` bumpas.
+
+15. **Eget ho ho ho.** Tomtens "ho ho ho" spelas från Johans egen inspelning, `audio/sfx/hohoho.mp3`. Klar när: punkterna nedan fungerar, `tests/hoho.test.js` och `tests/e2e/hoho.spec.js` är gröna och `CACHE_VERSION` är bumpad.
+   - **Som tidigare:** ingen bundler, inga runtime-beroenden, relativa sökvägar. Övrigt ljud är orört.
+   - **Bearbetning:** `scripts/process-hohoho.sh` (ffmpeg): tystnad bort i början och slutet, högpass 80 Hz, mono, klipp efter första paus över 0,4 s (högst 3 s), toppen till cirka -3 dBFS med `volume`, 10 ms fade in, 150 ms fade ut, MP3 44,1 kHz ungefär 96 kbit/s. Råfilen i `audio/raw/` tas bort ur repot efter bearbetning.
+   - **Uppspelning:** filen hämtas och avkodas (`fetch` till `AudioBuffer`) i viloläge efter första användartrycket och spelas som en `AudioBufferSourceNode` på effektbussen med lookahead. Ljudknapp, master gain och duckning av bakgrundsmusiken gäller som vanligt. `HO_GAIN` och en rad i `SFX_OFFSETS_MS` (`ho`) överst i `js/audio.js` styr nivå och synk.
+   - **Reserv:** saknas filen, går hämtningen fel eller kan den inte avkodas spelas en enkel syntes (`hoSynth`), utan felmeddelande.
+   - **Var:** när tomten dyker upp (intro, välkomst, alla scener och entrén i dev-panelen). Dev-panelen har "Spela ho ho ho (fil)" och "Spela ho ho ho (syntes)".
+   - **PWA:** filen cachas med ett eget `cache.add` i `try/catch` (inte `addAll`), så att installationen klarar att den saknas. `CACHE_VERSION` bumpas.
 
 ## Datamodell: `content/tomte.json`
 

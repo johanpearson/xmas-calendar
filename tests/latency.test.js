@@ -133,7 +133,7 @@ test('offsets: the sound is heard offsetMs after the first frame, minus the outp
 });
 
 test('the offset table: one line per effect, SFX_LEAD_MS moves them all', () => {
-  assert.deepEqual(Object.keys(SFX_OFFSETS_MS).sort(), [...EFFECTS].sort());
+  assert.deepEqual(Object.keys(SFX_OFFSETS_MS).sort(), [...EFFECTS, 'ho'].sort()); // ho: Tomten's recording (milestone 15)
   for (const name of EFFECTS) {
     assert.equal(typeof SFX_OFFSETS_MS[name], 'number', name);
     assert.equal(effectOffsetMs(name), SFX_LEAD_MS + SFX_OFFSETS_MS[name]);

@@ -18,12 +18,20 @@ const TYPES = {
   '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.mp3': 'audio/mpeg',
 };
+
+// HIDE=audio/sfx/hohoho.mp3,... answers 404 for those files (tests of a missing file).
+const HIDDEN = (process.env.HIDE ?? '').split(',').filter(Boolean).map((f) => BASE + f);
 
 createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
   if (!pathname.startsWith(BASE)) {
     res.writeHead(404).end('Not found (outside the site folder)');
+    return;
+  }
+  if (HIDDEN.includes(pathname)) {
+    res.writeHead(404).end('Not found (hidden)');
     return;
   }
   let file = normalize(join(ROOT, decodeURIComponent(pathname.slice(BASE.length))));
