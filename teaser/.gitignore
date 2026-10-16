@@ -2,3 +2,5 @@ node_modules/
 .cache/
 out/preview.mp4
 out/stills/
+out/*.log
+out/full*.png
