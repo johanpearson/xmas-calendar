@@ -3,7 +3,7 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame } from 'remotion';
 import { Caption } from './Caption';
 import { env, Glint, mulberry } from './fx';
 import { serif, serifUpright, titleFont } from './fonts';
-import { FPS, TEXT } from './timing';
+import { FPS, SHIFT, TEXT } from './timing';
 
 // ---------- scene 4: grid of little doors, none fully open ----------
 const PALETTE = [
@@ -208,17 +208,17 @@ const SantaHat: React.FC<{ rise: number; wob: number }> = ({ rise, wob }) => (
 
 export const Montage: React.FC = () => {
   const frame = useCurrentFrame(); // local 10 == 20.0 s
-  const s = (frame - 10) / FPS + 20; // absolute seconds
+  const s = (frame - 10) / FPS + 20 + SHIFT; // absolute seconds
   const wob = (frame / FPS) * 5;
   const hoRise = spring({ frame: frame - 10 - 3.6 * FPS, fps: FPS, config: { damping: 11, stiffness: 80 } });
-  const itemsFade = env(s, 19.9, 23.9, 0.27, 0.33); // fade items out for the hat
+  const itemsFade = env(s, 19.9 + SHIFT, 23.9 + SHIFT, 0.27, 0.33); // fade items out for the hat
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ opacity: itemsFade }}>
         {ITEMS.map(({ from, to, C }, i) => {
-          const o = env(s, from, to, 0.23, 0.27);
+          const o = env(s, from + SHIFT, to + SHIFT, 0.23, 0.27);
           if (o <= 0) return null;
-          const t = (s - from) / (to - from);
+          const t = (s - from - SHIFT) / (to - from);
           return (
             <AbsoluteFill key={i} style={{ opacity: o, transform: `scale(${0.94 + 0.12 * t})`, transformOrigin: '540px 930px' }}>
               <Disc size={i === 3 ? 760 : 620} />
@@ -227,7 +227,7 @@ export const Montage: React.FC = () => {
           );
         })}
       </AbsoluteFill>
-      <AbsoluteFill style={{ opacity: env(s, 23.5, 25.1, 0.2, 0.27) }}>
+      <AbsoluteFill style={{ opacity: env(s, 23.5 + SHIFT, 25.1 + SHIFT, 0.2, 0.27) }}>
         <SantaHat rise={hoRise} wob={wob} />
         <div
           style={{

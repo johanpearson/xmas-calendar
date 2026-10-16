@@ -2,11 +2,11 @@ import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame } from 'remotion';
 import { Caption } from './Caption';
 import { env, mulberry } from './fx';
-import { CANDLE_TIMES, FPS, TEXT } from './timing';
+import { CANDLE_TIMES, FPS, SCENES, TEXT } from './timing';
 
 export const Intro: React.FC = () => {
   const frame = useCurrentFrame();
-  return <Caption frame={frame} from={42} to={92} text={TEXT.intro} top={800} />;
+  return <Caption frame={frame} from={34} to={134} text={TEXT.intro} top={800} />;
 };
 
 // ---------- scene 2: house in snow ----------
@@ -99,7 +99,7 @@ const CX = [300, 460, 620, 780];
 
 export const Candles: React.FC = () => {
   const frame = useCurrentFrame(); // local frame 10 == 8.0 s
-  const lit = CANDLE_TIMES.map((t) => spring({ frame: frame - 10 - (t - 8) * FPS, fps: FPS, config: { damping: 14, stiffness: 110 } }));
+  const lit = CANDLE_TIMES.map((t) => spring({ frame: frame - 10 - (t - SCENES.candles[0]) * FPS, fps: FPS, config: { damping: 14, stiffness: 110 } }));
   const count = lit.reduce((a, b) => a + Math.min(1, b), 0);
   const zoom = 1 + 0.1 * interpolate(frame, [0, 170], [0, 1]);
   return (
@@ -145,7 +145,7 @@ export const Candles: React.FC = () => {
           })}
         </svg>
       </div>
-      <Caption frame={frame} from={26} to={150} text={TEXT.candles} />
+      <Caption frame={frame} from={26} to={150} text={TEXT.candles} size={80} />
     </AbsoluteFill>
   );
 };

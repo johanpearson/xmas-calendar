@@ -1,21 +1,23 @@
 // All times in seconds; keep in sync with the CUES in scripts/make-audio.mjs.
 export const FPS = 30;
-export const DURATION_S = 34;
+export const DURATION_S = 36;
 export const TOTAL_FRAMES = FPS * DURATION_S;
 export const f = (s: number) => Math.round(s * FPS);
 
+// The intro was lengthened by 2 s (manuscript 0-3 s -> 0-5 s); every later scene is shifted by SHIFT.
+export const SHIFT = 2;
 export const SCENES = {
-  intro: [0, 3],
-  house: [3, 8],
-  candles: [8, 13],
-  grid: [13, 20],
-  montage: [20, 25],
-  title: [25, 31],
-  date: [31, 34],
+  intro: [0, 3 + SHIFT],
+  house: [3 + SHIFT, 8 + SHIFT],
+  candles: [8 + SHIFT, 13 + SHIFT],
+  grid: [13 + SHIFT, 20 + SHIFT],
+  montage: [20 + SHIFT, 25 + SHIFT],
+  title: [25 + SHIFT, 31 + SHIFT],
+  date: [31 + SHIFT, 34 + SHIFT],
 } as const;
 
 // candle-lighting moments, seconds (audio bells land on the same instants)
-export const CANDLE_TIMES = [8.9, 9.9, 10.9, 11.9];
+export const CANDLE_TIMES = [8.9, 9.9, 10.9, 11.9].map((t) => t + SHIFT);
 
 // Texts (Swedish). Change here to re-word the film.
 export const TEXT = {
