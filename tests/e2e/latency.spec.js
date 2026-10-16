@@ -242,6 +242,27 @@ test('an opened door needs a double tap: one tap only shows a hint', async ({ pa
   await expect(page.locator('#card')).toBeVisible();
 });
 
+test('on a touch screen, one tap on an opened door does not open it, a double tap does', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 360, height: 780 } });
+  const page = await context.newPage();
+  await mockAudio(page);
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await page.addInitScript(() => localStorage.setItem('advent.opened', JSON.stringify(['d-2026-12-04'])));
+  await start(page, '2026-12-05');
+  const door = page.locator('.door[data-date="2026-12-04"]');
+  await door.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300); // past the grace after a scroll
+  await door.tap();
+  await expect(page.locator('#toast')).toHaveText('Tryck två gånger för att öppna luckan igen');
+  await page.waitForTimeout(300);
+  await expect(page.locator('#card')).toBeHidden();
+  await page.waitForTimeout(500); // the hint's tap no longer counts as a first tap
+  await door.tap();
+  await door.tap();
+  await expect(page.locator('#card')).toBeVisible();
+  await context.close();
+});
+
 test('Enter on an opened door opens it again at once', async ({ page }) => {
   await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
   await page.addInitScript(() => localStorage.setItem('advent.opened', JSON.stringify(['d-2026-12-04'])));
