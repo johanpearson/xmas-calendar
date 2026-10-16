@@ -1,6 +1,6 @@
 # Teaser för Adventskalendern 2026
 
-En 34 sekunder lång teaser-film (1080x1920, 30 fps) gjord med [Remotion](https://www.remotion.dev). Ligger på grenen `teaser` och ska aldrig mergas till `main` (GitHub Pages publicerar hela `main`). Allt finns i `teaser/`, appen är orörd.
+En 36 sekunder lång teaser-film (1080x1920, 30 fps) gjord med [Remotion](https://www.remotion.dev). Ligger på grenen `teaser` och ska aldrig mergas till `main` (GitHub Pages publicerar hela `main`). Allt finns i `teaser/`, appen är orörd.
 
 Färdig film: `out/teaser.mp4`.
 
@@ -10,36 +10,56 @@ Färdig film: `out/teaser.mp4`.
 cd teaser
 npm i
 npx remotion browser ensure          # hämtar Chrome Headless Shell (kräver remotion.media)
-npm run audio                         # skapar public/music.wav (deterministiskt)
+sudo apt-get install -y fluidsynth fluid-soundfont-gm   # en gång, för ljudet
+npm run audio                         # bygger public/music.wav (MIDI + FluidSynth)
 npm run studio                        # förhandsgranska i Remotion Studio
 npx remotion still Teaser out/stills/t.png --frame=330 --scale=0.5   # en bildruta
 npm run preview                       # snabb förhandsversion, halv upplösning
 npm run render                        # slutfilm: out/teaser.mp4 (h264, yuv420p, crf 24)
 ```
 
-Storleken justeras med `--crf` (högre = mindre fil). Nu ca 7,7 MB.
+Storleken justeras med `--crf` (högre = mindre fil). Se filstorleken i slutet av rapporten från ffprobe nedan.
 
 Teckensnitten (Cormorant Garamond och Mountains of Christmas, båda OFL) hämtas från `@remotion/google-fonts` av `scripts/fetch-fonts.mjs` och läggs i `public/fonts/` (redan incheckade). Kör `node scripts/fetch-fonts.mjs` bara om du byter typsnitt.
 
 ## Ändra texter och tider
 
 - Texter: `src/timing.ts`, objektet `TEXT`.
-- Scenernas start och slut: `SCENES` i `src/timing.ts`. Ändras längden, ändra även `DURATION_S` och `DURATION` i `scripts/make-audio.mjs`.
-- Ljudets händelser ligger i `CUES` överst i `scripts/make-audio.mjs` (tändningsklockor `CANDLE_TIMES` måste vara lika i `timing.ts`). Kör `npm run audio` efter ändring.
+- Scenernas start och slut: `SCENES` i `src/timing.ts`. Ändras längden, ändra även `DURATION_S` och `DURATION` i `scripts/make-music.mjs`.
+- Ljudet ligger i `scripts/make-music.mjs` (tiderna där är manusets och förskjuts med `SHIFT`, lika med `SHIFT` i `src/timing.ts`; tändningsklockorna ska stämma med `CANDLE_TIMES`). Kör `npm run audio` efter ändring.
 - Bilder: `src/scenes1.tsx` (intro, hus, ljusstake) och `src/scenes2.tsx` (luckor, montage, titel, datum). Gemensamma effekter (bokeh, snö, filmkorn, vinjett) i `src/fx.tsx`.
 
 ## Ljud
 
-`scripts/make-audio.mjs` syntetiserar `public/music.wav` (44,1 kHz, stereo, 16 bit) utan samplingar: speldosa med "Nu tändas tusen juleljus" från ca 3 s (noterna är hämtade från appens `js/melodies.js`, melodin är fri), mjukt bjällerlager, klockslag vid de fyra ljusen (8,9 till 11,9 s), glittersvep vid luckor och montage, klang vid titelkortet (25 s) med lång avklingning. 1 s fade in, 3 s fade out, topp -3,5 dBFS (verifierat även efter AAC-kodning).
+Ljudet är sampelbaserat. `scripts/make-music.mjs`:
+
+1. skriver ett General MIDI-arrangemang (egen liten MIDI-skrivare, inget npm-beroende) till `out/music.mid`,
+2. renderar det med `fluidsynth` och SoundFonten FluidR3_GM (`/usr/share/sounds/sf2/FluidR3_GM.sf2`, paketet `fluid-soundfont-gm`) till 44,1 kHz stereo med FluidSynths inbyggda klang och chorus,
+3. lägger på en mjuk toppbegränsare (så att klockklangen inte trycker ner resten), 1 s fade in, 3 s fade out och normaliserar toppen till -3,5 dBFS. Resultat: `public/music.wav` (36 s).
+
+Arrangemanget följer manuset (tiderna nedan är manusets, i filmen +2 s, se Antaganden):
+- 0-3 s: stråkpad och glitter av jingle bell (kanal 10, ton 83).
+- 3-8 s: speldosa (program 10) med "Nu tändas tusen juleljus", bara melodin.
+- 8-13 s: harpa (46) i arpeggion och en rörklocka (14) för varje ljus som tänds.
+- 13-20 s: celesta (8) och klockspel (9) med växande stråkar, pizzicato (45) som rytm, bell tree (ton 84) när luckorna lyser.
+- 20-25 s: staccato-medley av "Hej tomtegubbar" och "Jingle Bells" på klockspel och celesta, med jingle bell och bell tree.
+- 25-31 s: temat med stråkar, kör (52), harpa och celesta, en stor rörklockeklang när titelkortet visas och lång avklingning.
+- 31-34 s: ett sista mjukt ackord.
+
+Noterna kommer från appens `js/melodies.js` (alla tre melodierna är traditionella/fria). SoundFonten FluidR3_GM är MIT-licensierad (Frank Wen, se `/usr/share/doc/fluid-soundfont-gm/copyright`), så det renderade ljudet får användas fritt.
+
+`scripts/make-audio-synth.mjs` är det tidigare, kodsyntetiserade ljudet. Det finns kvar som reserv, används inte och skriver till `public/music-synth.wav` (inte `music.wav`).
 
 ## Antaganden
 
-- Längd 34 s (inom 30 till 36 s). Scenerna följer manuset sekund för sekund; scenövergångarna är mjuka övertoningar som överlappar något.
+- Introt ("Det finns en tid på året...") var för kort och är förlängt med 2 s (texten syns nu ca 3,4 s i stället för 1,7 s). Alla senare scener och alla ljudhändelser är förskjutna lika mycket (`SHIFT = 2`), så filmen är 36 s (gränsen i uppdraget). Scenerna följer annars manuset; scenövergångarna är mjuka övertoningar som överlappar något.
 - Titeln "Adventskalendern 2026", "Till Elin", "Från Johan" och "Första luckan öppnas 29 november." används ordagrant. Ingen annan text, inga namn, inga luckors innehåll (`content/` har inte lästs). Luckorna i filmen har bara en generisk stjärnornament, inga datum eller nummer.
 - Tomtens "Ho ho ho..." visas med en tomteluva och ett ansikte som tittar upp från nedre bildkanten (monterad i eget SVG, inte hämtad från appen).
 - Texter hålls minst 150 px från sidorna och 250 px från över- och underkant.
-- Melodin spelas bara första två verserna (till ca 24,6 s) i tempo 86 bpm, så att den hinner klinga ut före titelklangen vid 25 s.
+- Melodin är uppdelad över filmen: första frasen på speldosa (3-8 s), nästa på celesta och klockspel (13-20 s) och temat som öppnar titelkortet (25 s). "Hej tomtegubbar" och "Jingle Bells" spelas bara som korta utdrag i montaget. Tempot är lugnt (96 till 108 bpm), snabbare (168 bpm) i montaget.
+- Pad, harpa och körer är mitt eget arrangemang (enkla F-dur-ackord), skrivet utan att kunna lyssna på resultatet i miljön; nivåerna är mätta (RMS per tvåsekundersfönster och topp), inte bedömda med öronen. Justera velocities och `level` i `make-music.mjs` efter gehör.
 - Typsnitten laddas från lokala filer och inte direkt från Google vid rendering, eftersom Chrome i molnmiljön inte litar på proxyns certifikat för fonts.gstatic.com. Filerna kommer från samma källa som `@remotion/google-fonts` pekar på.
+- Ljudbygget kräver `fluidsynth` och `fluid-soundfont-gm` (apt). Den renderade `public/music.wav` är incheckad, så ljudet behöver inte byggas om för att rendera filmen.
 - Rendering i molnmiljön kräver `NODE_USE_ENV_PROXY=1` och `NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` för att Node ska använda proxyn (bara relevant där).
 - Filen är en liten (ca 8 MB) binär incheckad i repot enligt uppdraget. `out/preview.mp4`, stillbilder och loggar ignoreras av git.
 - Remotion har egen licens (gratis för privat bruk och små team, se remotion.dev/license).
