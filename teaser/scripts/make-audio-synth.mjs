@@ -1,4 +1,4 @@
-// Synthesizes teaser/public/music.wav (44.1 kHz, 16-bit stereo) with no samples or external deps.
+// LEGACY RESERVE (not used by the film): synthesizes public/music-synth.wav (44.1 kHz, 16-bit stereo) from pure code, no samples.
 // Cue times (seconds) are exported in CUES below and mirrored in src/timing.ts.
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -175,7 +175,7 @@ for (let i = 0; i < N; i++) {
   pcm.writeInt16LE(Math.round(L[i] * k * 32767), 44 + i * 4);
   pcm.writeInt16LE(Math.round(R[i] * k * 32767), 46 + i * 4);
 }
-const out = resolve(dirname(fileURLToPath(import.meta.url)), '../public/music.wav');
+const out = resolve(dirname(fileURLToPath(import.meta.url)), '../public/music-synth.wav');
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, pcm);
 console.log(`wrote ${out}: ${DURATION}s, peak ${(20 * Math.log10(target)).toFixed(1)} dBFS (raw peak ${peak.toFixed(2)})`);
