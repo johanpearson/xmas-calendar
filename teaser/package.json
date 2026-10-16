@@ -1,0 +1,23 @@
+{
+  "name": "advent-teaser",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "audio": "node scripts/make-audio.mjs",
+    "studio": "remotion studio",
+    "render": "remotion render Teaser out/teaser.mp4 --codec=h264 --crf=24 --pixel-format=yuv420p",
+    "preview": "remotion render Teaser out/preview.mp4 --scale=0.5 --codec=h264 --crf=30"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.536",
+    "@remotion/google-fonts": "^4.0.536",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.536"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}

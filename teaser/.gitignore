@@ -1,0 +1,4 @@
+node_modules/
+.cache/
+out/preview.mp4
+out/stills/
