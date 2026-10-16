@@ -64,7 +64,7 @@ test('2026-12-14: a fine forecast for the walk day gives the "good" lines, with 
   await expect(credit(page)).toBeVisible();
   await expect(credit(page)).toHaveText('Väderdata: Open-Meteo.com');
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Det ser ut att bli fint ute/);
+  await expect(bubbleText(page)).toHaveText(/Det ser ut att bli fint väder i helgen/);
 
   // One request: Höör's coordinates for the walk day (the scene's last forecast date) and
   // the agreed variables, nothing else. No cookies, no referrer.

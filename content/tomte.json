@@ -134,10 +134,10 @@
       ],
       "weatherVariants": {
         "good": [
-          "Det ser ut att bli fint ute. Gör er redo för en promenad, men jag säger inte mer än så."
+          "Det ser ut att bli fint väder i helgen. Mer än så säger jag inte."
         ],
         "bad": [
-          "Det ser ut att bli blött eller blåsigt. Det kan bli en mysig helg inomhus, men jag återkommer."
+          "Det ser ut att bli blött eller blåsigt i helgen. Mer än så säger jag inte."
         ],
         "unknown": [
           "Jag hann inte titta på vädret. Jag återkommer på fredag."
