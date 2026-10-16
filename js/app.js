@@ -73,6 +73,10 @@ import {
 
 const CONTENT_URL = './content/days.json';
 const TOAST_MS = 2800;
+// A finger that moves further than this while down is scrolling, not tapping.
+const TAP_SLOP_PX = 10;
+// A touch this soon after the page scrolled stops the scroll; it is not a tap on a door.
+const SCROLL_GRACE_MS = 150;
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -106,6 +110,7 @@ const state = {
   press: null, // the door opened by the latest pointerdown (see cancelPress)
   pointerDoor: null, // that door, until its click (which is swallowed) has come
   pointerDoorTimer: null,
+  lastScroll: -Infinity, // performance.now() of the latest scroll event
   midnightTimer: null,
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
@@ -315,15 +320,56 @@ function showToast(message) {
 // A door opens on pointerdown, not on click: the click only comes when the finger lifts
 // (and on a phone often later still). The click that follows is swallowed; a click
 // without a pointer before it (Enter or Space on a focused door) opens the door as before.
+// The card itself waits until the finger is lifted (see waitForRelease), so a touch that
+// turns into a scroll never ends with an open card.
 function onDoorPointerDown(e, id) {
   if (!e.isPrimary || e.button !== 0) return;
-  notePress(state.doors.get(id)?.day.date ?? id, e.timeStamp, { audio: audioState() });
-  state.pointerDoor = id;
+  state.pointerDoor = id; // its click is swallowed either way
   clearTimeout(state.pointerDoorTimer);
   state.pointerDoorTimer = setTimeout(() => (state.pointerDoor = null), 1500);
-  const press = { id, cancelled: false, shown: false, toast: false, theme: false, sounds: [], controller: new AbortController() };
+  if (e.pointerType === 'touch' && performance.now() - state.lastScroll < SCROLL_GRACE_MS) return; // stopping a scroll
+  notePress(state.doors.get(id)?.day.date ?? id, e.timeStamp, { audio: audioState() });
+  const press = {
+    id,
+    pointerId: e.pointerId,
+    x: e.clientX,
+    y: e.clientY,
+    released: false,
+    cancelled: false,
+    shown: false,
+    toast: false,
+    theme: false,
+    sounds: [],
+    controller: new AbortController(),
+  };
+  press.release = new Promise((resolve) => (press.onRelease = resolve));
   state.press = press;
   openDoor(id, press);
+}
+
+// Follows the finger of the latest press: lifted, it lets the card come; moved too far
+// (or the page scrolled under it), the press is cancelled.
+function trackPresses() {
+  const release = (e) => {
+    const { press } = state;
+    if (!press || press.released || e.pointerId !== press.pointerId) return;
+    press.released = true;
+    press.onRelease();
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', (e) => {
+    if (state.press && e.pointerId === state.press.pointerId) cancelPress(state.press.id);
+  });
+  window.addEventListener('pointermove', (e) => {
+    const { press } = state;
+    if (!press || press.released || e.pointerId !== press.pointerId) return;
+    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > TAP_SLOP_PX) cancelPress(press.id);
+  });
+  window.addEventListener('scroll', () => {
+    state.lastScroll = performance.now();
+    const { press } = state;
+    if (press && !press.released) cancelPress(press.id);
+  }, { passive: true });
 }
 
 function onDoorClick(e, id) {
@@ -341,6 +387,8 @@ function cancelPress(id) {
   const { press } = state;
   if (!press || press.id !== id || press.shown || press.cancelled) return;
   press.cancelled = true;
+  press.released = true;
+  press.onRelease();
   press.controller.abort();
   for (const sound of press.sounds) sound.stop();
   if (press.theme) stopThemeSong();
@@ -406,6 +454,7 @@ async function runOpening(day, btn, { animation = null, reveal = null, haptics =
       if (press) press.theme = Boolean(day.music);
     }, 0);
     const [result, variant] = await Promise.all([opening ?? { skipped: false }, waitForForecast(forecast)]);
+    if (press && !press.released) await press.release; // a tap, not the start of a scroll
     if (press?.cancelled || result.aborted) return;
     if (press) press.shown = true;
     if (mark) {
@@ -758,6 +807,7 @@ async function init() {
   handleDevParam();
   registerServiceWorker();
   mountScene();
+  trackPresses();
   // Sound is a bonus: audio.js never throws, and stays silent until the first tap.
   initAudio({ getSoundOn, setSoundOn, getMusicChoice, setMusicChoice, today: currentToday });
   const controls = audioControls();

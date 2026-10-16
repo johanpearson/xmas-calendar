@@ -207,6 +207,44 @@ test('a tap that becomes a scroll (pointercancel) does not open the door', async
   expect(await page.evaluate(() => localStorage.getItem('advent.opened'))).toBeNull();
 });
 
+test('an opened door touched at the start of a scroll does not show its card', async ({ page }) => {
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await page.addInitScript(() => localStorage.setItem('advent.opened', JSON.stringify(['d-2026-12-04'])));
+  await start(page, '2026-12-05');
+  const door = page.locator('.door[data-date="2026-12-04"]');
+  await expect(door).toHaveClass(/is-opened/);
+  // Down, a few frames (the card would come in the next one), then the finger moves on.
+  await door.evaluate(async (el) => {
+    const r = el.getBoundingClientRect();
+    const init = { bubbles: true, cancelable: true, pointerId: 9, pointerType: 'touch', isPrimary: true, button: 0, clientX: r.x + 10, clientY: r.y + 10 };
+    el.dispatchEvent(new PointerEvent('pointerdown', init));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    el.dispatchEvent(new PointerEvent('pointermove', { ...init, clientY: init.clientY - 30 }));
+    el.dispatchEvent(new PointerEvent('pointerup', { ...init, clientY: init.clientY - 30 }));
+  });
+  await page.waitForTimeout(500);
+  await expect(page.locator('#card')).toBeHidden();
+  // A plain tap still opens it.
+  await door.click();
+  await expect(page.locator('#card')).toBeVisible();
+});
+
+test('a touch that stops a scroll does not open a door', async ({ page }) => {
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }));
+  await start(page, '2026-12-05');
+  await page.locator('.door[data-date="2026-12-05"]').evaluate((el) => {
+    window.dispatchEvent(new Event('scroll'));
+    const init = { bubbles: true, cancelable: true, pointerId: 11, pointerType: 'touch', isPrimary: true, button: 0 };
+    el.dispatchEvent(new PointerEvent('pointerdown', init));
+    el.dispatchEvent(new PointerEvent('pointerup', init));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+  });
+  await page.waitForTimeout(1600);
+  await expect(page.locator('#card')).toBeHidden();
+  await expect(page.locator('.fx')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('advent.opened'))).toBeNull();
+});
+
 // The door opens on pointerdown, so a finger lifted after the overlay is drawn sends the
 // tap's click to the overlay. That click must not skip the animation; a new tap does.
 test('the click of the opening tap does not skip the animation, a second tap does', async ({ browser }) => {
