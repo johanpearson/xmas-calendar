@@ -16,7 +16,7 @@ import { noteSfx } from './latency.js';
 export const HO_GAIN = 0.28;
 // Relative to this file (js/), so the site works under /<repo>/ on GitHub Pages.
 export const HO_URL = new URL('../audio/sfx/hohoho.mp3', import.meta.url).href;
-// How long after Tomten pops up a recording that was still loading may start (ms).
+// How long Tomten may wait for a recording that is still loading before it is skipped (ms).
 export const HO_LATE_MS = 1000;
 
 // --- Sync with the animations: adjust here (milestone 14) ---
@@ -389,6 +389,7 @@ const engine = {
   visible: true,
   ho: 'idle', // the recording: 'idle' | 'loading' | 'ready' | 'failed'
   hoHandle: null, // the "ho ho ho" playing, for stop()
+  hoWaitSince: null, // when a Tomten started waiting for the recording to load
   tomteSince: null, // performance.now() when Tomten popped up (and is still on screen)
   pendingJingle: false, // Tomten appeared before the first tap: play his jingle on it
   jingle: null, // { gain }
@@ -504,7 +505,7 @@ function flushPending() {
   playJingle();
   // The first tap of a new visit is Tomten's intro: the recording is still loading, so it
   // follows (HO_LATE_MS) once it is ready.
-  if (engine.tomteSince !== null && performance.now() - engine.tomteSince < HO_LATE_MS) tomteHo();
+  if (engine.tomteSince !== null) tomteHo();
 }
 
 // Allows audio after a user gesture. Does nothing while the sound is off, so a muted
@@ -1505,15 +1506,17 @@ function loadHo() {
       engine.ho = 'ready';
     } else engine.ho = 'failed';
     // Tomten popped up while it was loading: play what we have now (the recording, or the synthesis).
-    const since = engine.tomteSince;
-    if (since !== null && performance.now() - since < HO_LATE_MS) safely(() => playHo());
+    const waited = engine.hoWaitSince;
+    engine.hoWaitSince = null;
+    if (waited !== null && engine.tomteSince !== null && performance.now() - waited < HO_LATE_MS) safely(() => playHo());
   });
 }
 
 // Tomten's "ho ho ho" as he pops up. While the recording is still loading nothing is
 // played (the synthesis would double up with the recording): loadHo plays it when done.
 function tomteHo() {
-  if (engine.ho !== 'loading') playHo();
+  if (engine.ho === 'loading') engine.hoWaitSince = performance.now();
+  else playHo();
 }
 
 // Three low, round "ho"s (a sawtooth through a low-pass, a puff of breath on each), at the
@@ -1583,6 +1586,7 @@ export function tomteArrives() {
 export function tomteLeaves() {
   safely(() => {
     engine.tomteSince = null;
+    engine.hoWaitSince = null;
     engine.hoHandle?.stop(0.15);
     engine.pendingJingle = false;
     stopJingle();
