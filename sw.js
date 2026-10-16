@@ -4,7 +4,7 @@
 // manifest). Pure content changes in content/days.json or content/tomte.json need no
 // bump: those files are served stale-while-revalidate, so edits reach the phone on the
 // next start.
-const CACHE_VERSION = 'v17';
+const CACHE_VERSION = 'v18';
 
 const SHELL_CACHE = `advent-shell-${CACHE_VERSION}`;
 // Not versioned, so the last known content survives a shell update.
@@ -42,6 +42,10 @@ const SHELL_FILES = [
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon-180.png',
 ];
+// Johan's own "ho ho ho" (milestone 15). Cached on its own, outside addAll, so that a missing
+// file (or one that cannot be fetched) never makes the installation fail: the app then
+// plays its synthesised "ho" instead.
+const OPTIONAL_FILES = ['audio/sfx/hohoho.mp3'];
 const CONTENT_FILES = ['content/days.json', 'content/tomte.json'];
 
 const scoped = (path) => new URL(path, self.registration.scope).href;
@@ -52,10 +56,22 @@ async function precache(cacheName, paths) {
   await cache.addAll(paths.map((p) => new Request(scoped(p), { cache: 'reload' })));
 }
 
+async function precacheOptional(cacheName, paths) {
+  const cache = await caches.open(cacheName);
+  for (const path of paths) {
+    try {
+      await cache.add(new Request(scoped(path), { cache: 'reload' }));
+    } catch {
+      // Missing or offline: skipped. cacheFirst caches it on first use when it does exist.
+    }
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       await precache(SHELL_CACHE, SHELL_FILES);
+      await precacheOptional(SHELL_CACHE, OPTIONAL_FILES);
       // The first page load fetches the content before this worker controls the page,
       // so cache it here too, otherwise the app would not start offline.
       await precache(CONTENT_CACHE, CONTENT_FILES);

@@ -69,6 +69,11 @@ inget väntar på en pausad, reserven (direkt syntes) när bufferten inte är kl
 med enhetens utgångslatens, ordningen för förrendering och dev-loggen (se "Ljudfördröjning
 och synk").
 
+`tests/hoho.test.js` testar tomtens egen inspelning (se "Tomtens ho ho ho"): valet mellan
+fil och syntes, reserven när filen saknas, ger fel eller inte kan avkodas (utan felmeddelande),
+konstanterna, att service workern cachar filen utanför `addAll`, och med `ffprobe`
+att `audio/sfx/hohoho.mp3` är mono, MP3, högst 3 s, under 60 kB och inte klipper.
+
 ### E2e (Playwright)
 
 Smoke-tester i `tests/e2e/` som kör appen i Chromium under `/xmas-calendar/`, med låst
@@ -108,6 +113,10 @@ hand, och dev-panelens **Prognos** styr plan B. Den kontrollerar också luckorna
 långsamt Open-Meteo-svar (5 s) vid 2026-12-20 håller varken upp ljudet eller animationen.
 Enter öppnar fortfarande en lucka, ett tryck som blir en scroll (`pointercancel`) öppnar
 inget, och dev-panelens "Ljudlatens" visar trycken.
+`tests/e2e/hoho.spec.js` mockar `AudioContext` (med `decodeAudioData`): inspelningen hämtas först
+efter första trycket och spelas när tomten dyker upp, syntesen spelas när filen saknas (404)
+eller inte går att avkoda, utan fel i konsolen, dev-panelens två knappar fungerar, och sidan
+laddar offline och tomten har ett "ho" även när servern inte har filen alls.
 De andra e2e-testerna markerar alla tomtescener som sedda (`tests/e2e/helpers.js`), så att
 tomten inte står i vägen, och svarar på alla väderanrop med ett fel, så att inget test
 når riktiga Open-Meteo.
@@ -149,7 +158,9 @@ Dev-läget låter dig testa alla dagar utan att vänta på rätt datum.
     det fungerar även på låsta luckor.
   - **Ljud och musik**: **Spela alla effekter i följd** spelar effekterna en i taget
     (namnet visas i en toast), **Testa jingle** spelar tomtens jingel och **Stoppa melodi**
-    stoppar en melodi. Under **Melodier** och **Effekter** har varje melodi och effekt
+    stoppar en melodi. **Spela ho ho ho (fil)** och **Spela ho ho ho (syntes)** spelar
+    tomtens ho ho ho från inspelningen respektive reservsyntesen (se "Tomtens ho ho ho").
+    Under **Melodier** och **Effekter** har varje melodi och effekt
     en **Spela**-knapp och en rad om vilka luckor som använder den. Ljudknappen måste vara på.
     Musikmenyns Blandat följer det simulerade datumet (Santa Lucia från 13 december).
   - **Dagsscener**: **Visa dagens huvudskärmsdekor** visar huvudskärmens scen för valt
@@ -463,7 +474,7 @@ texten) vid 360 px till `docs/screenshots/planb/`.
 
 Allt ljud skapas i webbläsaren med Web Audio API i `js/audio.js` (oscillatorer, brus,
 filter och envelopes) och melodierna är noter i `js/melodies.js`. Det finns inga
-ljudfiler och inga beroenden.
+beroenden. Enda ljudfilen är tomtens "ho ho ho", en egen inspelning (se "Tomtens ho ho ho").
 
 - **Ljudknappen** (högtalaren under rubriken och i tomtens pratbubbla) slår på och av allt
   ljud. Standard: på. Av betyder helt tyst, även musik och temalåtar.
@@ -572,6 +583,60 @@ processor och ett långsamt Open-Meteo):
 npm install
 npm run latency   # skriver en tabell i Markdown
 ```
+
+### Tomtens ho ho ho
+
+Tomtens "ho ho ho" är en egen inspelning, Johans röst: `audio/sfx/hohoho.mp3`. Den spelas
+varje gång tomten dyker upp (intro, välkomst, alla scener och i dev-panelen), tillsammans
+med släden. Jinglen kommer som förut 1,4 s senare, och inget annat ljud är ändrat.
+
+- **Laddning.** Filen hämtas och avkodas (`fetch` till `AudioBuffer`) i ett viloläge efter
+  första trycket i appen, som övriga effekter, och spelas sedan som en
+  `AudioBufferSourceNode` med lookahead på ljudklockan. Den går genom effektbussen, så
+  ljudknappen, master gain och att bakgrundsmusiken pausas gäller som för alla ljud.
+  Ligger tomtens intro före första trycket väntar ljudet på det (högst en sekund
+  på själva laddningen).
+- **Nivå.** `HO_GAIN` överst i `js/audio.js` (1 = filen som den är). Värdet 0,28 gör att
+  inspelningen ligger i nivå med de andra effekterna (mätt: effekterna ligger på -18 till
+  -33 dB RMS, medianen runt -27, "ho" på ungefär -25 dB RMS). Hörs den för starkt eller
+  svagt, ändra `HO_GAIN`.
+- **Synk.** Raden `ho` i `SFX_OFFSETS_MS` (ms relativt tomtens entré, nu 230) lägger första
+  "ho" på första "Ho!" som flyter upp. Se "Ljudfördröjning och synk".
+- **Reserv.** Saknas filen, går hämtningen fel (offline utan cache) eller kan den inte
+  avkodas, spelas i stället en enkel syntes (`hoSynth` i `js/audio.js`: tre låga toner).
+  Inget felmeddelande visas och inget loggas som fel; sidan fungerar som vanligt. Dev-panelen
+  (**Ljud och musik**) har **Spela ho ho ho (fil)** och **Spela ho ho ho (syntes)**.
+- **Byta ut inspelningen.** Lägg den nya råfilen som `audio/raw/hohoho.mp3` och kör
+  bearbetningen igen (kräver `ffmpeg`, på Debian och Ubuntu `sudo apt-get install -y ffmpeg`):
+
+  ```sh
+  scripts/process-hohoho.sh                 # audio/raw/hohoho.mp3 -> audio/sfx/hohoho.mp3
+  scripts/process-hohoho.sh min-fil.m4a     # annan råfil (valfritt format)
+  git rm audio/raw/hohoho.mp3               # råfilen ska inte ligga kvar i repot
+  ```
+
+  Bumpa sedan `CACHE_VERSION` i `sw.js`, annars behåller telefonen den gamla filen.
+  Kontrollera gärna med `node --test tests/hoho.test.js` (mono, MP3, högst 3 s, under 60 kB
+  och inga klipp).
+- **Vad skriptet gör** (ffmpeg-kommandona går att köra för hand):
+
+  ```sh
+  # 1. Mono, 44,1 kHz, högpass 80 Hz, tystnad bort i början och (areverse-tricket) i slutet
+  T="silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.02"
+  ffmpeg -i audio/raw/hohoho.mp3 \
+    -af "aformat=channel_layouts=mono,aresample=44100,highpass=f=80,$T,areverse,$T,areverse" trimmed.wav
+
+  # 2. Första paus över 0,4 s efter att ljudet börjat (silence_start): klipp där, högst 3 s
+  ffmpeg -i trimmed.wav -af silencedetect=n=-40dB:d=0.4 -f null - 2>&1 | grep silence_start
+  ffmpeg -i trimmed.wav -t <sekunder> cut.wav
+
+  # 3. Toppen till -3 dBFS: mät max_volume och justera med volume (loudnorm är opålitligt på korta klipp)
+  ffmpeg -i cut.wav -af volumedetect -f null - 2>&1 | grep max_volume
+  ffmpeg -i cut.wav -af "volume=<-3 minus max_volume>dB,afade=t=in:d=0.01,afade=t=out:st=<längd-0.15>:d=0.15" \
+    -ac 1 -ar 44100 -c:a libmp3lame -b:a 96k audio/sfx/hohoho.mp3
+  ```
+- **Service workern** cachar filen med ett eget `cache.add` i `try/catch` (`OPTIONAL_FILES`
+  i `sw.js`), inte i `addAll`, så att installationen inte kraschar om filen saknas.
 
 ### Melodier
 
@@ -706,6 +771,38 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Eget ho ho ho (milstolpe 15)
+
+- **Det fanns inget "ho" att falla tillbaka på.** Milstolpe 11 tog bort syntesen av `ho`
+  ("gick inte att få att låta rätt"), och tomtens entré var bara släde och jingel. Därför
+  har "ho" ingen plats i `EFFECTS` (och inte i listorna i dev-panelen eller förrenderingen).
+  Reserven är en liten ny syntes, `hoSynth`, som bara hörs när filen saknas eller inte går
+  att avkoda. Vill du hellre ha tystnad som reserv: ta bort `hoSynth` och låt `playHo`
+  returnera `null` utan fil.
+- **"Där tomtens ho spelas idag"** blev varje gång tomten dyker upp, alltså intro, välkomst,
+  alla scener och entrén i dev-panelen: de går alla genom `tomteArrives()`.
+- **Tidpunkt.** "Ho" börjar tillsammans med släden, vid tomtens entré, och är klart (1,4 s)
+  när jinglen börjar efter `JINGLE_DELAY` (1,4 s). Jinglen och släden är orörda.
+- **Introt före första trycket.** Filen hämtas först efter första trycket (som önskat), så
+  för en helt ny besökare spelas "ho" strax efter första "Nästa", när filen är inläst och
+  högst en sekund efter trycket; blir det längre hoppas det över.
+- **Klippning.** Råfilen var 2,37 s och innehöll tre "ho" med pauser på 0,11, 0,19 och
+  0,35 s, alla under 0,4 s. Ingenting klipptes alltså efter en paus; bara tystnad i början
+  (0,5 s) och slutet (0,35 s) togs bort. Skriptet klipper om en framtida inspelning har en
+  längre paus eller är längre än 3 s.
+- **Filstorlek.** 17,6 kB, under de förväntade 20 till 40 kB, eftersom klippet blev
+  1,44 s efter att tystnaden tagits bort (96 kbit/s ger ungefär 12 kB per sekund).
+- **Toppen** hamnar på -3,3 dBFS efter MP3-kodningen (gainen sattes för -3,0 dBFS före
+  kodning). Inget klipper.
+- **Nivå.** Matchad mot de andra effekterna på RMS (inte på topp), eftersom en röst med
+  hög topp annars blir mycket starkare än korta klingande effekter. Mätt i Chromium med
+  `OfflineAudioContext`. Justera med `HO_GAIN`.
+- **Cache.** Filen ligger i skalcachen (versionerad). Byter du inspelningen måste
+  `CACHE_VERSION` bumpas. Saknades filen vid installationen hämtas den och cachas vid
+  första användning.
+- **Råfilen** ligger kvar i historiken men inte i trädet; `audio/raw/` finns kvar med en
+  `.gitkeep` så att katalogen finns för nästa inspelning.
 
 ### Ljudfördröjning (milstolpe 14)
 
