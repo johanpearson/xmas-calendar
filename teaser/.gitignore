@@ -4,3 +4,5 @@ out/preview.mp4
 out/stills/
 out/*.log
 out/full*.png
+out/music-raw.wav
+out/music.mid
