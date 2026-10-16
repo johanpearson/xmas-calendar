@@ -229,14 +229,14 @@ test('dev: "Prognos" forces the weather lines, is saved and also used by "Spela 
   await page.getByRole('button', { name: 'Öppna dev-panelen' }).click();
 
   await playWeather('Bra');
-  await expect(bubbleText(page)).toHaveText(/Det blir fint/);
+  await expect(bubbleText(page)).toHaveText(/lovat att uppföra sig/);
   await expect(tomte(page).locator('.tomte-credit')).toHaveText('Väderdata: Open-Meteo.com');
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
   await playWeather('Dålig');
-  await expect(bubbleText(page)).toHaveText(/Plan B gäller/);
+  await expect(bubbleText(page)).toHaveText(/De skyller på vinden/);
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
   await playWeather('Okänd');
-  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+  await expect(bubbleText(page)).toHaveText(/Molnen svarar inte i telefon/);
   await tomte(page).getByRole('button', { name: 'Stäng' }).click();
   expect(requests).toEqual([]); // forced variants never ask Open-Meteo
 
@@ -249,6 +249,6 @@ test('dev: "Prognos" forces the weather lines, is saved and also used by "Spela 
   await panel.getByLabel('Prognos').selectOption({ label: 'Riktig' });
   await panel.getByRole('button', { name: 'Spela upp v3-vaderrapport' }).click();
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+  await expect(bubbleText(page)).toHaveText(/Molnen svarar inte i telefon/);
   expect(requests).toHaveLength(1);
 });

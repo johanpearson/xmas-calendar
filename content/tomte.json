@@ -157,14 +157,16 @@
       ],
       "weatherVariants": {
         "good": [
-          "Det blir fint. Plan A gäller!",
-          "Klä på er ordentligt!"
+          "Jag har pratat med molnen, och de har lovat att uppföra sig i helgen.",
+          "Lita på mig, jag har koll."
         ],
         "bad": [
-          "Det blir inte väder för en promenad. Plan B gäller!"
+          "Jag har pratat med molnen. De skyller på vinden, och vinden skyller på molnen.",
+          "Det ser blött eller blåsigt ut i helgen, men vi tomtar är vana."
         ],
         "unknown": [
-          "Jag får inte tag i någon prognos. Titta ut genom fönstret på söndag morgon och bestäm själva."
+          "Molnen svarar inte i telefon, så jag har ingen prognos åt er.",
+          "Kika ut genom fönstret i helgen, så blir ni lika kloka som jag."
         ]
       }
     },
@@ -173,10 +175,29 @@
       "from": "2026-12-21",
       "until": "2026-12-23",
       "lines": [
-        "Ho ho ho, god måndag!",
-        "Idag är det årets mörkaste dag, så tänd extra många ljus.",
-        "Uppesittarkväll på onsdag och julafton på torsdag. Det är inte långt kvar nu.",
-        "Jag har mycket att göra på verkstaden, men jag tittar förbi igen på julafton."
+        "Ho ho ho! Nu börjar det närma sig på riktigt, julafton är på torsdag.",
+        "Verkstaden går på högvarv och Rudolf har fått extra renlav. Jag har knappt sovit.",
+        "Jag sammanställer årets snällhetslista, och du ligger bra till, Elin."
+      ],
+      "questions": [
+        {
+          "id": "betyg",
+          "text": "Jag behöver din hjälp. Vilket betyg tycker du att Johan ska få i år?",
+          "options": [
+            {
+              "label": "Mycket väl godkänt",
+              "reply": "Hm, jag noterar det. Du är generös."
+            },
+            {
+              "label": "Godkänt",
+              "reply": "Rättvist. Han har ändå försökt."
+            },
+            {
+              "label": "Det avgör jag på julafton",
+              "reply": "Smart. Det är alltid bäst att vänta tills man sett klappen."
+            }
+          ]
+        }
       ]
     },
     {
@@ -185,8 +206,9 @@
       "until": "2026-12-31",
       "lines": [
         "God jul, Elin! Ho ho ho!",
-        "Nu måste jag iväg med släden, men sista luckan väntar på dig.",
-        "Hälsa Saga och Johan från mig."
+        "Nu är jag på väg med släden. Rudolf lyser så mycket att jag knappt behöver lyktor.",
+        "Jag vill bara säga att du har varit riktigt snäll i år. På riktigt.",
+        "Hälsa Saga, katterna och Johan från mig."
       ]
     }
   ]

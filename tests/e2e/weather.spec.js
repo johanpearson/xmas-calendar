@@ -91,7 +91,7 @@ test('2026-12-18: a rainy forecast gives the "bad" lines', async ({ page }) => {
 
   await expect(bubbleText(page)).toHaveText('Fredag, Elin! Nu har jag koll på helgens väder.');
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Plan B gäller/);
+  await expect(bubbleText(page)).toHaveText(/De skyller på vinden/);
   await expect(credit(page)).toBeVisible();
 });
 
@@ -104,7 +104,7 @@ test('an error from Open-Meteo (date out of range) gives "unknown" without any e
   await start(page, '2026-12-18');
 
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+  await expect(bubbleText(page)).toHaveText(/Molnen svarar inte i telefon/);
   await expect(page.getByText(/out of allowed range|error/i)).toHaveCount(0);
 });
 
@@ -115,7 +115,7 @@ test('no answer within 4 seconds gives "unknown"', async ({ page }) => {
 
   await expect(bubbleText(page)).toHaveText('Fredag, Elin! Nu har jag koll på helgens väder.', { timeout: 8000 });
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Jag får inte tag i någon prognos/);
+  await expect(bubbleText(page)).toHaveText(/Molnen svarar inte i telefon/);
 });
 
 test('scenes without weather never ask for a forecast or show the attribution', async ({ page }) => {
@@ -143,7 +143,7 @@ test('the forecast is cached in localStorage, not by the service worker', async 
   await page.clock.setFixedTime(at('2026-12-18'));
   await page.reload();
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Plan B gäller/);
+  await expect(bubbleText(page)).toHaveText(/De skyller på vinden/);
   expect(requests).toHaveLength(1);
 
   const cache = await page.evaluate(() => JSON.parse(localStorage.getItem('advent.weather.cache')));
@@ -163,7 +163,7 @@ test('the forecast is cached in localStorage, not by the service worker', async 
   await page.evaluate(() => localStorage.removeItem('advent.tomte.scenesSeen'));
   await page.reload();
   await tomte(page).getByRole('button', { name: 'Nästa' }).click();
-  await expect(bubbleText(page)).toHaveText(/Plan B gäller/);
+  await expect(bubbleText(page)).toHaveText(/De skyller på vinden/);
 });
 
 test('dev: the panel shows the last fetched values and when', async ({ page }) => {
