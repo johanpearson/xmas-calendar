@@ -77,6 +77,8 @@ const TOAST_MS = 2800;
 const TAP_SLOP_PX = 10;
 // A touch this soon after the page scrolled stops the scroll; it is not a tap on a door.
 const SCROLL_GRACE_MS = 150;
+// An opened door opens again on a double tap: the second tap within this long of the first.
+const DOUBLE_TAP_MS = 400;
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -111,6 +113,8 @@ const state = {
   pointerDoor: null, // that door, until its click (which is swallowed) has come
   pointerDoorTimer: null,
   lastScroll: -Infinity, // performance.now() of the latest scroll event
+  lastTap: null, // { id, at }: the first tap on an opened door, waiting for its second
+  tapHintTimer: null,
   midnightTimer: null,
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
@@ -420,6 +424,7 @@ function openDoor(id, press = null) {
   }
 
   const firstTime = !btn.classList.contains('is-opened');
+  if (!firstTime && press && !isSecondTap(id, press)) return;
   const animation = animationFor(day);
   // Reduced motion skips the animation but not its sound. An opened door gets a soft ding.
   const sounds = firstTime ? playForDoor(day, animation) : [playEffect('chime')].filter(Boolean);
@@ -430,6 +435,32 @@ function openDoor(id, press = null) {
     mark: true,
     press,
   });
+}
+
+// An opened door needs a double tap (a press with the pointer; Enter or Space opens it at
+// once), so a touch on the way to a scroll never opens it again. A first tap that ends as
+// a tap, with no second one, shows a hint.
+function isSecondTap(id, press) {
+  const now = performance.now();
+  const prev = state.lastTap;
+  clearTimeout(state.tapHintTimer);
+  if (prev && prev.id === id && now - prev.at < DOUBLE_TAP_MS) {
+    state.lastTap = null;
+    return true;
+  }
+  const tap = { id, at: now };
+  state.lastTap = tap;
+  press.release.then(() => {
+    if (state.lastTap !== tap) return;
+    if (press.cancelled) {
+      state.lastTap = null; // a scroll, not a first tap
+      return;
+    }
+    state.tapHintTimer = setTimeout(() => {
+      if (state.lastTap === tap) showToast('Tryck två gånger för att öppna luckan igen');
+    }, Math.max(0, tap.at + DOUBLE_TAP_MS - performance.now()));
+  });
+  return false;
 }
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));

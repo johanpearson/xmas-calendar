@@ -213,6 +213,7 @@ body {
   background: none;
   color: inherit;
   font: inherit;
+  touch-action: manipulation; /* no double-tap zoom: a double tap opens an opened door again */
   cursor: pointer;
   perspective: 520px;
   -webkit-tap-highlight-color: transparent;
