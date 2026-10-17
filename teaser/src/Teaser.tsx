@@ -33,6 +33,8 @@ export const Teaser: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       <Audio src={staticFile('music.wav')} />
+      {/* "Ho ho ho" when the gnome's hat rises (montage, 25.6 s) */}
+      <Sequence from={f(25.7)} layout="none"><Audio src={staticFile('hohoho-v1.wav')} /></Sequence>
       <Backdrop />
       <Bokeh opacity={bokehO * (1 - 0.35 * 0)} />
       <Snow startFrame={30} />
