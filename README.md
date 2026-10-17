@@ -89,6 +89,7 @@ npm run test:e2e
 ```
 
 `tests/e2e/tomte.spec.js` testar tomten: intro, välkomst, scener, frågor, dev-panelen och offline.
+`tests/random.test.js` och `tests/history.test.js` testar slumplotten, `content/tomte-random.json` och historiken (milstolpe 16), `tests/e2e/peek.spec.js` den framtittande tomten, bubblan och bottenbladet (`PEEK_SCREENSHOTS=1` skriver skärmdumparna till `docs/screenshots/peek/`).
 `tests/e2e/weather.spec.js` mockar Open-Meteo (`page.route`, inget går till riktiga API:t)
 och kontrollerar att väderscenen visar rätt variant vid simulerat datum 2026-12-14 (fint)
 och 2026-12-18 (regn), att anropet bara innehåller Höörs koordinater och de avtalade
@@ -351,6 +352,62 @@ Allt innehåll ligger i `content/tomte.json`:
 
 Prova tomten med dev-läget (se ovan). Precis som `days.json` hämtas `tomte.json` med
 stale-while-revalidate, så ändringar kräver ingen `CACHE_VERSION`-bump.
+
+## Tomten tittar fram
+
+Vid skärmens nederkant tittar en liten tomte fram (`js/peek.js`), till vänster eller höger,
+slumpat vid varje appstart. Han visas först när intro och eventuell scen är avslutade och
+göms medan intro, scen, lucka eller historik är öppen. Han blinkar var 8:e till 15:e
+sekund och vickar på luvan var 30:e till 45:e sekund (inga animationer vid reducerade
+rörelser). Han är en `<button>` med `aria-label` "Tomten, tryck för att prata", tryckytan
+är 72x56 px. Den synliga delen styrs av `--peek-height` överst i `css/style.css`; sidan har
+lika mycket extra bottenpadding, så han täcker aldrig sista radens luckor.
+
+Trycker Elin på honom kommer han fram i samma pratbubbla som scenerna, säger "ho" (ljudfilen
+om den finns, annars syntesen, ljudknappen gäller) och en slumprad. Knappar: **En till**,
+**Tidigare repliker** och **Hejdå**. Han säger aldrig något om kommande scener eller luckor
+och startar aldrig en schemalagd scen.
+
+### Slumprader
+
+Raderna ligger i `content/tomte-random.json`:
+
+```json
+{ "lines": ["Ho ho ho! Jag försökte räkna renarna igen. Det blev nio.", "..."] }
+```
+
+Lägg till en rad genom att lägga till en sträng i listan. Regler (kontrolleras av
+`tests/random.test.js`): unika, icke-tomma, högst 160 tecken och inga tankstreck. Ingen
+`CACHE_VERSION`-bump behövs, filen serveras stale-while-revalidate.
+
+Slumpen är en lott: ingen rad upprepas förrän alla använts, sedan börjar en ny omgång (som
+aldrig börjar med den rad som avslutade förra). Lotten sparas i `localStorage`
+(`advent.tomte.randomBag`, `{ used, last }`) som de rader som används i omgången, så det går
+bra att lägga till eller ändra rader i filen när som helst.
+
+### Tidigare repliker (historik)
+
+När en schemalagd scen eller välkomsten har spelats klart (sista repliken visad, sista
+frågan besvarad) sparas `{ id, date, answers, variant }` i `localStorage`
+(`advent.tomte.history`). `date` är appens "idag" (dev-datum räknas), `answers` är valt
+alternativ (index) per fråge-id och `variant` är väderraden som visades. Intro sparas inte
+och samma `id` sparas aldrig två gånger. Texterna sparas inte: bottenbladet slår upp dem i
+`content/tomte.json` via `id`, så en rättad text syns direkt. En scen vars `id` har tagits
+bort ur filen hoppas över. Bladet visar nyast först, ett kort per scen med datum ("mån 7
+dec"), tomtens repliker och för frågor "Du svarade: <knapptext>" och tomtens svar. Det
+stängs med knapp, svep nedåt på rubriken, Esc eller tryck på bakgrunden.
+
+### Testa i dev-läget
+
+Öppna `?dev=on` och dev-panelen, avsnittet **Tomten tittar fram**:
+
+- **Visa tomten nu**: tvingar fram honom (även före intro och scen).
+- **Spela slumprad**: öppnar bubblan med en slumprad.
+- **Fyll historiken med exempel**: välkomst och alla scener med första svaret och väder `good`.
+- **Nollställ historik och slumplott**.
+
+Datum-override styr datumet i historiken. Tomtens scener spelas som vanligt (se ovan) och
+hamnar i historiken när de är klara. Dev-knappen flyttas upp så den inte ligger över honom.
 
 ## Väder
 
@@ -771,6 +828,26 @@ npm run icons
 och bumpa sedan `CACHE_VERSION`.
 
 ## Antaganden
+
+### Tomten tittar fram (milstolpe 16)
+
+- Historiken börjar när funktionen kommer: scener som setts tidigare går inte att fylla på i
+  efterhand (datumet är okänt), så bladet visar bara det som spelas klart efter uppdateringen.
+- "Spelats klart" betyder att sista repliken visats (eller sista frågan besvarats), inte att
+  Elin tryckt "Hej då!". Stänger hon med × på sista raden räknas den som klar, stänger hon
+  tidigare sparas ingenting (scenen räknas ändå som sedd, som förut).
+- Svaret sparas som alternativets index, så ändras ordningen på alternativen i `tomte.json`
+  ändras också vad "Du svarade" visar.
+- Han ligger fast vid nederkanten, så vid scroll glider luckor förbi under honom. I vila
+  (längst ned) täcker han ingen lucka. Bottenpadding finns alltid, även utan slumprader.
+- Lotten sparar använda rader som text i stället för en blandad lista. Det ger samma
+  beteende som en shuffle bag (slumpvis ordning, ingen upprepning) och klarar ändrade rader.
+- "ho" spelas utan bjällror och jingel (de hör till scenernas entré). Ljudknappen och
+  duckningen gäller som vanligt.
+- Saknas `content/tomte-random.json` visas ingen tomte vid kanten, resten fungerar.
+- `safe-area-inset-bottom` är hanterad i CSS men kan inte provas i e2e-testerna; kontrollera
+  på en riktig iPhone.
+- Han göms med CSS (`body:has(dialog[open])`) medan någon dialog är öppen.
 
 ### Eget ho ho ho (milstolpe 15)
 

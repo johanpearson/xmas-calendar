@@ -18,7 +18,7 @@ export const WELCOME_ID = 'welcome';
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function normalizeEntry(entry) {
-  if (!isPlainObject(entry) || typeof entry.id !== 'string' || !isValidDateKey(entry.date)) return null;
+  if (!isPlainObject(entry) || typeof entry.id !== 'string' || entry.id === '' || !isValidDateKey(entry.date)) return null;
   const answers = {};
   if (isPlainObject(entry.answers)) {
     for (const [question, index] of Object.entries(entry.answers)) {
