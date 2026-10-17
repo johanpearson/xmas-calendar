@@ -21,6 +21,8 @@ import {
   setDateOverride,
   getTomteSeen,
   clearTomte,
+  setHistory,
+  clearRandomBag,
   getForecastOverride,
   setForecastOverride,
   getSoundOn,
@@ -29,8 +31,10 @@ import {
   setMusicChoice,
 } from './storage.js';
 import { setupInstall, isStandalone } from './install.js';
-import { loadTomte, createTomte } from './tomte-ui.js';
+import { loadTomte, loadRandom, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
+import { createPeek } from './peek.js';
+import { exampleHistory } from './history.js';
 import { lastFetch, testFetch, getWeatherVariant } from './weather.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
@@ -120,6 +124,7 @@ const state = {
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
   tomte: null, // { content, ui } once content/tomte.json has loaded
+  peek: null, // the Santa peeking up from the bottom edge
   tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
   cardScene: null, // cleanup for the scene in the open card
   cardToken: null, // the card showing now, so a late forecast never reaches another one
@@ -776,14 +781,35 @@ async function checkTomte() {
   // A conversation left open (e.g. overnight) finishes first, then today's check runs.
   await state.tomte.ui.whenClosed();
   await whenIdle();
-  state.tomte.ui.check(currentToday(), isStandalone());
+  const showing = state.tomte.ui.check(currentToday(), isStandalone());
+  // The peeking Santa waits until the intro or scene is done.
+  if (showing) {
+    state.peek?.setReady(false);
+    await showing;
+    await state.tomte.ui.whenClosed();
+  }
+  state.peek?.setReady(true);
+}
+
+// Elin tapped the peeking Santa. Never while a door is opening or the card is open.
+function talkToTomte() {
+  if (state.busy || els.card.open) return;
+  state.tomte?.ui.talk();
 }
 
 // Tomten is a bonus: if tomte.json is missing or broken, the calendar works as before.
 async function startTomte() {
   try {
     const content = await loadTomte();
-    state.tomte = { content, ui: createTomte(content) };
+    // The random lines are optional: without them Tomten works as before, just without the peeking Santa.
+    const random = await loadRandom().catch((err) => {
+      console.warn('Tomten has no random lines', err);
+      return [];
+    });
+    state.tomte = { content, ui: createTomte(content, { random, today: currentToday }) };
+    if (random.length) {
+      state.peek = createPeek({ onTap: talkToTomte, reducedMotion: prefersReducedMotion });
+    }
   } catch (err) {
     console.warn('Tomten could not start', err);
     return;
@@ -812,6 +838,21 @@ function devTomte({ content, ui }) {
       await ui.play(item.kind, item.scene);
     },
     reset: clearTomte,
+    // The peeking Santa (milestone 16).
+    peek: {
+      available: () => Boolean(state.peek),
+      show: () => state.peek?.force(true),
+      fillHistory: () => setHistory(exampleHistory(content)),
+      reset() {
+        setHistory([]);
+        clearRandomBag();
+      },
+      async playRandom() {
+        if (els.card.open) els.card.close();
+        await whenIdle();
+        ui.talk();
+      },
+    },
     // "Prognos": null (the real forecast), "good", "bad" or "unknown".
     forecast: {
       get: getForecastOverride,

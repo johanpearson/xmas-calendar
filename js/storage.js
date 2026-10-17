@@ -4,6 +4,8 @@
 import { isValidDateKey } from './dates.js';
 import { parseToggle } from './audio.js';
 import { parseMusicChoice } from './melodies.js';
+import { normalizeBag, emptyBag } from './tomte-random.js';
+import { normalizeHistory } from './history.js';
 
 const KEY_OPENED = 'advent.opened';
 const KEY_DEV = 'advent.dev';
@@ -12,6 +14,8 @@ const KEY_TOMTE_INTRO = 'advent.tomte.introSeen';
 const KEY_TOMTE_WELCOME = 'advent.tomte.welcomeSeen';
 const KEY_TOMTE_SCENES = 'advent.tomte.scenesSeen';
 const KEY_TOMTE_ANSWERS = 'advent.tomte.answers';
+const KEY_TOMTE_HISTORY = 'advent.tomte.history';
+const KEY_TOMTE_BAG = 'advent.tomte.randomBag';
 const KEY_SOUND = 'advent.sound';
 const KEY_MUSIC = 'advent.music';
 const KEY_FORECAST_OVERRIDE = 'advent.dev.forecast';
@@ -141,6 +145,28 @@ export function saveTomteAnswer(sceneId, questionId, optionIndex) {
 // Forgets everything Tomten has shown and been told (dev mode).
 export function clearTomte() {
   for (const key of [KEY_TOMTE_INTRO, KEY_TOMTE_WELCOME, KEY_TOMTE_SCENES, KEY_TOMTE_ANSWERS]) write(key, null);
+}
+
+// What Tomten has said and been answered, oldest first (see history.js).
+export function getHistory() {
+  return normalizeHistory(readJson(KEY_TOMTE_HISTORY, Array.isArray, []));
+}
+
+export function setHistory(history) {
+  write(KEY_TOMTE_HISTORY, history.length ? JSON.stringify(history) : null);
+}
+
+// The lottery for Tomten's random lines (see tomte-random.js): which lines this round has used.
+export function getRandomBag() {
+  return normalizeBag(readJson(KEY_TOMTE_BAG, isPlainObject, emptyBag()));
+}
+
+export function setRandomBag(bag) {
+  write(KEY_TOMTE_BAG, JSON.stringify(bag));
+}
+
+export function clearRandomBag() {
+  write(KEY_TOMTE_BAG, null);
 }
 
 // --- Sound ---

@@ -48,6 +48,15 @@ export function formatDate(dateKey) {
   return new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'long' }).format(date);
 }
 
+// Short Swedish date with the weekday, e.g. "mån 7 dec" (ICU may add a period after the month).
+export function formatShortDate(dateKey) {
+  const date = parseDateKey(dateKey);
+  if (!date) return dateKey;
+  return new Intl.DateTimeFormat('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })
+    .format(date)
+    .replace(/\./g, '');
+}
+
 // Day of month as a number, e.g. 6 for "2026-12-06".
 export function dayOfMonth(dateKey) {
   return Number(dateKey.slice(8, 10));

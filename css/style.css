@@ -36,6 +36,8 @@
 
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; }
+/* The visible part of the peeking Santa; the page keeps this much extra padding at the bottom. */
+:root { --peek-height: 56px; }
 
 body {
   position: relative;
@@ -138,7 +140,7 @@ body {
   padding:
     max(16px, env(safe-area-inset-top))
     max(16px, env(safe-area-inset-right))
-    calc(96px + env(safe-area-inset-bottom))
+    calc(96px + var(--peek-height) + env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
 }
 
@@ -1107,3 +1109,121 @@ body {
   stroke-linejoin: round;
 }
 .install-hint .btn { justify-self: end; }
+
+/* --- Tomten peeking up from the bottom edge (js/peek.js) --- */
+.peek {
+  position: fixed;
+  z-index: 10;
+  bottom: env(safe-area-inset-bottom);
+  width: 72px;
+  height: var(--peek-height);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: peek-up 420ms cubic-bezier(.2, .9, .3, 1.2) both;
+}
+.peek[hidden] { display: none; }
+.peek-left { left: max(10px, env(safe-area-inset-left)); }
+.peek-right { right: max(10px, env(safe-area-inset-right)); }
+/* Only his hat, eyes and nose show: the SVG is wider than the button and clipped at the bottom. */
+.peek .tomte-svg { position: absolute; top: -4px; left: -2px; width: 76px; height: auto; filter: drop-shadow(0 -2px 6px #0006); }
+.peek .tomte-eyes { animation: none; }
+.peek.is-blink .tomte-eyes { animation: peek-blink 320ms ease-in-out; }
+.peek .tomte-hat-wrap { transform-box: fill-box; transform-origin: 40% 100%; }
+.peek.is-wiggle .tomte-hat-wrap { animation: peek-wiggle 1100ms ease-in-out; }
+.peek:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: -4px; border-radius: 12px 12px 0 0; }
+/* Hidden under any open dialog: intro, scene, door card, history. */
+body:has(dialog[open]) .peek { display: none; }
+/* Dev mode: keep the panel's button clear of him. */
+.has-peek .dev-toggle { bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--peek-height) + 4px); }
+.has-peek .dev-panel { bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--peek-height) + 62px); }
+@keyframes peek-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes peek-blink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(.1); }
+}
+@keyframes peek-wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-7deg); }
+  45% { transform: rotate(6deg); }
+  70% { transform: rotate(-4deg); }
+  85% { transform: rotate(2deg); }
+}
+
+/* Tomten slides up when Elin taps the peeking Santa (js/tomte-ui.js, talk()). */
+.tomte.is-peek[open] { animation: tomte-slide 380ms cubic-bezier(.2, .9, .3, 1); }
+@keyframes tomte-slide {
+  from { opacity: 0; transform: translateY(55vh); }
+  to { opacity: 1; transform: none; }
+}
+
+/* --- History sheet "Tidigare repliker" (js/history-ui.js) --- */
+.sheet {
+  width: 100%;
+  max-width: 34rem;
+  max-height: 82vh;
+  max-height: 82dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-top: 6px solid var(--red-2);
+  border-radius: 20px 20px 0 0;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 -12px 40px #000a;
+  overflow: hidden;
+}
+.sheet[open] { display: flex; flex-direction: column; animation: sheet-up 280ms cubic-bezier(.2, .9, .3, 1); transition: transform 180ms ease-out; }
+.sheet::backdrop { background: #050a19b3; }
+body:has(dialog.sheet[open]) { overflow: hidden; }
+.sheet-head {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px 8px 18px;
+  touch-action: none; /* a swipe down on the header closes the sheet */
+  cursor: grab;
+}
+.sheet-grip { position: absolute; top: 6px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: #1a130040; }
+.sheet-title { margin: 0; font-size: 1.15rem; color: #8c1d26; }
+.sheet-close {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: transparent;
+  border: 2px solid #1a130066;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.sheet-close:focus-visible, .sheet-body:focus-visible { outline: 3px solid #8c1d26; outline-offset: 2px; }
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 18px max(20px, calc(env(safe-area-inset-bottom) + 12px));
+}
+.sheet-card { padding: 12px 0 14px; border-top: 1px solid #1a130026; }
+.sheet-card:first-child { border-top: 0; }
+.sheet-date { margin: 0 0 6px; font-size: .85rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #8c1d26; }
+.sheet-tag { margin-left: 8px; padding: 1px 8px; font-size: .7rem; border-radius: 999px; background: #8c1d2618; }
+.sheet-line { margin: 0 0 8px; font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; line-height: 1.4; }
+.sheet-answer { margin: 0 0 8px; padding: 4px 10px; font-size: .95rem; border-left: 4px solid var(--gold-strong); background: #1a130010; border-radius: 0 8px 8px 0; }
+.sheet-empty { margin: 8px 0 12px; font-family: Georgia, "Times New Roman", serif; font-size: 1.1rem; }
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}

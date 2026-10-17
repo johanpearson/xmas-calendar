@@ -47,12 +47,18 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   js/scenes.js     dagsscener: register, SVG och cleanup (milstolpe 12)
   js/card.js       ren logik: kortets stycken och val av plan A eller B (milstolpe 13)
   js/latency.js    dev: logg över ljudlatens per tryck (milstolpe 14)
+  js/santa-svg.js  tomtens SVG, delas av dialogen och den framtittande tomten (milstolpe 16)
+  js/peek.js       tomten som tittar fram vid nederkanten (milstolpe 16)
+  js/tomte-random.js  ren logik: slumprader och slumplott (milstolpe 16)
+  js/history.js    ren logik: historik över sedda scener och kort till bottenbladet (milstolpe 16)
+  js/history-ui.js bottenbladet "Tidigare repliker" (milstolpe 16)
   audio/sfx/hohoho.mp3  tomtens "ho ho ho", Johans röst (milstolpe 15)
   audio/raw/       råinspelningen att bearbeta, tas bort efter bearbetning (milstolpe 15)
   scripts/process-hohoho.sh  ffmpeg: råfil till audio/sfx/hohoho.mp3 (milstolpe 15)
   css/scenes.css   dagsscenernas animationer (milstolpe 12)
   content/days.json
   content/tomte.json
+  content/tomte-random.json  slumpmässiga repliker när Elin trycker på tomten (milstolpe 16)
   icons/           icon-192.png, icon-512.png, icon-maskable-512.png,
                    apple-touch-icon-180.png, favicon.svg
   tests/dates.test.js
@@ -64,6 +70,8 @@ Familjen: Johan, Elin och dottern Saga (1,5 år). Bor i Höör, Skåne.
   tests/scenes.test.js   js/scenes.js: registret och kopplingen till days.json
   tests/card.test.js     js/card.js: stycken, plan A/B och reservvärden (milstolpe 13)
   tests/hoho.test.js     val fil/syntes, reservval och själva ljudfilen (milstolpe 15)
+  tests/random.test.js   slumplott och validering av tomte-random.json (milstolpe 16)
+  tests/history.test.js  historiklogiken (milstolpe 16)
   tests/e2e/       Playwright (valfritt, milstolpe 5)
   PLAN.md
   README.md
@@ -285,6 +293,16 @@ Skapa dessa med riktigt innehåll:
    - **Var:** när tomten dyker upp (intro, välkomst, alla scener och entrén i dev-panelen). Dev-panelen har "Spela ho ho ho (fil)" och "Spela ho ho ho (syntes)".
    - **PWA:** filen cachas med ett eget `cache.add` i `try/catch` (inte `addAll`), så att installationen klarar att den saknas. `CACHE_VERSION` bumpas.
 
+16. **Tomten tittar fram.** Tomten tittar subtilt fram vid nederkanten av huvudskärmen. Trycker Elin på honom kommer han fram och säger en slumpmässig replik, och hon kan se tidigare repliker. Klar när: punkterna nedan fungerar på 360x640 och 360x800, `tests/random.test.js`, `tests/history.test.js` och `tests/e2e/peek.spec.js` är gröna och `CACHE_VERSION` är bumpad.
+   - **Som tidigare:** ingen bundler, inga runtime-beroenden, relativa sökvägar, `textContent` aldrig `innerHTML` för innehåll, svenska i UI.
+   - **Tomten som tittar fram** (`js/peek.js`): en `<button>` med `aria-label` "Tomten, tryck för att prata" och en liten SVG (samma tomte och tomteluva som i `js/santa-svg.js`) vid skärmens nederkant, vänster eller höger, slumpat vid varje appstart. Synlig del 56 px (`--peek-height`), tryckyta minst 48x48 px. Visas först när intro och eventuell scen är avslutade och göms medan intro, scen, lucka eller historik är öppen. Sidan har lika mycket extra bottenpadding som den synliga delen, så han aldrig täcker sista radens luckor, och `safe-area-inset-bottom` hanteras. Blinkar var 8:e till 15:e sekund och vickar på luvan var 30:e till 45:e sekund, inga animationer vid `prefers-reduced-motion`.
+   - **Tryck:** tomten glider fram i samma pratbubbla som scenerna, "ho" spelas (filen om den finns, annars syntesen, ljudknappen gäller) och han säger en slumprad ur `content/tomte-random.json`. Knappar: "En till", "Tidigare repliker" och "Hejdå". Han avslöjar aldrig kommande scener eller luckor och startar aldrig en schemalagd scen i förväg.
+   - **Slumplott** (`js/tomte-random.js`): ingen rad upprepas förrän alla använts. Lotten sparas i `localStorage` (`advent.tomte.randomBag`) och överlever omstart. Filen valideras: unika, icke-tomma rader, högst 160 tecken, inga tankstreck.
+   - **Historik** (`js/history.js`): när en schemalagd scen eller välkomsten spelats klart sparas `{ id, date, answers, variant }` i `localStorage` (`advent.tomte.history`), där `date` är appens "idag" (dev-datum respekteras), `answers` är vald alternativindex per fråge-id och `variant` väderraden som visades. Intro sparas inte, ingen dubbelsparning. Bottenbladet (`js/history-ui.js`) visar nyast först ett kort per scen med datum ("mån 7 dec"), tomtens repliker och för frågor "Du svarade: <knapptext>" och tomtens svar, hämtade ur `tomte.json` via scenens `id` med den sparade väderraden. Bara sedda scener visas. Tomt läge: "Vi har inte pratat än. Jag hör av mig snart." Stängs med knapp, svep eller Esc, har egen scroll och bakgrunden scrollar inte.
+   - **Dev-läge:** "Visa tomten nu", "Fyll historiken med exempel", "Nollställ historik och slumplott" och "Spela slumprad".
+   - **Tester:** `node --test` för historiken (spara vid avslutad scen, ordning, svar, väderrad, ingen intro, ingen dubbelsparning), slumplotten och valideringen. Playwright vid 360x640 och 360x800: tomten syns utan att överlappa luckor, trycka öppnar en slumprad, "En till" ger en annan, historiken visar bara sett innehåll (simulerat 2026-11-30 och 2026-12-03), offline och reducerade rörelser. Skärmdumpar vid 360 px i PR-beskrivningen.
+   - **PWA:** `content/tomte-random.json` precachas med stale-while-revalidate, de nya filerna i `js/` precachas och `CACHE_VERSION` bumpas.
+
 ## Datamodell: `content/tomte.json`
 
 ```json
@@ -336,6 +354,7 @@ Skapa dessa med riktigt innehåll:
 - `scenes[].questions`: valfritt. Visas efter replikerna, en i taget. `options[0]` räknas som det positiva svaret.
 - `scenes[].closing`: valfritt, `allPositive` och `someNegative`. Visas efter sista frågan.
 - All text renderas med `textContent`, aldrig `innerHTML`.
+- `content/tomte-random.json` (milstolpe 16): `{ "lines": ["...", ...] }`, slumpreplikerna när Elin trycker på den framtittande tomten.
 
 ## Öppna frågor
 

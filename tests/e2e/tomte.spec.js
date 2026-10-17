@@ -140,7 +140,7 @@ test('reduced motion: Tomten shows without the ho ho ho animation', async ({ pag
   await page.clock.setFixedTime(at('2026-10-14'));
   await gotoApp(page);
   await expect(tomte(page)).toBeVisible();
-  expect(await page.locator('.tomte-svg').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  expect(await page.locator('.tomte-figure > .tomte-svg').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   await expect(page.locator('.tomte-hoho span').first()).toHaveCSS('opacity', '0');
 });
 

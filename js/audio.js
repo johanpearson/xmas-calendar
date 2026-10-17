@@ -1567,6 +1567,18 @@ export function playHo(delay = 0, { force = null } = {}) {
 export const hoFileReady = () => engine.buffers.has('ho');
 
 /**
+ * Tomten says "ho" when Elin taps the Santa peeking up on the main screen (milestone 16):
+ * only the "ho", no sleigh or jingle. Waits for the recording if it is still loading,
+ * like his entrance does.
+ */
+export function tomteSpeaks() {
+  safely(() => {
+    engine.tomteSince = performance.now();
+    tomteHo();
+  });
+}
+
+/**
  * Tomten pops up: his sleigh and his jingle. Before the first tap the jingle waits for
  * it. The background music pauses for as long as he is on screen, not just the jingle.
  */
