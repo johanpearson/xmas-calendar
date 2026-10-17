@@ -9,6 +9,7 @@ import {
   replyFor,
   closingFor,
   stepHasText,
+  resolveVariant,
 } from './tomte.js';
 import { getWeatherVariant, provider as weatherProvider } from './weather.js';
 import {
@@ -20,7 +21,11 @@ import {
   getForecastOverride,
   getRandomBag,
   setRandomBag,
+  getHistory,
+  setHistory,
 } from './storage.js';
+import { recordEntry, WELCOME_ID } from './history.js';
+import { createHistorySheet } from './history-ui.js';
 import { drawLine, normalizeRandom } from './tomte-random.js';
 import { toDateKey } from './dates.js';
 import { canInstall, onInstallChange, promptInstall } from './install.js';
@@ -31,8 +36,6 @@ import { SANTA_SVG } from './santa-svg.js';
 const TOMTE_URL = './content/tomte.json';
 const RANDOM_URL = './content/tomte-random.json';
 const LAST_BUTTON = 'Hej då!';
-
-let openHistory = () => {}; // replaced by the history sheet
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -74,6 +77,7 @@ export function createTomte(tomte, { random = [], today = () => toDateKey(new Da
   let parts = null;
   let cleanup = null;
   let starting = null; // a scene waiting for its forecast before it shows
+  const history = createHistorySheet({ tomte, getHistory });
 
   function build() {
     dialog = el('dialog', 'tomte');
@@ -123,13 +127,22 @@ export function createTomte(tomte, { random = [], today = () => toDateKey(new Da
   }
 
   // Runs a conversation: steps from buildScript(), finished with the `last` button label.
-  function run(steps, { scene = null, last = LAST_BUTTON, onLastStep = null } = {}) {
+  function run(steps, { scene = null, last = LAST_BUTTON, onLastStep = null, record = null } = {}) {
     if (!dialog) build();
     cleanup?.();
     cleanup = null;
     parts.credit.hidden = !scene?.weatherVariants;
     const answers = scene ? { ...getTomteAnswers(scene.id) } : {};
     let index = -1;
+    let recorded = false;
+
+    // Played to the end: remember it for "Tidigare repliker" (once).
+    function finish() {
+      if (!record || recorded) return;
+      recorded = true;
+      const { history: next, added } = recordEntry(getHistory(), { ...record, date: today(), answers: { ...answers } });
+      if (added) setHistory(next);
+    }
 
     const hasMore = () => steps.slice(index + 1).some((s) => stepHasText(s, scene, answers));
 
@@ -172,11 +185,15 @@ export function createTomte(tomte, { random = [], today = () => toDateKey(new Da
             answers[question.id] = i;
             if (scene) saveTomteAnswer(scene.id, question.id, i);
             say(replyFor(question, i), [nextButton()]);
+            if (!hasMore()) finish();
           }),
         );
         say(question.text, options);
       }
-      if (!hasMore() && step.kind !== 'question') cleanup = onLastStep?.(parts.extra) ?? null;
+      if (!hasMore() && step.kind !== 'question') {
+        cleanup = onLastStep?.(parts.extra) ?? null;
+        finish();
+      }
     }
 
     // Restart the entrance (bounce and "ho ho ho") each time Tomten appears.
@@ -209,7 +226,7 @@ export function createTomte(tomte, { random = [], today = () => toDateKey(new Da
       playEffect('click');
       drawNext();
     });
-    const earlier = button('Tidigare repliker', 'btn btn-secondary', () => openHistory());
+    const earlier = button('Tidigare repliker', 'btn btn-secondary', () => history.open());
     const bye = button('Hejdå', 'btn btn-secondary', () => dialog.close());
     parts.actions.replaceChildren(again, earlier, bye);
 
@@ -253,10 +270,10 @@ export function createTomte(tomte, { random = [], today = () => toDateKey(new Da
     if (kind === 'intro' && tomte.intro) {
       run(buildScript(tomte.intro), { last: tomte.intro.doneButton, onLastStep: installExtra });
     } else if (kind === 'welcome' && tomte.welcome) {
-      run(buildScript(tomte.welcome));
+      run(buildScript(tomte.welcome), { record: { id: WELCOME_ID, variant: null } });
     } else if (kind === 'scene' && scene) {
       if (!scene.weatherVariants) {
-        run(buildScript(scene), { scene });
+        run(buildScript(scene), { scene, record: { id: scene.id, variant: null } });
         return;
       }
       const ready = weatherFor(scene);
@@ -264,7 +281,7 @@ export function createTomte(tomte, { random = [], today = () => toDateKey(new Da
       const weather = await ready;
       if (starting !== ready) return; // another conversation started meanwhile
       starting = null;
-      run(buildScript(scene, { weather }), { scene });
+      run(buildScript(scene, { weather }), { scene, record: { id: scene.id, variant: resolveVariant(scene, weather) } });
     }
   }
 

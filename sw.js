@@ -32,6 +32,8 @@ const SHELL_FILES = [
   'js/santa-svg.js',
   'js/peek.js',
   'js/tomte-random.js',
+  'js/history.js',
+  'js/history-ui.js',
   'js/audio.js',
   'js/melodies.js',
   'js/voice.js',

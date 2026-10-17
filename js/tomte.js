@@ -150,6 +150,15 @@ export function pickStartup({ tomte, todayKey, standalone, seen = emptySeen() })
 // --- Scripts: what Tomten says, step by step ---
 
 /**
+ * The weather variant a scene actually shows: the forecast's, or "unknown" when the scene
+ * has no lines for it. null when the scene has no weather lines at all.
+ */
+export function resolveVariant(item, weather = 'unknown') {
+  if (!item.weatherVariants) return null;
+  return item.weatherVariants[weather]?.length ? weather : 'unknown';
+}
+
+/**
  * The steps of a conversation. Each step is one of
  *   { kind: 'line', text }
  *   { kind: 'question', question }
@@ -159,10 +168,8 @@ export function pickStartup({ tomte, todayKey, standalone, seen = emptySeen() })
  */
 export function buildScript(item, { weather = 'unknown' } = {}) {
   const steps = (item.lines ?? []).map((text) => ({ kind: 'line', text }));
-  if (item.weatherVariants) {
-    const variant = item.weatherVariants[weather]?.length ? weather : 'unknown';
-    for (const text of item.weatherVariants[variant] ?? []) steps.push({ kind: 'line', text });
-  }
+  const variant = resolveVariant(item, weather);
+  if (variant) for (const text of item.weatherVariants[variant]) steps.push({ kind: 'line', text });
   for (const question of item.questions ?? []) steps.push({ kind: 'question', question });
   if (item.questions?.length && item.closing) steps.push({ kind: 'closing' });
   return steps;
