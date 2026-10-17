@@ -31,6 +31,7 @@ import {
 import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
+import { createPeek } from './peek.js';
 import { lastFetch, testFetch, getWeatherVariant } from './weather.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
@@ -120,6 +121,7 @@ const state = {
   toastTimer: null,
   onDoorsUpdated: null, // set by dev mode to keep its banner in sync
   tomte: null, // { content, ui } once content/tomte.json has loaded
+  peek: null, // the Santa peeking up from the bottom edge
   tomteDay: null, // the day Tomten last checked, so a resume on a new day counts as a start
   cardScene: null, // cleanup for the scene in the open card
   cardToken: null, // the card showing now, so a late forecast never reaches another one
@@ -776,7 +778,14 @@ async function checkTomte() {
   // A conversation left open (e.g. overnight) finishes first, then today's check runs.
   await state.tomte.ui.whenClosed();
   await whenIdle();
-  state.tomte.ui.check(currentToday(), isStandalone());
+  const showing = state.tomte.ui.check(currentToday(), isStandalone());
+  // The peeking Santa waits until the intro or scene is done.
+  if (showing) {
+    state.peek?.setReady(false);
+    await showing;
+    await state.tomte.ui.whenClosed();
+  }
+  state.peek?.setReady(true);
 }
 
 // Tomten is a bonus: if tomte.json is missing or broken, the calendar works as before.
@@ -784,6 +793,7 @@ async function startTomte() {
   try {
     const content = await loadTomte();
     state.tomte = { content, ui: createTomte(content) };
+    state.peek = createPeek({ onTap: () => {}, reducedMotion: prefersReducedMotion });
   } catch (err) {
     console.warn('Tomten could not start', err);
     return;

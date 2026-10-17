@@ -36,6 +36,8 @@
 
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; }
+/* The visible part of the peeking Santa; the page keeps this much extra padding at the bottom. */
+:root { --peek-height: 56px; }
 
 body {
   position: relative;
@@ -138,7 +140,7 @@ body {
   padding:
     max(16px, env(safe-area-inset-top))
     max(16px, env(safe-area-inset-right))
-    calc(96px + env(safe-area-inset-bottom))
+    calc(96px + var(--peek-height) + env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
 }
 
@@ -1107,3 +1109,50 @@ body {
   stroke-linejoin: round;
 }
 .install-hint .btn { justify-self: end; }
+
+/* --- Tomten peeking up from the bottom edge (js/peek.js) --- */
+.peek {
+  position: fixed;
+  z-index: 10;
+  bottom: env(safe-area-inset-bottom);
+  width: 72px;
+  height: var(--peek-height);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: peek-up 420ms cubic-bezier(.2, .9, .3, 1.2) both;
+}
+.peek[hidden] { display: none; }
+.peek-left { left: max(10px, env(safe-area-inset-left)); }
+.peek-right { right: max(10px, env(safe-area-inset-right)); }
+/* Only his hat, eyes and nose show: the SVG is wider than the button and clipped at the bottom. */
+.peek .tomte-svg { position: absolute; top: -4px; left: -2px; width: 76px; height: auto; filter: drop-shadow(0 -2px 6px #0006); }
+.peek .tomte-eyes { animation: none; }
+.peek.is-blink .tomte-eyes { animation: peek-blink 320ms ease-in-out; }
+.peek .tomte-hat-wrap { transform-box: fill-box; transform-origin: 40% 100%; }
+.peek.is-wiggle .tomte-hat-wrap { animation: peek-wiggle 1100ms ease-in-out; }
+.peek:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: -4px; border-radius: 12px 12px 0 0; }
+/* Hidden under any open dialog: intro, scene, door card, history. */
+body:has(dialog[open]) .peek { display: none; }
+/* Dev mode: keep the panel's button clear of him. */
+.has-peek .dev-toggle { bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--peek-height) + 4px); }
+.has-peek .dev-panel { bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--peek-height) + 62px); }
+@keyframes peek-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes peek-blink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(.1); }
+}
+@keyframes peek-wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-7deg); }
+  45% { transform: rotate(6deg); }
+  70% { transform: rotate(-4deg); }
+  85% { transform: rotate(2deg); }
+}
