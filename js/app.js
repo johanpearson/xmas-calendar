@@ -21,6 +21,8 @@ import {
   setDateOverride,
   getTomteSeen,
   clearTomte,
+  setHistory,
+  clearRandomBag,
   getForecastOverride,
   setForecastOverride,
   getSoundOn,
@@ -32,6 +34,7 @@ import { setupInstall, isStandalone } from './install.js';
 import { loadTomte, loadRandom, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
 import { createPeek } from './peek.js';
+import { exampleHistory } from './history.js';
 import { lastFetch, testFetch, getWeatherVariant } from './weather.js';
 import { mountScene } from './scene.js';
 import { assignThemes, doorLook, animationFor } from './themes.js';
@@ -835,6 +838,21 @@ function devTomte({ content, ui }) {
       await ui.play(item.kind, item.scene);
     },
     reset: clearTomte,
+    // The peeking Santa (milestone 16).
+    peek: {
+      available: () => Boolean(state.peek),
+      show: () => state.peek?.force(true),
+      fillHistory: () => setHistory(exampleHistory(content)),
+      reset() {
+        setHistory([]);
+        clearRandomBag();
+      },
+      async playRandom() {
+        if (els.card.open) els.card.close();
+        await whenIdle();
+        ui.talk();
+      },
+    },
     // "Prognos": null (the real forecast), "good", "bad" or "unknown".
     forecast: {
       get: getForecastOverride,

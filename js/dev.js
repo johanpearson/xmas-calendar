@@ -483,6 +483,34 @@ function tomteSection(tomte, closePanel, toast) {
     }),
   );
 
+  // The peeking Santa, random lines and the history behind "Tidigare repliker".
+  const peek = el('fieldset', 'dev-preview dev-peek');
+  peek.append(el('legend', null, 'Tomten tittar fram'));
+  if (tomte.peek.available()) {
+    peek.append(
+      button('Visa tomten nu', () => {
+        tomte.peek.show();
+        closePanel();
+        toast('Tomten tittar fram');
+      }),
+      button('Spela slumprad', () => {
+        closePanel();
+        tomte.peek.playRandom();
+      }),
+      button('Fyll historiken med exempel', () => {
+        tomte.peek.fillHistory();
+        toast('Historiken fylld med exempel');
+      }),
+      button('Nollställ historik och slumplott', () => {
+        tomte.peek.reset();
+        toast('Historik och slumplott nollställda');
+      }),
+    );
+  } else {
+    peek.append(el('p', 'dev-info', 'Saknar content/tomte-random.json, så tomten tittar inte fram.'));
+  }
+  node.append(peek);
+
   function refresh() {
     lastInfo.textContent = describeLastFetch(tomte.forecast.last());
     const current = tomte.currentId();
