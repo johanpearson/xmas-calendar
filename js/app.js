@@ -29,7 +29,7 @@ import {
   setMusicChoice,
 } from './storage.js';
 import { setupInstall, isStandalone } from './install.js';
-import { loadTomte, createTomte } from './tomte-ui.js';
+import { loadTomte, loadRandom, createTomte } from './tomte-ui.js';
 import { currentScene } from './tomte.js';
 import { createPeek } from './peek.js';
 import { lastFetch, testFetch, getWeatherVariant } from './weather.js';
@@ -788,12 +788,25 @@ async function checkTomte() {
   state.peek?.setReady(true);
 }
 
+// Elin tapped the peeking Santa. Never while a door is opening or the card is open.
+function talkToTomte() {
+  if (state.busy || els.card.open) return;
+  state.tomte?.ui.talk();
+}
+
 // Tomten is a bonus: if tomte.json is missing or broken, the calendar works as before.
 async function startTomte() {
   try {
     const content = await loadTomte();
-    state.tomte = { content, ui: createTomte(content) };
-    state.peek = createPeek({ onTap: () => {}, reducedMotion: prefersReducedMotion });
+    // The random lines are optional: without them Tomten works as before, just without the peeking Santa.
+    const random = await loadRandom().catch((err) => {
+      console.warn('Tomten has no random lines', err);
+      return [];
+    });
+    state.tomte = { content, ui: createTomte(content, { random, today: currentToday }) };
+    if (random.length) {
+      state.peek = createPeek({ onTap: talkToTomte, reducedMotion: prefersReducedMotion });
+    }
   } catch (err) {
     console.warn('Tomten could not start', err);
     return;

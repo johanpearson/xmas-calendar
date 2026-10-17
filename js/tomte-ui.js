@@ -18,14 +18,21 @@ import {
   saveTomteAnswer,
   isDevEnabled,
   getForecastOverride,
+  getRandomBag,
+  setRandomBag,
 } from './storage.js';
+import { drawLine, normalizeRandom } from './tomte-random.js';
+import { toDateKey } from './dates.js';
 import { canInstall, onInstallChange, promptInstall } from './install.js';
-import { playEffect, tomteArrives, tomteLeaves } from './audio.js';
+import { playEffect, tomteArrives, tomteLeaves, tomteSpeaks } from './audio.js';
 import { soundButton } from './audio-ui.js';
 import { SANTA_SVG } from './santa-svg.js';
 
 const TOMTE_URL = './content/tomte.json';
+const RANDOM_URL = './content/tomte-random.json';
 const LAST_BUTTON = 'Hej då!';
+
+let openHistory = () => {}; // replaced by the history sheet
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -41,6 +48,13 @@ function button(text, className, onClick) {
   return btn;
 }
 
+// The random lines for the peeking Santa; throws when the file is missing or unusable.
+export async function loadRandom() {
+  const res = await fetch(RANDOM_URL, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`tomte-random.json: HTTP ${res.status}`);
+  return normalizeRandom(await res.json());
+}
+
 export async function loadTomte() {
   const res = await fetch(TOMTE_URL, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`tomte.json: HTTP ${res.status}`);
@@ -52,8 +66,10 @@ export async function loadTomte() {
  *  play(kind, scene?)  shows intro, welcome or a scene (dev: ignores dates and seen); a weather
  *                      scene waits for its forecast first (at most FETCH_TIMEOUT_MS)
  *  check(todayKey, standalone)  shows whatever is due at this app start, if anything
+ *  talk()  Elin tapped the peeking Santa: a random line from `random`, whenever she likes.
+ *          Never shows a scene or says anything about coming doors.
  */
-export function createTomte(tomte) {
+export function createTomte(tomte, { random = [], today = () => toDateKey(new Date()) } = {}) {
   let dialog = null;
   let parts = null;
   let cleanup = null;
@@ -98,6 +114,7 @@ export function createTomte(tomte) {
     // No backdrop close: a stray tap shouldn't cut Tomten off mid-sentence. × and Esc close.
     dialog.addEventListener('close', () => {
       tomteLeaves();
+      dialog.classList.remove('is-peek');
       cleanup?.();
       cleanup = null;
     });
@@ -172,6 +189,39 @@ export function createTomte(tomte) {
     next();
   }
 
+  // A random line from the lottery (tomte-random.js), "En till" for the next one. Uses the
+  // same dialog and bubble as the scenes, but only says "ho" (no sleigh or jingle).
+  function talk() {
+    if (random.length === 0 || starting) return;
+    if (!dialog) build();
+    cleanup?.();
+    cleanup = null;
+    parts.credit.hidden = true;
+    parts.extra.replaceChildren();
+
+    function drawNext() {
+      const { line, bag } = drawLine(random, getRandomBag());
+      setRandomBag(bag);
+      parts.text.textContent = line;
+    }
+
+    const again = button('En till', 'btn btn-primary', () => {
+      playEffect('click');
+      drawNext();
+    });
+    const earlier = button('Tidigare repliker', 'btn btn-secondary', () => openHistory());
+    const bye = button('Hejdå', 'btn btn-secondary', () => dialog.close());
+    parts.actions.replaceChildren(again, earlier, bye);
+
+    dialog.classList.remove('is-hohoho', 'is-peek');
+    void dialog.offsetWidth;
+    dialog.classList.add('is-hohoho', 'is-peek');
+    if (!dialog.open) dialog.showModal();
+    tomteSpeaks();
+    drawNext();
+    again.focus();
+  }
+
   // The intro's last line also offers installing: the browser's prompt when Chrome has
   // offered one, otherwise a short how-to. Updates if the prompt turns up while open.
   function installExtra(container) {
@@ -236,5 +286,5 @@ export function createTomte(tomte) {
     }
   }
 
-  return { play, check, whenClosed, isOpen: () => Boolean(starting || dialog?.open) };
+  return { play, check, talk, whenClosed, isOpen: () => Boolean(starting || dialog?.open) };
 }

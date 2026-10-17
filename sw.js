@@ -1,7 +1,8 @@
 // Service worker: makes the app work offline after the first visit.
 //
 // Bump CACHE_VERSION whenever anything in the app shell changes (HTML, CSS, JS, icons,
-// manifest). Pure content changes in content/days.json or content/tomte.json need no
+// manifest). Pure content changes in content/days.json, content/tomte.json or
+// content/tomte-random.json need no
 // bump: those files are served stale-while-revalidate, so edits reach the phone on the
 // next start.
 const CACHE_VERSION = 'v19';
@@ -30,6 +31,7 @@ const SHELL_FILES = [
   'js/tomte-ui.js',
   'js/santa-svg.js',
   'js/peek.js',
+  'js/tomte-random.js',
   'js/audio.js',
   'js/melodies.js',
   'js/voice.js',
@@ -48,7 +50,7 @@ const SHELL_FILES = [
 // file (or one that cannot be fetched) never makes the installation fail: the app then
 // plays its synthesised "ho" instead.
 const OPTIONAL_FILES = ['audio/sfx/hohoho.mp3'];
-const CONTENT_FILES = ['content/days.json', 'content/tomte.json'];
+const CONTENT_FILES = ['content/days.json', 'content/tomte.json', 'content/tomte-random.json'];
 
 const scoped = (path) => new URL(path, self.registration.scope).href;
 
