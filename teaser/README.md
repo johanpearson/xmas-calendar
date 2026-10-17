@@ -63,3 +63,29 @@ Noterna kommer från appens `js/melodies.js` (alla tre melodierna är traditione
 - Rendering i molnmiljön kräver `NODE_USE_ENV_PROXY=1` och `NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` för att Node ska använda proxyn (bara relevant där).
 - Filen är en liten (ca 8 MB) binär incheckad i repot enligt uppdraget. `out/preview.mp4`, stillbilder och loggar ignoreras av git.
 - Remotion har egen licens (gratis för privat bruk och små team, se remotion.dev/license).
+
+## Version 2: TeaserA och TeaserB
+
+Två friare filmer, `out/teaser-v2-a.mp4` ("Klassisk julfilm", 39,0 s) och `out/teaser-v2-b.mp4` ("Julfilms-trailer med glimten i ögat", 39,2 s). Regi, texter, hintar och spoilerkontroll står i `CONCEPTS.md`. Den ursprungliga `Teaser` och `out/teaser.mp4` är orörda.
+
+```bash
+cd teaser
+node scripts/make-music-a.mjs && node scripts/make-music-b.mjs   # public/music-a.wav och music-b.wav
+npx remotion render src/index.ts TeaserA out/teaser-v2-a.mp4 --codec=h264 --crf=24 --pixel-format=yuv420p --audio-codec=aac
+npx remotion render src/index.ts TeaserB out/teaser-v2-b.mp4 --codec=h264 --crf=24 --pixel-format=yuv420p --audio-codec=aac
+npx remotion render src/index.ts TeaserA out/preview-a.mp4 --scale=0.5 --crf=30   # förhandsversion
+```
+
+- Texter, tider och hintar: `src/v2/cues.json` (läses av både bild och ljud). Scener och hintar: `src/v2/kit.tsx`, sammansättning: `src/v2/Films.tsx`.
+- Ljud: `scripts/audio-lib.mjs` (samma kedja som v1: MIDI, FluidSynth/FluidR3_GM, ffmpeg) plus `make-music-a.mjs` och `make-music-b.mjs`. Effekter ("ding", "poff", bjällror) byggs med FluidSynth och ffmpeg. Mixen får 1 s fade in, 3 s fade ut och topp -3,5 dBFS (mätt -3,4/-3,5 dB i filerna).
+- Mätvärden (ffprobe): båda 1080x1920, 30 fps, h264 yuv420p, aac 48 kHz stereo. A: 9,7 MB. B: 8,4 MB. Renderingstid ca 3 min 39 s vardera (parallellt), förhandsversionerna ca 1 min 42 s.
+
+### Antaganden
+
+- "Ho ho ho" är `audio/sfx/hohoho.mp3` från origin/main (redan bearbetad: mono, 96 kbit/s, 1,4 s, topp -3,3 dBFS), använd som den är med eko och en klockklang. Ingen syntetisk ersättare behövdes.
+- Hintarna visas som mjukt oskarpa silhuetter på en glödande skiva, 1,3-1,4 s var, 7 i A och 8 i B. Scenerna innehåller inga rekvisita som liknar en hint. Stenen med tomteluva användes inte.
+- Orden "kakao" och "tomten" bedömdes som tillåtna. Inga andra namn än Elin och Johan, inga datum utom 29 november.
+- Texter i B är versaler för trailerkänslan; alla textrader visas minst 2,4 s och är minst 64 px. Marginaler: minst 150 px i sidled, text börjar minst 280 px från överkanten.
+- Ljudbalansen är mätt, inte lyssnad på (ingen ljuduppspelning i miljön). Justera nivåerna i `make-music-*.mjs` efter gehör.
+- Typsnitt (Cormorant Garamond, Mountains of Christmas) är samma lokala filer som v1, hämtade via `@remotion/google-fonts`.
+- Rendering i molnmiljön kräver `NODE_USE_ENV_PROXY=1` och `NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt`.
