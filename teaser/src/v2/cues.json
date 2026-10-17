@@ -257,8 +257,8 @@
     "a": 25.6,
     "b": 28.6,
     "text": "Snön, som sig själv",
-    "top": 1000,
-    "size": 72,
+    "top": 1010,
+    "size": 64,
     "variant": "caps"
    },
    {
@@ -266,15 +266,15 @@
     "b": 28.6,
     "text": "Kakaon, i en biroll",
     "top": 1130,
-    "size": 72,
+    "size": 64,
     "variant": "caps"
    },
    {
     "a": 29.2,
     "b": 32.0,
     "text": "Rekommenderas av tomten",
-    "top": 330,
-    "size": 84,
+    "top": 280,
+    "size": 72,
     "variant": "caps",
     "gold": true
    },
@@ -317,7 +317,7 @@
     "b": 39.0,
     "text": "Första luckan öppnas 29 november.",
     "top": 960,
-    "size": 80,
+    "size": 66,
     "variant": "caps"
    }
   ],
