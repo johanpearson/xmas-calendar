@@ -1,0 +1,367 @@
+{
+ "A": {
+  "duration": 39,
+  "hoho": [
+   23.4
+  ],
+  "poff": [
+   28.7
+  ],
+  "lines": [
+   {
+    "a": 0.8,
+    "b": 4.6,
+    "text": "I en liten stad där snön får ligga kvar...",
+    "top": 330,
+    "size": 78
+   },
+   {
+    "a": 5.2,
+    "b": 9.2,
+    "text": "...bor en man med en plan.",
+    "top": 330,
+    "size": 84
+   },
+   {
+    "a": 10.0,
+    "b": 13.6,
+    "text": "En plan som kräver lim, tålamod och tystnad.",
+    "top": 300,
+    "size": 76
+   },
+   {
+    "a": 14.0,
+    "b": 16.9,
+    "text": "Elin får inte veta.",
+    "top": 330,
+    "size": 88
+   },
+   {
+    "a": 16.9,
+    "b": 19.9,
+    "text": "Snön faller. Kakaon puttrar.",
+    "top": 330,
+    "size": 80
+   },
+   {
+    "a": 20.1,
+    "b": 22.7,
+    "text": "Det är nästan lite för tyst.",
+    "top": 330,
+    "size": 80
+   },
+   {
+    "a": 23.6,
+    "b": 27.3,
+    "text": "Någon i röd luva har redan tjuvkikat.",
+    "top": 300,
+    "size": 76
+   },
+   {
+    "a": 27.8,
+    "b": 31.3,
+    "text": "Lucka för lucka. Dag för dag.",
+    "top": 330,
+    "size": 84
+   },
+   {
+    "a": 31.8,
+    "b": 35.4,
+    "text": "Adventskalendern",
+    "top": 620,
+    "size": 104,
+    "font": "title",
+    "gold": true
+   },
+   {
+    "a": 32.2,
+    "b": 35.4,
+    "text": "2026",
+    "top": 760,
+    "size": 150,
+    "font": "title",
+    "gold": true
+   },
+   {
+    "a": 33.0,
+    "b": 35.4,
+    "text": "Till Elin",
+    "top": 1050,
+    "size": 86
+   },
+   {
+    "a": 35.6,
+    "b": 38.9,
+    "text": "Från Johan",
+    "top": 760,
+    "size": 100
+   },
+   {
+    "a": 36.3,
+    "b": 38.9,
+    "text": "Första luckan öppnas 29 november.",
+    "top": 960,
+    "size": 80
+   }
+  ],
+  "hints": [
+   {
+    "kind": "cat",
+    "a": 10.6,
+    "dur": 1.3
+   },
+   {
+    "kind": "magnifier",
+    "a": 14.6,
+    "dur": 1.3
+   },
+   {
+    "kind": "footprints",
+    "a": 17.4,
+    "dur": 1.4
+   },
+   {
+    "kind": "cup",
+    "a": 20.4,
+    "dur": 1.4
+   },
+   {
+    "kind": "cookie",
+    "a": 25.8,
+    "dur": 1.3
+   },
+   {
+    "kind": "polaroid",
+    "a": 28.6,
+    "dur": 1.3
+   },
+   {
+    "kind": "candle",
+    "a": 32.4,
+    "dur": 1.4
+   }
+  ]
+ },
+ "B": {
+  "duration": 39.2,
+  "hoho": [
+   29.3
+  ],
+  "poff": [
+   29.2
+  ],
+  "lines": [
+   {
+    "a": 0.4,
+    "b": 3.0,
+    "text": "I en värld av snö och kakao...",
+    "top": 820,
+    "size": 72,
+    "variant": "caps"
+   },
+   {
+    "a": 3.2,
+    "b": 6.0,
+    "text": "...har en man en plan.",
+    "top": 330,
+    "size": 76,
+    "variant": "caps"
+   },
+   {
+    "a": 6.2,
+    "b": 8.8,
+    "text": "Kapitel ett",
+    "top": 660,
+    "size": 66,
+    "variant": "caps",
+    "gold": true
+   },
+   {
+    "a": 6.4,
+    "b": 8.8,
+    "text": "Planen",
+    "top": 780,
+    "size": 150,
+    "font": "title",
+    "gold": true
+   },
+   {
+    "a": 9.2,
+    "b": 12.7,
+    "text": "Baserad på en sann adventskalender",
+    "top": 300,
+    "size": 72,
+    "variant": "caps"
+   },
+   {
+    "a": 13.0,
+    "b": 15.6,
+    "text": "Kapitel två",
+    "top": 660,
+    "size": 66,
+    "variant": "caps",
+    "gold": true
+   },
+   {
+    "a": 13.2,
+    "b": 15.6,
+    "text": "Hemligheten",
+    "top": 780,
+    "size": 124,
+    "font": "title",
+    "gold": true
+   },
+   {
+    "a": 15.9,
+    "b": 19.6,
+    "text": "Hon anar ingenting. Nästan.",
+    "top": 330,
+    "size": 76,
+    "variant": "caps"
+   },
+   {
+    "a": 20.0,
+    "b": 23.6,
+    "text": "I år kommer julen i luckor",
+    "top": 330,
+    "size": 88,
+    "variant": "caps",
+    "gold": true
+   },
+   {
+    "a": 24.0,
+    "b": 28.6,
+    "text": "Medverkande",
+    "top": 330,
+    "size": 66,
+    "variant": "caps",
+    "gold": true
+   },
+   {
+    "a": 24.4,
+    "b": 28.6,
+    "text": "Elin",
+    "top": 560,
+    "size": 130,
+    "font": "title"
+   },
+   {
+    "a": 25.0,
+    "b": 28.6,
+    "text": "Johan",
+    "top": 760,
+    "size": 130,
+    "font": "title"
+   },
+   {
+    "a": 25.6,
+    "b": 28.6,
+    "text": "Snön, som sig själv",
+    "top": 1000,
+    "size": 72,
+    "variant": "caps"
+   },
+   {
+    "a": 26.2,
+    "b": 28.6,
+    "text": "Kakaon, i en biroll",
+    "top": 1130,
+    "size": 72,
+    "variant": "caps"
+   },
+   {
+    "a": 29.2,
+    "b": 32.0,
+    "text": "Rekommenderas av tomten",
+    "top": 330,
+    "size": 84,
+    "variant": "caps",
+    "gold": true
+   },
+   {
+    "a": 32.4,
+    "b": 35.4,
+    "text": "Adventskalendern",
+    "top": 620,
+    "size": 104,
+    "font": "title",
+    "gold": true
+   },
+   {
+    "a": 32.7,
+    "b": 35.4,
+    "text": "2026",
+    "top": 760,
+    "size": 150,
+    "font": "title",
+    "gold": true
+   },
+   {
+    "a": 33.2,
+    "b": 35.4,
+    "text": "Till Elin",
+    "top": 1050,
+    "size": 86,
+    "variant": "caps"
+   },
+   {
+    "a": 35.6,
+    "b": 39.0,
+    "text": "Från Johan",
+    "top": 760,
+    "size": 100,
+    "variant": "caps"
+   },
+   {
+    "a": 36.2,
+    "b": 39.0,
+    "text": "Första luckan öppnas 29 november.",
+    "top": 960,
+    "size": 80,
+    "variant": "caps"
+   }
+  ],
+  "hints": [
+   {
+    "kind": "cat",
+    "a": 9.8,
+    "dur": 1.3
+   },
+   {
+    "kind": "magnifier",
+    "a": 11.2,
+    "dur": 1.4
+   },
+   {
+    "kind": "question",
+    "a": 13.8,
+    "dur": 1.4
+   },
+   {
+    "kind": "footprints",
+    "a": 16.4,
+    "dur": 1.4
+   },
+   {
+    "kind": "cup",
+    "a": 18.2,
+    "dur": 1.3
+   },
+   {
+    "kind": "cookie",
+    "a": 21.6,
+    "dur": 1.3
+   },
+   {
+    "kind": "box",
+    "a": 30.2,
+    "dur": 1.4
+   },
+   {
+    "kind": "candle",
+    "a": 33.4,
+    "dur": 1.4
+   }
+  ]
+ }
+}
